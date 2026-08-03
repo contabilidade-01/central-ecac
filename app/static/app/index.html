@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Integra Contador Desktop</title>
+    <script type="module" crossorigin src="/assets/index-BV8l56Oy.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BrQWbY9G.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Converter campos sensíveis para type="password" após renderização
+      const observer = new MutationObserver(() => {
+        document.querySelectorAll('label').forEach(label => {
+          const text = label.textContent.trim().toLowerCase();
+          if (text.includes('consumer key') || text.includes('consumer secret') ||
+              text.includes('senha do certificado') || text.includes('senha do procurador')) {
+            const input = label.parentElement.querySelector('input[type="text"], input:not([type])');
+            if (input && input.type !== 'password') {
+              input.type = 'password';
+              input.autocomplete = 'off';
+            }
+          }
+        });
+      });
+      observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+    </script>
+  </body>
+</html>

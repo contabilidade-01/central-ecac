@@ -1,0 +1,28 @@
+# Mantém a imagem pequena e impede que dado local vaze para dentro do container.
+# O que o container precisa é só: app/, scripts/, requirements.txt, wsgi.py.
+
+.git
+.gitignore
+.venv
+venv
+__pycache__
+**/__pycache__
+*.py[cod]
+
+# Dados locais — no servidor eles vivem no VOLUME /data
+instance/
+reports/
+certificates/
+licenses/
+logs/
+*.db
+*.log
+*.pfx
+.env
+
+# Documentação e ferramentas que não rodam em produção
+docs/
+*.md
+.claude/
+.vscode/
+.idea/

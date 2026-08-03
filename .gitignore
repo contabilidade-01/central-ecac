@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------
+# NUNCA versionar: dados de clientes, credenciais e certificados.
+# O repositório é PÚBLICO ou privado — em qualquer caso, estes arquivos não entram.
+# ---------------------------------------------------------------------------
+
+# Banco (contém CNPJs, débitos, mensagens do e-CAC e a SENHA do certificado)
+instance/
+*.db
+*.db-journal
+*.sqlite3
+
+# Certificado digital A1 (.pfx) — sobe direto no volume do servidor, nunca no git
+certificates/
+*.pfx
+*.p12
+*.pem
+*.key
+
+# PDFs de situação fiscal dos clientes
+reports/
+
+# Licenças e mapa de procurações (dado operacional)
+licenses/
+procuracoes.json
+
+# Backups gerados por scripts/backup_dados.py
+backups/
+
+# Segredos
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Sistema operacional / editores
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+.claude/
+
+# Artefatos de engenharia reversa (ficam em ../_ARQUIVO/, fora do repositório)
+*_extracted/
+dis_saida_*.txt

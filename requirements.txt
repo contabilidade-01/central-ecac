@@ -1,0 +1,36 @@
+# Central Pendências e-CAC — dependências
+#
+# ⚠️ AS VERSÕES ABAIXO SÃO AS QUE ESTÃO EM USO E FORAM TESTADAS CONTRA A SERPRO REAL
+# (venv da máquina do Jean, Python 3.13.12). A lista anterior fixava versões mais
+# ANTIGAS, herdadas do PyInstaller — subir com elas colocaria em produção um ambiente
+# diferente do que foi validado, que é exatamente o risco que se quer evitar.
+#
+# Conferida contra os imports reais de `app/`, `scripts/` e `wsgi.py`. Removidos os
+# pacotes que o sistema não usa (pandas, numpy, Pillow, httpx, xlrd, html5lib,
+# beautifulsoup4, PyYAML, psutil, python-dateutil, defusedxml, colorama, python-dotenv).
+
+# --- Web ---------------------------------------------------------------------
+Flask==3.1.3
+flask-cors==4.0.0
+flask-sqlalchemy==3.1.1
+SQLAlchemy==2.0.35
+Werkzeug==3.1.7
+
+# --- Servidor ----------------------------------------------------------------
+gunicorn==23.0.0        # produção (Linux/Docker) — ver wsgi.py
+waitress==3.0.0         # execução local no Windows (main_production.py)
+
+# --- SERPRO / rede -----------------------------------------------------------
+requests==2.32.5
+requests-pkcs12==1.27   # mTLS com o certificado A1 (.pfx) — usado em serpro_service
+pycurl==7.45.7          # POST no gateway Integra Contador (padrão do exe)
+certifi==2026.2.25
+
+# --- Certificado digital e assinatura XML ------------------------------------
+cryptography==46.0.5
+signxml==5.1.0          # assinatura da procuração eletrônica (módulo procurador)
+lxml==6.1.1
+
+# --- Documentos --------------------------------------------------------------
+PyPDF2==3.0.1           # leitura do PDF de situação fiscal
+openpyxl==3.1.5         # exportações .xlsx de pagamentos

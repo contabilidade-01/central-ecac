@@ -15,7 +15,7 @@ pendências, parcelamentos, caixa postal do e-CAC, emissão de DAS/DARF e pagame
 
 | Documento | Para quê |
 |---|---|
-| [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Como o sistema é organizado, o que é fiel ao exe e os **10 desvios intencionais** |
+| [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Como o sistema é organizado, o que é fiel ao exe e os **11 desvios intencionais** |
 | [docs/DEPLOY_EASYPANEL.md](docs/DEPLOY_EASYPANEL.md) | **Passo a passo do deploy**: GitHub → EasyPanel → subdomínio → HTTPS |
 | [docs/OPERACAO.md](docs/OPERACAO.md) | Rotina do dia a dia: custos da API, backup, restauração, o que é grátis e o que é pago |
 | [docs/MELHORIAS.md](docs/MELHORIAS.md) | Lista priorizada de melhorias — o que já foi feito e o que falta |
@@ -35,6 +35,7 @@ páginas próprias servidas pelo Flask:
 | `/agendamento` | Frequência de cada rotina automática, teto mensal de gasto e execução manual |
 | `/login` · `/logout` | Entrada do sistema (sessão) [desvio 10] |
 | `/primeiro-acesso` | Definição da senha na primeira vez |
+| `/restaurar` | Envio do banco e do certificado A1 pelo navegador [desvio 11] |
 | `/healthz` | Healthcheck (sem login) |
 
 ## Rodando localmente (Windows)

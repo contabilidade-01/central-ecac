@@ -197,6 +197,26 @@ Cloudflare em **DNS only**, monitorar em **grupos pequenos** de empresas, ou dei
 
 ## Passo 6 — Subir o certificado A1 e restaurar os dados
 
+### Pelo navegador (recomendado — sem terminal)
+
+Entre no sistema e abra **`https://ecac.gestaoempresa.com/restaurar`**. A tela recebe os
+dois arquivos direto do seu computador:
+
+| O quê | Onde está no seu PC |
+|---|---|
+| Banco | `…\Central Pendencias Ecac\Central eCac\instance\integra_contador.db` |
+| Certificado | `…\Central Pendencias Ecac\Central eCac\certificates\contador_certificado.pfx` |
+
+Quem grava é o próprio app, então **não é preciso `chown`**: os arquivos já nascem com o
+dono que o container usa. O banco atual vai para `backups/` antes da troca, e o arquivo
+enviado é validado — se não for um banco válido da Central, é recusado e o anterior volta
+sozinho. O caminho do certificado nas Configurações é atualizado automaticamente.
+
+Terminado o envio, o menu da SPA destrava (ele fica bloqueado enquanto a tabela `settings`
+estiver vazia).
+
+### Pelo terminal (alternativa)
+
 O certificado **não está no repositório** (e não deve estar). Duas formas de colocá-lo no
 volume:
 

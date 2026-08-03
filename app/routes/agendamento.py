@@ -11,6 +11,7 @@ Rotas: `/agendamento` (página) e `/api/agendamento*` (API).
 
 from flask import Blueprint, jsonify, render_template_string, request
 
+from app.ui import CSS, topo
 from app.services.agendamento_service import (
     MODULOS,
     executar_modulo,
@@ -70,40 +71,11 @@ PAGINA = """
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Automação — Central Pendências e-CAC</title>
-<style>
-  :root { color-scheme: light dark; }
-  body { font-family: system-ui, "Segoe UI", sans-serif; margin:0; padding:24px;
-         background:#f5f6f8; color:#1c1e21; }
-  @media (prefers-color-scheme: dark) { body { background:#15171a; color:#e8eaed; }
-    .card { background:#1e2125 !important; border-color:#2c3036 !important; }
-    input, select { background:#15171a !important; color:#e8eaed !important;
-                    border-color:#2c3036 !important; } }
-  h1 { font-size:20px; margin:0 0 4px; }
-  p.sub { margin:0 0 20px; color:#6b7280; font-size:14px; }
-  .card { background:#fff; border:1px solid #e3e5e8; border-radius:10px; padding:16px;
-          margin-bottom:16px; }
-  .card h3 { margin:0 0 4px; font-size:16px; }
-  .card .desc { color:#6b7280; font-size:13px; margin:0 0 12px; }
-  .linha { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
-  label { display:block; font-size:12px; color:#6b7280; margin-bottom:4px; }
-  input, select { font:inherit; padding:6px 8px; border:1px solid #c7cad1;
-                  border-radius:6px; background:#fff; }
-  button { font:inherit; padding:6px 14px; border-radius:6px; border:1px solid #c7cad1;
-           background:#fff; cursor:pointer; }
-  button.primario { background:#1a73e8; color:#fff; border-color:#1a73e8; }
-  button.perigo { background:#fff; color:#b3261e; border-color:#e6b4b0; }
-  button:hover { filter:brightness(0.97); }
-  .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px;
-           font-weight:600; }
-  .on { background:#e6f4ea; color:#137333; }
-  .off { background:#eceff1; color:#5f6368; }
-  .aviso { background:#fef7e0; color:#8a6116; padding:10px 12px; border-radius:8px;
-           font-size:13px; margin-bottom:16px; }
-  .custo { font-size:12px; color:#8a6116; }
-  .rodape { font-size:12px; color:#6b7280; margin-top:8px; }
-</style>
+<style>""" + CSS + """</style>
 </head>
 <body>
+""" + topo() + """
+<div class="wrap">
   <h1>Automação das rotinas</h1>
   <p class="sub">
     Cada módulo roda sozinho na frequência escolhida. Antes de gastar, o sistema respeita
@@ -254,6 +226,7 @@ async function executar(modulo) {
 
 carregar();
 </script>
+</div>
 </body>
 </html>
 """

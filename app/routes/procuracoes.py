@@ -11,9 +11,12 @@ Rotas (prefixo `/api/procuracoes` + a página em `/procuracoes`) — não aparec
 auditoria de rotas porque ela só compara os prefixos que existem no exe.
 """
 
-from flask import Blueprint, jsonify, render_template_string, request
+import threading
+
+from flask import Blueprint, current_app, jsonify, render_template_string, request
 
 from app.models import Company
+from app.ui import CSS, topo
 from app.services.procuracao_service import (
     SITUACAO_DESCONHECIDA,
     SITUACAO_OK,
@@ -22,6 +25,8 @@ from app.services.procuracao_service import (
 )
 
 procuracoes_bp = Blueprint('procuracoes', __name__)
+
+_VARREDURA_LOCK = threading.Lock()
 
 
 def _linhas():
@@ -79,6 +84,67 @@ def marcar_procuracao():
     return jsonify({'success': True, 'registro': registro})
 
 
+# ------------------------------------------------------------ varredura grátis
+
+@procuracoes_bp.post('/api/procuracoes/varredura')
+def varredura_gratuita():
+    """Sonda TODAS as empresas com o indicador da caixa postal — custo R$ 0,00.
+
+    O indicador (`INNOVAMSG63`) **não é cobrado** — o próprio frontend do exe declara
+    isso, e por isso `monitorar_empresa` não chama `register_usage`. Aqui ele é usado
+    só como sonda: quem a SERPRO recusar fica marcado no mapa de procurações
+    (`registrar_erro`), e quem responder é reabilitado (`registrar_sucesso`).
+
+    `baixar_mensagens_quando_houver=False` é o que mantém o custo em zero: sem isso, a
+    rota do botão "Monitorar" baixaria lista e detalhe (PAGOS) de quem tivesse mensagem
+    nova. É a única diferença entre esta varredura e aquele botão.
+
+    Roda em thread e devolve na hora, porque com 72 empresas leva minutos e um proxy
+    no meio derrubaria a requisição por timeout. O acompanhamento sai no MONITOR_STATUS.
+    """
+    from app.services.caixa_postal_service import CaixaPostalService, get_monitor_status
+
+    if get_monitor_status().get('running'):
+        return jsonify({'success': False,
+                        'message': 'Já existe uma varredura em andamento.'}), 409
+
+    if not _VARREDURA_LOCK.acquire(blocking=False):
+        return jsonify({'success': False,
+                        'message': 'Já existe uma varredura em andamento.'}), 409
+
+    payload = request.get_json(silent=True) or {}
+    company_ids = payload.get('company_ids') or None
+    app = current_app._get_current_object()
+
+    def _rodar():
+        try:
+            with app.app_context():
+                CaixaPostalService().monitorar_todas_empresas(
+                    only_if_due=False,
+                    baixar_mensagens_quando_houver=False,   # <- mantém o custo em zero
+                    company_ids=company_ids,
+                )
+        except Exception:
+            app.logger.exception('[PROCURACOES] varredura gratuita falhou')
+        finally:
+            _VARREDURA_LOCK.release()
+
+    threading.Thread(target=_rodar, daemon=True).start()
+
+    total = Company.query.filter_by(ativo=True).count() if not company_ids else len(company_ids)
+    return jsonify({
+        'success': True,
+        'total': total,
+        'message': f'Varredura iniciada em {total} empresa(s). Custo: R$ 0,00.',
+    })
+
+
+@procuracoes_bp.get('/api/procuracoes/varredura/status')
+def status_varredura():
+    from app.services.caixa_postal_service import get_monitor_status
+    return jsonify(get_monitor_status())
+
+
 PAGINA = """
 <!doctype html>
 <html lang="pt-br">
@@ -86,47 +152,28 @@ PAGINA = """
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Procurações — Central Pendências e-CAC</title>
-<style>
-  :root { color-scheme: light dark; }
-  body { font-family: system-ui, "Segoe UI", sans-serif; margin: 0; padding: 24px;
-         background: #f5f6f8; color: #1c1e21; }
-  @media (prefers-color-scheme: dark) { body { background:#15171a; color:#e8eaed; }
-    .card { background:#1e2125 !important; border-color:#2c3036 !important; }
-    th { background:#23262b !important; } td, th { border-color:#2c3036 !important; } }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  p.sub { margin: 0 0 20px; color: #6b7280; font-size: 14px; }
-  .card { background:#fff; border:1px solid #e3e5e8; border-radius:10px; padding:16px;
-          margin-bottom:16px; }
-  .tiles { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
-  .tile { flex:1 1 150px; background:#fff; border:1px solid #e3e5e8; border-radius:10px;
-          padding:12px 16px; }
-  .tile b { display:block; font-size:26px; line-height:1.2; }
-  .tile span { font-size:12px; color:#6b7280; text-transform:uppercase; letter-spacing:.04em; }
-  .table-wrap { overflow-x:auto; }
-  table { border-collapse: collapse; width:100%; font-size:13px; }
-  th, td { border-bottom:1px solid #e3e5e8; padding:8px 10px; text-align:left;
-           vertical-align:top; }
-  th { background:#f0f1f3; font-weight:600; position:sticky; top:0; }
-  .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px;
-           font-weight:600; white-space:nowrap; }
-  .ok   { background:#e6f4ea; color:#137333; }
-  .warn { background:#fef7e0; color:#8a6116; }
-  .bad  { background:#fce8e6; color:#b3261e; }
-  .mute { background:#eceff1; color:#5f6368; }
-  button { font: inherit; padding:4px 10px; border-radius:6px; border:1px solid #c7cad1;
-           background:#fff; cursor:pointer; }
-  button:hover { background:#f0f1f3; }
-  code { font-size:12px; word-break:break-word; }
-  .erro { color:#b3261e; }
-</style>
+<style>""" + CSS + """</style>
 </head>
 <body>
-  <h1>Procurações e bloqueio de chamadas pagas</h1>
+""" + topo() + """
+<div class="wrap">
+  <h1>Procurações</h1>
   <p class="sub">
-    O indicador da caixa postal é <b>gratuito</b> e serve de sonda: quem a SERPRO recusa
-    fica marcado aqui e deixa de consumir as chamadas <b>pagas</b> (lista e detalhe).
-    Esta tela não faz nenhuma chamada à SERPRO.
+    Descubra <b>quem a Receita recusa</b> antes de gastar. A sondagem usa o indicador da
+    caixa postal, que é <b>gratuito</b> — quem recusar fica marcado aqui e deixa de
+    consumir as chamadas <b>pagas</b> (lista e detalhe de mensagens).
   </p>
+
+  <div class="card">
+    <h2>Verificar agora</h2>
+    <p class="dica">
+      Passa por todas as empresas ativas perguntando à Receita se a procuração responde.
+      <b>Custo: R$ 0,00</b> — nenhuma chamada paga é feita. Leva alguns minutos.
+    </p>
+    <button class="primario" id="btn-varrer" onclick="varrer()">
+      Verificar todas as empresas — grátis</button>
+    <div id="progresso"></div>
+  </div>
 
   <div class="tiles" id="tiles"></div>
 
@@ -146,8 +193,8 @@ PAGINA = """
 
 <script>
 const BADGE = { ok:'ok', sem_procuracao:'bad', erro:'warn', desconhecida:'mute' };
-const ROTULO = { ok:'Com procuração', sem_procuracao:'SEM procuração',
-                 erro:'Erro', desconhecida:'Não verificada' };
+const ROTULO = { ok:'Responde', sem_procuracao:'SEM procuração',
+                 erro:'Recusada', desconhecida:'Ainda não verificada' };
 
 function texto(v) { return (v === null || v === undefined || v === '') ? '—' : String(v); }
 
@@ -157,10 +204,10 @@ async function carregar() {
   const c = d.contagem || {};
   document.getElementById('tiles').innerHTML = `
     <div class="tile"><span>Empresas</span><b>${d.empresas.length}</b></div>
-    <div class="tile"><span>Com procuração</span><b>${c.ok || 0}</b></div>
+    <div class="tile"><span>Respondem</span><b>${c.ok || 0}</b></div>
     <div class="tile"><span>Sem procuração</span><b>${c.sem_procuracao || 0}</b></div>
-    <div class="tile"><span>Com erro</span><b>${c.erro || 0}</b></div>
-    <div class="tile"><span>Não verificadas</span><b>${c.desconhecida || 0}</b></div>`;
+    <div class="tile"><span>Recusadas</span><b>${c.erro || 0}</b></div>
+    <div class="tile"><span>Ainda não verificadas</span><b>${c.desconhecida || 0}</b></div>`;
 
   document.getElementById('corpo').innerHTML = d.empresas.map(e => {
     const erro = e.erro_texto || e.erro_codigo
@@ -183,6 +230,51 @@ async function carregar() {
   }).join('');
 }
 
+async function varrer() {
+  const botao = document.getElementById('btn-varrer');
+  const alvo = document.getElementById('progresso');
+  botao.disabled = true;
+  alvo.className = 'msg ok';
+  alvo.textContent = 'Iniciando…';
+
+  const r = await fetch('/api/procuracoes/varredura', {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}',
+  });
+  const j = await r.json();
+  if (!j.success) {
+    alvo.className = 'msg bad'; alvo.textContent = j.message || 'Falhou.';
+    botao.disabled = false; return;
+  }
+  alvo.textContent = j.message;
+  acompanhar();
+}
+
+async function acompanhar() {
+  const alvo = document.getElementById('progresso');
+  const botao = document.getElementById('btn-varrer');
+  try {
+    const r = await fetch('/api/procuracoes/varredura/status');
+    const s = await r.json();
+    if (s.running) {
+      const total = s.total || 0, feitas = s.checked || 0;
+      alvo.className = 'msg ok';
+      alvo.textContent = `Verificando ${feitas} de ${total}…`
+        + (s.current_company_name ? ' (' + s.current_company_name + ')' : '');
+      carregar();
+      setTimeout(acompanhar, 2500);
+      return;
+    }
+    alvo.className = 'msg ok';
+    alvo.textContent = `Concluído: ${s.checked || 0} empresa(s) verificadas, `
+      + `${s.errors || 0} com erro. Custo: R$ 0,00.`;
+  } catch (e) {
+    alvo.className = 'msg bad';
+    alvo.textContent = 'Perdi o acompanhamento: ' + e.message;
+  }
+  botao.disabled = false;
+  carregar();
+}
+
 async function marcar(cnpj, situacao) {
   await fetch('/api/procuracoes/marcar', {
     method: 'POST',
@@ -194,6 +286,7 @@ async function marcar(cnpj, situacao) {
 
 carregar();
 </script>
+</div>
 </body>
 </html>
 """

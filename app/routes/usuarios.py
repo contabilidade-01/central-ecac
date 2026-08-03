@@ -19,6 +19,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, render_template_string, request
 
 from app.models import Company
+from app.ui import CSS, topo
 from app.services import permissoes, usuarios_service
 
 usuarios_bp = Blueprint('usuarios', __name__)
@@ -113,61 +114,10 @@ PAGINA = """
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Usuários e acessos — Central Pendências e-CAC</title>
-<style>
-  :root { color-scheme: light dark; }
-  * { box-sizing: border-box; }
-  body { font-family: system-ui, "Segoe UI", sans-serif; margin:0; padding:24px;
-         background:#f5f6f8; color:#1c1e21; }
-  @media (prefers-color-scheme: dark) {
-    body { background:#15171a; color:#e8eaed; }
-    .card, .tile { background:#1e2125 !important; border-color:#2c3036 !important; }
-    input, select { background:#15171a !important; color:#e8eaed !important;
-                    border-color:#2c3036 !important; }
-    th { background:#23262b !important; } td, th { border-color:#2c3036 !important; } }
-  .wrap { max-width:1080px; margin:0 auto; }
-  h1 { font-size:20px; margin:0 0 4px; }
-  p.sub { margin:0 0 20px; color:#6b7280; font-size:14px; line-height:1.55; }
-  .card { background:#fff; border:1px solid #e3e5e8; border-radius:10px; padding:18px;
-          margin-bottom:16px; }
-  h2 { font-size:15px; margin:0 0 12px; }
-  table { border-collapse:collapse; width:100%; font-size:13px; }
-  th, td { border-bottom:1px solid #e3e5e8; padding:8px 10px; text-align:left;
-           vertical-align:top; }
-  th { background:#f0f1f3; font-weight:600; }
-  .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px;
-           font-weight:600; }
-  .ok { background:#e6f4ea; color:#137333; }
-  .warn { background:#fef7e0; color:#8a6116; }
-  .mute { background:#eceff1; color:#5f6368; }
-  .adm { background:#e8f0fe; color:#1a56c4; }
-  button { font:inherit; padding:6px 12px; border-radius:7px; border:1px solid #c7cad1;
-           background:#fff; cursor:pointer; margin:0 4px 4px 0; }
-  button:hover { background:#f0f1f3; }
-  button.primario { background:#1a73e8; color:#fff; border-color:#1a73e8; font-weight:600; }
-  button.primario:hover { background:#1666d0; }
-  button.perigo { color:#b3261e; border-color:#f3c1bc; }
-  input, select { font:inherit; padding:8px 10px; border:1px solid #c7cad1;
-                  border-radius:7px; }
-  label.linha { display:block; font-size:13px; font-weight:600; margin:0 0 6px; }
-  .grade { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
-  .caixas { display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:8px; }
-  .caixas label { font-size:13px; font-weight:400; display:flex; gap:6px;
-                  align-items:center; }
-  .msg { margin-top:12px; padding:10px 12px; border-radius:8px; font-size:13px;
-         line-height:1.5; }
-  .msg.ok { background:#e6f4ea; color:#137333; }
-  .msg.bad { background:#fce8e6; color:#b3261e; }
-  .link-box { margin-top:10px; padding:12px; border:1px dashed #1a73e8; border-radius:8px;
-              background:#f6f9ff; }
-  @media (prefers-color-scheme: dark) { .link-box { background:#16202e; } }
-  .link-box code { display:block; word-break:break-all; font-size:12px; margin:6px 0; }
-  dialog { border:1px solid #e3e5e8; border-radius:12px; padding:20px; max-width:640px;
-           width:92%; }
-  .rodape { font-size:13px; color:#6b7280; text-align:center; margin-top:20px; }
-  a { color:#1a73e8; }
-</style>
+<style>""" + CSS + """</style>
 </head>
 <body>
+""" + topo() + """
 <div class="wrap">
   <h1>Usuários e acessos</h1>
   <p class="sub">

@@ -31,6 +31,7 @@ from flask import Blueprint, jsonify, render_template_string, request
 
 from app.extensions import db
 from app.models import AppSetting, Company
+from app.ui import CSS, topo
 
 restaurar_bp = Blueprint('restaurar', __name__)
 
@@ -225,43 +226,10 @@ PAGINA = """
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Restaurar dados — Central Pendências e-CAC</title>
-<style>
-  :root { color-scheme: light dark; }
-  * { box-sizing: border-box; }
-  body { font-family: system-ui, "Segoe UI", sans-serif; margin:0; padding:24px;
-         background:#f5f6f8; color:#1c1e21; }
-  @media (prefers-color-scheme: dark) {
-    body { background:#15171a; color:#e8eaed; }
-    .card { background:#1e2125 !important; border-color:#2c3036 !important; } }
-  .wrap { max-width:720px; margin:0 auto; }
-  h1 { font-size:20px; margin:0 0 4px; }
-  p.sub { margin:0 0 20px; color:#6b7280; font-size:14px; line-height:1.55; }
-  .card { background:#fff; border:1px solid #e3e5e8; border-radius:10px; padding:18px;
-          margin-bottom:16px; }
-  h2 { font-size:15px; margin:0 0 6px; }
-  .dica { color:#6b7280; font-size:13px; margin:0 0 14px; line-height:1.5; }
-  .tiles { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
-  .tile { flex:1 1 150px; background:#fff; border:1px solid #e3e5e8; border-radius:10px;
-          padding:12px 16px; }
-  .tile b { display:block; font-size:22px; line-height:1.3; }
-  .tile span { font-size:11px; color:#6b7280; text-transform:uppercase;
-               letter-spacing:.04em; }
-  @media (prefers-color-scheme: dark) { .tile { background:#1e2125; border-color:#2c3036; } }
-  input[type=file] { display:block; width:100%; font:inherit; margin-bottom:12px; }
-  button { font:inherit; font-weight:600; padding:9px 16px; border:0; border-radius:8px;
-           background:#1a73e8; color:#fff; cursor:pointer; }
-  button:hover { background:#1666d0; }
-  button:disabled { background:#9aa0a6; cursor:progress; }
-  .msg { margin-top:12px; padding:10px 12px; border-radius:8px; font-size:13px;
-         line-height:1.5; }
-  .ok { background:#e6f4ea; color:#137333; }
-  .bad { background:#fce8e6; color:#b3261e; }
-  .caminho { font-size:12px; color:#6b7280; word-break:break-all; }
-  .rodape { font-size:13px; color:#6b7280; text-align:center; margin-top:20px; }
-  a { color:#1a73e8; }
-</style>
+<style>""" + CSS + """</style>
 </head>
 <body>
+""" + topo() + """
 <div class="wrap">
   <h1>Restaurar dados</h1>
   <p class="sub">

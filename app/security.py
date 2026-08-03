@@ -43,6 +43,7 @@ from flask import (Response, jsonify, redirect, render_template_string, request,
                    session, url_for)
 
 from app.services import permissoes, usuarios_service
+from app.ui import CSS, SELO
 
 CAMINHOS_LIVRES = ('/healthz', '/login', '/logout', '/primeiro-acesso',
                    '/definir-senha')
@@ -427,43 +428,17 @@ def registrar_seguranca(app) -> None:
 
 # --------------------------------------------------------------------- telas
 
-_BASE_CSS = """
-  :root { color-scheme: light dark; }
-  * { box-sizing: border-box; }
-  body { font-family: system-ui, "Segoe UI", sans-serif; margin:0; min-height:100vh;
-         display:flex; align-items:center; justify-content:center; padding:24px;
-         background:#f5f6f8; color:#1c1e21; }
-  @media (prefers-color-scheme: dark) {
-    body { background:#15171a; color:#e8eaed; }
-    .card { background:#1e2125 !important; border-color:#2c3036 !important; }
-    input { background:#15171a !important; color:#e8eaed !important;
-            border-color:#2c3036 !important; } }
-  .card { background:#fff; border:1px solid #e3e5e8; border-radius:12px; padding:28px;
-          width:100%; max-width:390px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-  h1 { font-size:19px; margin:0 0 4px; }
-  p.sub { margin:0 0 22px; color:#6b7280; font-size:13px; line-height:1.5; }
-  label { display:block; font-size:13px; font-weight:600; margin:0 0 6px; }
-  input { width:100%; font:inherit; padding:10px 12px; border:1px solid #c7cad1;
-          border-radius:8px; margin-bottom:16px; }
-  input:focus { outline:2px solid #1a73e8; outline-offset:1px; border-color:#1a73e8; }
-  button { width:100%; font:inherit; font-weight:600; padding:11px; border:0;
-           border-radius:8px; background:#1a73e8; color:#fff; cursor:pointer; }
-  button:hover { background:#1666d0; }
-  .erro { background:#fce8e6; color:#b3261e; border-radius:8px; padding:10px 12px;
-          font-size:13px; margin-bottom:16px; }
-  .aviso { background:#fef7e0; color:#8a6116; border-radius:8px; padding:10px 12px;
-           font-size:13px; margin-bottom:16px; line-height:1.5; }
-  .rodape { margin:18px 0 0; font-size:12px; color:#6b7280; text-align:center; }
-  a { color:#1a73e8; }
-"""
+_BASE_CSS = CSS
+
 
 PAGINA_LOGIN = """
 <!doctype html><html lang="pt-br"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Entrar — Central Pendências e-CAC</title><style>""" + _BASE_CSS + """</style></head>
-<body>
+<body class="centro">
   <form class="card" method="post" autocomplete="on">
-    <h1>Central Pendências e-CAC</h1>
+""" + SELO + """
+    <h1>Entrar</h1>
     <p class="sub">Acesso restrito. Sistema com dados fiscais de clientes.</p>
     {% if erro %}<div class="erro">{{ erro }}</div>{% endif %}
     <label for="usuario">Usuário</label>
@@ -472,7 +447,7 @@ PAGINA_LOGIN = """
     <label for="senha">Senha</label>
     <input id="senha" name="senha" type="password" autocomplete="current-password" required>
     <input type="hidden" name="proximo" value="{{ proximo }}">
-    <button type="submit">Entrar</button>
+    <button class="primario" type="submit">Entrar</button>
     <p class="rodape">Esqueceu a senha? Peça um link ao administrador.</p>
   </form>
 </body></html>
@@ -483,8 +458,9 @@ PAGINA_PRIMEIRO_ACESSO = """
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Primeiro acesso — Central Pendências e-CAC</title>
 <style>""" + _BASE_CSS + """</style></head>
-<body>
+<body class="centro">
   <form class="card" method="post" autocomplete="off">
+""" + SELO + """
     <h1>Primeiro acesso</h1>
     <p class="sub">
       Nenhuma credencial foi configurada. Defina o <b>administrador</b> do sistema —
@@ -503,7 +479,7 @@ PAGINA_PRIMEIRO_ACESSO = """
     <input id="senha" name="senha" type="password" required>
     <label for="confirmacao">Repita a senha</label>
     <input id="confirmacao" name="confirmacao" type="password" required>
-    <button type="submit">Definir e entrar</button>
+    <button class="primario" type="submit">Definir e entrar</button>
     <p class="rodape">A senha é gravada em hash, no volume de dados.</p>
   </form>
 </body></html>
@@ -514,7 +490,7 @@ PAGINA_DEFINIR_SENHA = """
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Definir senha — Central Pendências e-CAC</title>
 <style>""" + _BASE_CSS + """</style></head>
-<body>
+<body class="centro">
   {% if expirado %}
   <div class="card">
     <h1>Link inválido</h1>
@@ -539,7 +515,7 @@ PAGINA_DEFINIR_SENHA = """
     <label for="confirmacao">Repita a senha</label>
     <input id="confirmacao" name="confirmacao" type="password" required
            autocomplete="new-password">
-    <button type="submit">Salvar e entrar</button>
+    <button class="primario" type="submit">Salvar e entrar</button>
     <p class="rodape">Só você conhece esta senha — ela é gravada em hash.</p>
   </form>
   {% endif %}

@@ -15,7 +15,7 @@ pendências, parcelamentos, caixa postal do e-CAC, emissão de DAS/DARF e pagame
 
 | Documento | Para quê |
 |---|---|
-| [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Como o sistema é organizado, o que é fiel ao exe e os **8 desvios intencionais** |
+| [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Como o sistema é organizado, o que é fiel ao exe e os **9 desvios intencionais** |
 | [docs/DEPLOY_EASYPANEL.md](docs/DEPLOY_EASYPANEL.md) | **Passo a passo do deploy**: GitHub → EasyPanel → subdomínio → HTTPS |
 | [docs/OPERACAO.md](docs/OPERACAO.md) | Rotina do dia a dia: custos da API, backup, restauração, o que é grátis e o que é pago |
 | [docs/MELHORIAS.md](docs/MELHORIAS.md) | Lista priorizada de melhorias — o que já foi feito e o que falta |
@@ -58,7 +58,8 @@ docker compose up -d --build
 ```
 Central eCac/
 ├── app/
-│   ├── __init__.py           app factory, blueprints, hook da SPA
+│   ├── __init__.py           app factory, blueprints, hook da SPA,
+│   │                         config.json dinamico + ProxyFix [desvio 9]
 │   ├── config.py             DATA_DIR / banco / diretórios (lê variáveis de ambiente)
 │   ├── models.py             14 tabelas — schema idêntico ao do exe (NÃO alterar)
 │   ├── migrations.py         migrações idempotentes

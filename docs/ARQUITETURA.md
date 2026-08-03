@@ -34,7 +34,7 @@ verdade, não funcionavam.
 
 ---
 
-## Os 8 desvios intencionais
+## Os 9 desvios intencionais
 
 | # | O quê | Por quê | Onde |
 |---|---|---|---|
@@ -46,6 +46,29 @@ verdade, não funcionavam.
 | 6 | Não rebaixar detalhe já baixado e inalterado | o exe rebaixava a caixa inteira a cada consulta — 17 chamadas onde bastavam 2 | `caixa_postal_service.consultar_mensagens_empresa()` |
 | 7 | HTTP Basic + `/healthz` + erro 500 neutro | o exe era desktop em localhost; na internet as mesmas rotas expõem dados fiscais e botões que gastam dinheiro | `app/security.py` |
 | 8 | Agendamento automático + teto de gasto | o exe dependia de alguém clicar em cada botão; sem teto, um lote grande gasta sem freio (pedido do Jean) | `services/agendamento_service.py`, `services/limite_gasto_service.py`, `scheduler.py`, `routes/agendamento.py` |
+| 9 | `config.json` dinâmico + `ProxyFix` | a SPA compilada usa `server_url` do `config.json` como baseURL do axios; o arquivo traz `http://localhost:5847`, que **quebra em qualquer domínio** (e é conteúdo misto sob HTTPS). Sem o fonte do React, a correção tem de ser no servidor | `app/__init__.py` |
+
+### Detalhe do 9º — por que era bloqueador de deploy
+
+No boot, o bundle faz um `XMLHttpRequest` **síncrono** em `./config.json` e usa
+`server_url + '/api'`; sem resposta válida cai no fallback `http://127.0.0.1:5847/api`.
+Publicado em `https://ecac.gestaoempresa.com`, o navegador tentaria falar com o
+localhost **do usuário** — nenhuma tela carregaria dado.
+
+A rota devolve `request.host_url`, então serve local e servidor sem configuração e
+sobrevive a troca de domínio. O `ProxyFix` é o par necessário: atrás do Traefik do
+EasyPanel quem termina o TLS é o proxy, e sem honrar `X-Forwarded-Proto` o Flask
+responderia `http://…` — bloqueado pelo navegador como conteúdo misto.
+
+O `endswith('/config.json')` cobre a rota profunda: aberto direto em `/parcelamentos`,
+o pedido relativo vira `/parcelamentos/config.json`.
+
+**Testado:** local → `http://localhost:5847`; com `X-Forwarded-Proto: https` +
+`X-Forwarded-Host: ecac.gestaoempresa.com` → `https://ecac.gestaoempresa.com`; rota
+profunda idem; HTTP Basic seguiu 401/401/200 e `/healthz` livre.
+
+O arquivo estático `app/static/app/config.json` foi mantido como último recurso (se
+alguém servir a pasta sem o Flask).
 
 Um desvio anterior (registrar custo de API no monitoramento) foi **revertido**: o
 indicador é gratuito, conforme o próprio frontend do exe declara.

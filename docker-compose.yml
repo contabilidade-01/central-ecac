@@ -7,8 +7,8 @@
 services:
   app:
     build: .
-    image: central-pendencias-ecac:latest
-    container_name: central-pendencias-ecac
+    image: central-ecac:latest
+    container_name: central-ecac
     restart: unless-stopped
 
     ports:

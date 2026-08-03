@@ -29,15 +29,21 @@ Com 2 workers a barra de progresso ficaria pulando entre processos. Ver `wsgi.py
 
 ---
 
-## Passo 1 — Criar o repositório no GitHub
+## Passo 1 — Repositório local (JÁ FEITO em 03/08/2026)
 
-Na sua máquina, dentro de `projeto_recuperado`:
+O repositório **não fica no OneDrive**. Motivos: o OneDrive sincroniza a pasta `.git`
+inteira (conflitos e lentidão — chegou a levar minutos por leitura de arquivo durante a
+sincronização) e o GitHub Desktop já trabalha em `Documents\GitHub`.
 
-```bash
-git init && git add . && git commit -m "Central Pendencias e-CAC: versao inicial para deploy"
-```
+| | |
+|---|---|
+| **Repositório (código)** | `C:\Users\Jeandson\Documents\GitHub\central-ecac` |
+| **Pasta operacional (banco, .pfx, PDFs)** | `…\00_PROJETOS\Central Pendencias Ecac\Central eCac` |
 
-Confira que **nenhum dado sensível** entrou (o `.gitignore` já cuida disso):
+O commit inicial já existe (74 arquivos, só código). A conferência de segredos foi feita:
+nem consumer key/secret, nem senha de certificado, nem `.pfx`, nem banco entraram.
+
+Para repetir a conferência a qualquer momento:
 
 ```bash
 git status --porcelain --ignored | grep -E "instance/|certificates/|reports/|\.env$|\.pfx"
@@ -46,19 +52,28 @@ git status --porcelain --ignored | grep -E "instance/|certificates/|reports/|\.e
 Todos devem aparecer como ignorados (`!!`). Se algum aparecer como adicionado (`A`),
 **pare** e remova antes de publicar.
 
-Crie o repositório em <https://github.com/new> — **marque "Private"** — e envie:
+### Publicar no GitHub
+
+Crie o repositório em <https://github.com/new> — **marque "Private"**, sem README nem
+.gitignore (já existem aqui) — e envie:
 
 ```bash
-git remote add origin https://github.com/SEU_USUARIO/central-pendencias-ecac.git
-git branch -M main && git push -u origin main
+git remote add origin https://github.com/contabilidade-01/central-ecac.git
+git push -u origin main
 ```
+
+Pelo GitHub Desktop é equivalente: *File → Add local repository* → aponte para
+`Documents\GitHub\central-ecac` → *Publish repository* → marque **Keep this code private**.
+
+> ⚠️ O repositório **tem de ser privado**. Mesmo sem segredos, o código expõe a estrutura
+> de integração com a SERPRO e as regras fiscais do escritório.
 
 ---
 
 ## Passo 2 — Criar o serviço no EasyPanel
 
 1. No painel: **Project → Create Service → App**.
-2. Nome: `central-pendencias`.
+2. Nome: `central-ecac`.
 3. Aba **Source**: escolha **GitHub**, autorize o EasyPanel e selecione o repositório.
    Branch: `main`.
 4. Aba **Build**: selecione **Dockerfile**. Caminho: `Dockerfile` (raiz).
@@ -124,7 +139,7 @@ Aba **Domains** → **Add Domain**:
 
 | Campo | Valor |
 |---|---|
-| Host | `ecac.seudominio.com.br` |
+| Host | `ecac.gestaoempresa.com` |
 | Port | `5847` |
 | HTTPS | ligado |
 
@@ -140,8 +155,8 @@ registro A**:
 |---|---|---|---|
 | A | `ecac` | `<IP público da VPS>` | 3600 (ou automático) |
 
-- O **Nome** é só a parte da esquerda: digitando `ecac` no domínio `seudominio.com.br`
-  você cria `ecac.seudominio.com.br`. Alguns painéis exigem o nome completo — siga o
+- O **Nome** é só a parte da esquerda: digitando `ecac` no domínio `gestaoempresa.com`
+  você cria `ecac.gestaoempresa.com`. Alguns painéis exigem o nome completo — siga o
   formato que o seu mostrar nos registros existentes.
 - Use **A** (aponta para IP), não CNAME.
 - **Cloudflare:** deixe a nuvenzinha **cinza (DNS only)** até o HTTPS ser emitido. Com a
@@ -150,10 +165,23 @@ registro A**:
 - Propagação leva de minutos a algumas horas. Confira com:
 
 ```bash
-nslookup ecac.seudominio.com.br
+nslookup ecac.gestaoempresa.com
 ```
 
 Quando o IP retornado for o da VPS, clique em **Deploy** e o HTTPS é emitido.
+
+### ⚠️ Timeout do proxy — o botão "Monitorar" é síncrono
+
+Com 72 empresas o "Monitorar" mantém a requisição aberta por **2–3 minutos**. O Gunicorn
+já está com `--timeout 300`, mas quem pode cortar antes é o proxy na frente:
+
+- **Traefik do EasyPanel:** sem limite por padrão — costuma passar.
+- **Cloudflare com proxy laranja:** corta em **100 s** (erro 524). Se você ligar o proxy,
+  o botão vai falhar em lote grande mesmo com o servidor ainda trabalhando.
+
+Enquanto a melhoria #2 (tornar assíncrono) não for feita, as saídas são: deixar o
+Cloudflare em **DNS only**, monitorar em **grupos pequenos** de empresas, ou deixar o
+**agendador** fazer o lote (ele roda dentro do servidor, sem passar por proxy).
 
 ---
 
@@ -165,14 +193,14 @@ volume:
 **Pelo terminal da VPS** (aba *Terminal* do EasyPanel ou SSH):
 
 ```bash
-docker cp NESCON.pfx central-pendencias:/data/certificates/contador_certificado.pfx
+docker cp NESCON.pfx central-ecac:/data/certificates/contador_certificado.pfx
 ```
 
 **Restaurando o banco atual** (para levar as 72 empresas e o histórico já processado):
 
 ```bash
-docker cp integra_contador.db central-pendencias:/data/instance/integra_contador.db
-docker restart central-pendencias
+docker cp integra_contador.db central-ecac:/data/instance/integra_contador.db
+docker restart central-ecac
 ```
 
 Use o backup mais recente gerado por `scripts/backup_dados.py`. Se preferir começar do
@@ -187,7 +215,7 @@ e a senha do certificado.
 ## Passo 7 — Validar
 
 ```bash
-curl -u nescon:SUA_SENHA https://ecac.seudominio.com.br/healthz
+curl -u nescon:SUA_SENHA https://ecac.gestaoempresa.com/healthz
 ```
 
 Esperado:
@@ -199,7 +227,7 @@ Esperado:
 Se vier `"auth": "DESLIGADA"`, as variáveis não foram aplicadas — **não use o sistema
 assim**. Confira o passo 3 e faça o redeploy.
 
-Depois, no navegador: abra `https://ecac.seudominio.com.br`, informe usuário e senha, e
+Depois, no navegador: abra `https://ecac.gestaoempresa.com`, informe usuário e senha, e
 verifique se o painel lista as empresas. Abra também `/procuracoes`.
 
 ---
@@ -223,22 +251,22 @@ Migrações de banco rodam sozinhas: `run_migrations()` é chamado no start e é
 O volume protege contra redeploy, **não** contra erro humano ou perda da VPS. Agende:
 
 ```bash
-0 3 * * * docker exec central-pendencias python scripts/backup_dados.py --manter 14
+0 3 * * * docker exec central-ecac python scripts/backup_dados.py --manter 14
 ```
 
 Os arquivos ficam em `/data/backups/backup_AAAAMMDD_HHMMSS.zip`. **Leve uma cópia para
 fora da VPS** periodicamente:
 
 ```bash
-docker cp central-pendencias:/data/backups ./backups-vps
+docker cp central-ecac:/data/backups ./backups-vps
 ```
 
 Para restaurar:
 
 ```bash
 unzip backup_20260802_030000.zip
-docker cp instance/integra_contador.db central-pendencias:/data/instance/
-docker restart central-pendencias
+docker cp instance/integra_contador.db central-ecac:/data/instance/
+docker restart central-ecac
 ```
 
 ---

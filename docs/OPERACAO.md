@@ -90,7 +90,7 @@ Comece com uma empresa (`company_ids: [68]`), depois um grupo pequeno.
 python scripts/backup_dados.py --manter 14
 
 # no servidor (cron diário, 3h)
-0 3 * * * docker exec central-pendencias python scripts/backup_dados.py --manter 14
+0 3 * * * docker exec central-ecac python scripts/backup_dados.py --manter 14
 ```
 
 O banco é copiado com `sqlite3.backup()` — snapshot consistente mesmo com o sistema em
@@ -100,7 +100,7 @@ uso; copiar o `.db` na mão durante uma escrita pode gerar arquivo corrompido.
 do servidor:
 
 ```bash
-docker cp central-pendencias:/data/backups ./backups-vps
+docker cp central-ecac:/data/backups ./backups-vps
 ```
 
 Restauração: descompacte o zip, copie `instance/integra_contador.db` de volta para o

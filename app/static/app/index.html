@@ -84,6 +84,17 @@
       .pilula i { width: 7px; height: 7px; border-radius: 50%; background: currentColor;
                   display: block; }
       .app.retraida .lateral { margin-left: -252px; opacity: 0; pointer-events: none; }
+
+      /* Visão "Quadrados" do painel: o nome da empresa vinha com white-space:nowrap
+         dentro de um flex nowrap, entao ele nunca quebrava e empurrava o badge e o
+         resto para FORA do card — o conteudo aparecia cortado. Deixando quebrar e
+         permitindo encolher, tudo cabe; com a largura minima em 300px o grid usa
+         menos colunas quando precisa, em vez de espremer. */
+      .company-grid { grid-template-columns: repeat(auto-fill, minmax(min(300px,100%), 1fr)) !important; }
+      .company-grid > * { min-width: 0 !important; }
+      .company-tile-head { flex-wrap: wrap !important; min-width: 0 !important; }
+      .company-tile-head > * { min-width: 0 !important; }
+      .company-tile-head strong { white-space: normal !important; overflow-wrap: anywhere !important; }
       @media (max-width: 760px) {
         .lateral { position: fixed; z-index: 40; box-shadow: 0 0 40px rgba(0,0,0,.4);
                    margin-left: -252px; opacity: 0; pointer-events: none; }

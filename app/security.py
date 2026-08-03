@@ -204,6 +204,20 @@ def registrar_seguranca(app) -> None:
                 return _negar('Esta empresa não está liberada para o seu usuário.')
             return None
 
+        # 1b) `/api/settings` no GET é infraestrutura da SPA, não "a tela Configurações".
+        #
+        # O bundle consulta esse endpoint no boot só para saber se o contador já foi
+        # cadastrado (`contatorConfigured`). Bloqueando, ele entende "não configurado" e
+        # prende o usuário na tela de Configurações — foi o que aconteceu com o operador
+        # que só tinha Dashboard. Liberamos a LEITURA e removemos os segredos da resposta
+        # em `_limpar_settings()`; qualquer escrita continua exclusiva de administrador.
+        if caminho.startswith('/api/settings'):
+            if request.method == 'GET':
+                return None
+            if not permissoes.pode_rotina(usuario, 'configuracoes'):
+                return _negar('Seu usuário não tem acesso a "Configurações".')
+            return None
+
         # 2) rotina
         chave = permissoes.rotina_da_rota(caminho)
         if chave and not permissoes.pode_rotina(usuario, chave):
@@ -243,8 +257,17 @@ def registrar_seguranca(app) -> None:
             # permitidas). Passar o filtro aqui seria filtrar a permissão com ela mesma.
             if request.path == '/api/me':
                 return resposta
+
             usuario = usuario_atual()
-            if not usuario or permissoes.empresas_do_usuario(usuario) == permissoes.TODAS:
+            if not usuario:
+                return resposta
+
+            # Segredos da SERPRO nunca saem para quem não administra — mesmo que o
+            # usuário possa ver todas as empresas.
+            if request.path.startswith('/api/settings'):
+                return _limpar_settings(resposta, usuario)
+
+            if permissoes.empresas_do_usuario(usuario) == permissoes.TODAS:
                 return resposta
 
             corpo = resposta.get_json(silent=True)
@@ -253,6 +276,29 @@ def registrar_seguranca(app) -> None:
                 resposta.set_data(json.dumps(filtrado, ensure_ascii=False))
         except Exception:  # nunca derrubar a resposta por causa do filtro
             app.logger.exception('Falha ao filtrar resposta por empresa')
+        return resposta
+
+    # Campos de `/api/settings` que só o administrador pode enxergar.
+    SEGREDOS_SETTINGS = (
+        'certificado_password', 'certificado_path',
+        'serpro_consumer_key', 'serpro_consumer_secret',
+        'procurador_cpf', 'procurador_nome', 'procurador_certificado_path',
+        'procurador_certificado_password', 'procurador_token',
+        'procurador_token_response_json', 'contador_cnpj',
+    )
+
+    def _limpar_settings(resposta, usuario):
+        """Deixa passar só o que a SPA precisa; apaga credenciais para não-admin."""
+        if permissoes.pode_rotina(usuario, 'configuracoes'):
+            return resposta
+        corpo = resposta.get_json(silent=True)
+        if not isinstance(corpo, dict):
+            return resposta
+        limpo = {k: v for k, v in corpo.items() if k not in SEGREDOS_SETTINGS}
+        for chave in SEGREDOS_SETTINGS:
+            if chave in corpo:
+                limpo[chave] = ''       # a SPA espera as chaves; devolvemos vazias
+        resposta.set_data(json.dumps(limpo, ensure_ascii=False))
         return resposta
 
     def _filtrar_por_empresa(usuario, corpo):

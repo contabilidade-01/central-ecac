@@ -50,7 +50,11 @@ Postgres em dois cliques.
 **Esforço:** médio (recriar as 14 tabelas e migrar dados). **Faça só quando houver
 motivo** — hoje não há.
 
-### 6. ✅ FEITO (script) — Expurgo de relatórios antigos
+### 6. ✅ FEITO — Backup automático e expurgo
+
+> 03/08/2026: backup diário automático pelo agendador, botão de gerar/baixar na tela `/restaurar` e retenção dos 5 mais recentes. O expurgo de relatórios segue como script.
+
+### 6b. Expurgo de relatórios antigos
 Cada processamento guarda um PDF (30–160 KB) e um relatório. ~50 MB/ano com 72 empresas
 mensais. Sugestão: manter os 12 últimos por empresa e apagar o resto (com aviso).
 **Esforço:** baixo.

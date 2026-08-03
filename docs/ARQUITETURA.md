@@ -34,7 +34,7 @@ verdade, não funcionavam.
 
 ---
 
-## Os 14 desvios intencionais
+## Os 15 desvios intencionais
 
 | # | O quê | Por quê | Onde |
 |---|---|---|---|
@@ -52,6 +52,26 @@ verdade, não funcionavam.
 | 12 | Seção "Administração" no menu da SPA | as telas do Flask não existiam no menu, e o bundle React é compilado sem fonte. Injetado por script no `index.html` (que já não era idêntico ao do exe); os arquivos em `/assets` seguem intocados. Leva junto o **Sair**, que a SPA não tinha | `app/static/app/index.html` |
 | 13 | Vários usuários, com rotinas e empresas por usuário | o exe tinha um operador só, dono da máquina. Na VPS, o segundo usuário não pode ver dado fiscal de cliente que não é dele nem disparar lote pago | `services/usuarios_service.py`, `services/permissoes.py`, `security.py`, `routes/usuarios.py` |
 | 14 | Barra lateral por cima da SPA | o layout de cabeçalho horizontal não comportava as telas novas nem a navegação por seções. Como o bundle não tem fonte, a barra é montada por fora: o cabeçalho original é escondido por CSS e **cada item clica no botão original**, que segue no DOM | `app/static/app/index.html`, `app/ui.py`, `services/permissoes.py` |
+| 15 | Backup do banco (botão + automático) | no exe o banco ficava na máquina do usuário, dentro do backup dele. Num servidor, sem isto, um erro operacional não tem volta | `services/backup_service.py`, `routes/restaurar.py`, `scheduler.py` |
+
+### Detalhe do 15º — backup
+
+`sqlite3.backup()`, a API de cópia online do próprio SQLite: respeita as transações em
+curso, então o arquivo **nunca sai pela metade**, mesmo com o sistema em uso. Copiar o
+`.db` na mão pode capturar um estado inconsistente.
+
+| Quando | Motivo no nome |
+|---|---|
+| Botão "Gerar backup agora" (baixa na hora) | `manual` |
+| Uma vez por dia, pelo agendador, antes das rotinas | `automatico` |
+| Antes de trocar o banco pela tela de restauração | `integra_contador-antes-…` |
+
+Retenção: os **5 mais recentes**, contando os três tipos juntos — o número de arquivos
+no volume não cresce sem limite.
+
+O download resolve o nome dentro da pasta de backups e confere o caminho final contra
+ela. Sem isso, um `../` no nome baixaria qualquer arquivo do servidor — inclusive o
+`usuarios.json`. Testado com quatro tentativas de escapar da pasta.
 
 ### Detalhe do 14º — a barra lateral
 

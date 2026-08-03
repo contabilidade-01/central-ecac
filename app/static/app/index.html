@@ -154,8 +154,9 @@
           html += '<div class="secao">Sessão</div>'
             + '<a class="item sair" href="/logout">' + svg(EU.icone_sair)
             + '<span>Sair</span></a></nav>'
-            + '<div class="lateral-rodape">' + (EU.nome || EU.usuario || '')
-            + '<br>Direitos reservados @Warley.contador</div>';
+            + '<div class="lateral-rodape">'
+            + (EU.id && EU.id !== 'ambiente' ? (EU.nome || EU.usuario || '') + '<br>' : '')
+            + 'Sistema da Nescon Contabilidade</div>';
           lateral.innerHTML = html;
 
           // ----------------------------------------------------------- conteúdo

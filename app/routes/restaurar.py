@@ -27,7 +27,8 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-from flask import Blueprint, jsonify, render_template_string, request
+from flask import (Blueprint, jsonify, render_template_string, request,
+                   send_file)
 
 from app.extensions import db
 from app.models import AppSetting, Company
@@ -109,6 +110,41 @@ def tela_restaurar():
 @restaurar_bp.get('/api/restaurar/estado')
 def estado():
     return jsonify(_estado())
+
+
+# ---------------------------------------------------------------- backups (15o)
+
+@restaurar_bp.get('/api/backups')
+def listar_backups():
+    from app.services import backup_service
+    return jsonify({
+        'backups': backup_service.listar(),
+        'manter': backup_service.MANTER,
+    })
+
+
+@restaurar_bp.post('/api/backups')
+def criar_backup():
+    from app.services import backup_service
+    try:
+        info = backup_service.criar(motivo='manual')
+    except FileNotFoundError as exc:
+        return jsonify({'success': False, 'message': str(exc)}), 400
+    return jsonify({
+        'success': True,
+        'backup': info,
+        'message': f'Backup gerado ({info["tamanho_kb"]} KB).',
+    })
+
+
+@restaurar_bp.get('/api/backups/<nome>')
+def baixar_backup(nome: str):
+    from app.services import backup_service
+    try:
+        caminho = backup_service.caminho_seguro(nome)
+    except ValueError as exc:
+        return jsonify({'success': False, 'message': str(exc)}), 404
+    return send_file(caminho, as_attachment=True, download_name=nome)
 
 
 @restaurar_bp.post('/api/restaurar/banco')
@@ -245,6 +281,25 @@ PAGINA = """
   </div>
 
   <div class="card">
+    <h2>Backup do banco</h2>
+    <p class="dica">
+      Cópia consistente pelo próprio SQLite (respeita transações em curso — diferente de
+      copiar o arquivo na mão, que pode pegar um estado pela metade).
+      O sistema guarda automaticamente <b>um backup por dia</b> e mantém os
+      <b id="quantos-manter">5</b> mais recentes.
+    </p>
+    <button class="primario" id="btn-backup" onclick="gerarBackup()">
+      Gerar backup agora</button>
+    <div id="m-backup"></div>
+    <div class="table-wrap" style="margin-top:14px">
+      <table>
+        <thead><tr><th>Arquivo</th><th>Quando</th><th>Tamanho</th><th>Origem</th><th></th></tr></thead>
+        <tbody id="lista-backups"><tr><td colspan="5">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>1. Banco de dados</h2>
     <p class="dica">
       No seu PC:<br>
@@ -301,6 +356,7 @@ function enviar(idForm, idMsg, url, campo) {
       const json = await resp.json();
       msg.className = 'msg ' + (json.success ? 'ok' : 'bad');
       msg.textContent = json.message || (json.success ? 'Pronto.' : 'Falhou.');
+      carregarBackups();
       if (json.estado) {
         document.getElementById('t-empresas').textContent = json.estado.empresas;
         document.getElementById('t-banco').textContent = json.estado.banco_tamanho_kb + ' KB';
@@ -315,6 +371,56 @@ function enviar(idForm, idMsg, url, campo) {
     }
   });
 }
+async function carregarBackups() {
+  const corpo = document.getElementById('lista-backups');
+  try {
+    const r = await fetch('/api/backups');
+    const j = await r.json();
+    document.getElementById('quantos-manter').textContent = j.manter;
+    if (!j.backups.length) {
+      corpo.innerHTML = '<tr><td colspan="5">Nenhum backup ainda.</td></tr>';
+      return;
+    }
+    corpo.innerHTML = j.backups.map(b => {
+      const origem = b.pre_restauracao ? '<span class="badge warn">antes de restaurar</span>'
+                   : b.automatico      ? '<span class="badge mute">automático</span>'
+                                       : '<span class="badge ok">manual</span>';
+      return `<tr>
+        <td><code>${b.arquivo}</code></td>
+        <td>${new Date(b.criado_em).toLocaleString('pt-BR')}</td>
+        <td>${b.tamanho_kb} KB</td>
+        <td>${origem}</td>
+        <td><a class="badge adm" href="/api/backups/${encodeURIComponent(b.arquivo)}"
+               style="text-decoration:none">Baixar</a></td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    corpo.innerHTML = '<tr><td colspan="5">Falha ao listar: ' + e.message + '</td></tr>';
+  }
+}
+
+async function gerarBackup() {
+  const botao = document.getElementById('btn-backup');
+  const alvo = document.getElementById('m-backup');
+  botao.disabled = true; botao.textContent = 'Gerando…';
+  try {
+    const r = await fetch('/api/backups', { method: 'POST' });
+    const j = await r.json();
+    alvo.className = 'msg ' + (j.success ? 'ok' : 'bad');
+    alvo.textContent = j.message || 'Falhou.';
+    if (j.success) {
+      // baixa na hora o que acabou de ser gerado
+      window.location = '/api/backups/' + encodeURIComponent(j.backup.arquivo);
+    }
+  } catch (e) {
+    alvo.className = 'msg bad'; alvo.textContent = 'Erro: ' + e.message;
+  }
+  botao.disabled = false; botao.textContent = 'Gerar backup agora';
+  carregarBackups();
+}
+
+carregarBackups();
+
 enviar('f-banco', 'm-banco', '/api/restaurar/banco', 'banco');
 enviar('f-cert', 'm-cert', '/api/restaurar/certificado', 'certificado');
 </script>

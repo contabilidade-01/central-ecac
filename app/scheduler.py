@@ -63,6 +63,18 @@ def _ciclo(app) -> None:
     while not _parar.is_set():
         try:
             with app.app_context():
+                # DESVIO INTENCIONAL (15o) — backup automático do banco, uma vez por dia.
+                # Vem ANTES das rotinas: se alguma delas estragar dado, a cópia do dia
+                # já está guardada. Não gasta nada e não chama a SERPRO.
+                try:
+                    from app.services import backup_service
+                    feito = backup_service.backup_diario_se_preciso()
+                    if feito:
+                        logger.info('[BACKUP] automático criado: %s (%s KB)',
+                                    feito['arquivo'], feito['tamanho_kb'])
+                except Exception:
+                    logger.exception('[BACKUP] falha no backup automático')
+
                 dados = carregar()
                 for modulo in MODULOS:
                     config = dados['modulos'].get(modulo, {})

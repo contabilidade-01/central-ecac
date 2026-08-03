@@ -250,7 +250,11 @@ def lateral(ativo: str = '', usuario=None) -> str:
                 f'{_icone(item.get("icone", ""))}<span>{item["rotulo"]}</span></a>')
         blocos.append('\n'.join(linhas))
 
-    nome = (usuario.get('nome') or usuario.get('usuario') or '') if usuario else ''
+    # Só mostra o nome de usuário de verdade; o pseudo-usuário do fallback por
+    # variável de ambiente não tem nome que faça sentido exibir.
+    nome = ''
+    if usuario and usuario.get('id') not in (None, 'ambiente'):
+        nome = usuario.get('nome') or usuario.get('usuario') or ''
 
     return f"""
 <div class="app" id="app">
@@ -264,7 +268,7 @@ def lateral(ativo: str = '', usuario=None) -> str:
       <div class="secao">Sess&atilde;o</div>
       <a class="item sair" href="/logout">{_icone(permissoes.ICONES['sair'])}<span>Sair</span></a>
     </nav>
-    <div class="lateral-rodape">{nome}<br>Direitos reservados @Warley.contador</div>
+    <div class="lateral-rodape">{(nome + '<br>') if nome else ''}Sistema da Nescon Contabilidade</div>
   </aside>
   <div class="conteudo">
     <div class="barra">

@@ -237,6 +237,74 @@ def _id_da_empresa(item: Dict[str, Any]):
     return None
 
 
+def resumo_restrito(company_ids: List[int]) -> Dict[str, Any]:
+    """Recalcula os totais do painel considerando SÓ as empresas informadas.
+
+    Filtrar linha a linha não conserta agregado: os cartões do topo do painel são
+    somados no servidor sobre a carteira inteira. Sem isto, um operador com 3 empresas
+    veria "72 empresas · R$ 108.090,74" — número de cliente que não é dele.
+
+    A lógica espelha `routes/dashboard.summary()` (o mesmo "último relatório por
+    empresa"), apenas com o recorte aplicado. A rota do exe **não é tocada**: a troca
+    acontece na resposta, em `security.py`.
+    """
+    from sqlalchemy import func
+
+    from app.extensions import db
+    from app.models import (Company, DebitoRelatorio, PendenciaRelatorio,
+                            RelatorioSitFiscal)
+
+    ids = [int(i) for i in (company_ids or [])]
+    if not ids:
+        return {'total_empresas': 0, 'empresas_com_pendencias': 0,
+                'total_pendencias': 0, 'total_debitos': 0, 'valor_total_debitos': 0.0}
+
+    ultimos = (
+        db.session.query(
+            RelatorioSitFiscal.company_id,
+            func.max(RelatorioSitFiscal.id).label('max_id'),
+        )
+        .filter(RelatorioSitFiscal.company_id.in_(ids))
+        .group_by(RelatorioSitFiscal.company_id)
+        .subquery()
+    )
+    relatorio_ids = [r[0] for r in db.session.query(ultimos.c.max_id).all()]
+
+    total_empresas = (Company.query
+                      .filter(Company.ativo.is_(True), Company.id.in_(ids))
+                      .count())
+
+    if not relatorio_ids:
+        return {'total_empresas': total_empresas, 'empresas_com_pendencias': 0,
+                'total_pendencias': 0, 'total_debitos': 0, 'valor_total_debitos': 0.0}
+
+    empresas_com_pendencias = (
+        db.session.query(PendenciaRelatorio.relatorio_id)
+        .filter(PendenciaRelatorio.relatorio_id.in_(relatorio_ids))
+        .distinct().count()
+    )
+    total_pendencias = (
+        db.session.query(func.count(PendenciaRelatorio.id))
+        .filter(PendenciaRelatorio.relatorio_id.in_(relatorio_ids)).scalar() or 0
+    )
+    total_debitos = (
+        db.session.query(func.count(DebitoRelatorio.id))
+        .filter(DebitoRelatorio.relatorio_id.in_(relatorio_ids)).scalar() or 0
+    )
+    valor_total_debitos = float(
+        db.session.query(func.sum(DebitoRelatorio.saldo_devedor_total))
+        .filter(DebitoRelatorio.relatorio_id.in_(relatorio_ids)).scalar() or 0
+    )
+
+    return {
+        'total_empresas': total_empresas,
+        'empresas_com_pendencias': empresas_com_pendencias,
+        'total_pendencias': total_pendencias,
+        'total_debitos': total_debitos,
+        'valor_total_debitos': valor_total_debitos,
+    }
+
+
 def filtrar_empresas(usuario: Dict[str, Any], itens: List[Any]):
     """Remove da lista as empresas que o usuário não pode ver.
 

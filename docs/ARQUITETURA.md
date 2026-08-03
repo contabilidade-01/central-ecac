@@ -106,13 +106,17 @@ fidelidade ao bytecode continua intacta.
 | Empresa (entrada) | `company_id` na URL, no corpo ou na query é conferido contra a lista do usuário |
 | Lote | escrita **sem** empresa explícita é recusada para usuário restrito — é exatamente o caso dos lotes, que rodam sobre a carteira inteira e gastam dinheiro |
 | Empresa (saída) | as listas devolvidas pela API são filtradas, para que linha de empresa não liberada não chegue ao navegador |
+| Agregado (saída) | os totais do painel são recalculados sobre as empresas do usuário — senão um operador com 3 empresas veria o valor devido pelas 72 |
 
 O menu esconde o que o usuário não pode abrir, mas isso é **conforto, não segurança**:
 quem decide é o servidor, que recusa mesmo se a URL for digitada na mão.
 
-⚠️ **Limitação conhecida:** os **totais do Dashboard** são somados no servidor sobre a
-carteira inteira; filtrar linha a linha não recalcula agregado. Se o operador não puder
-ver números globais, **não libere a rotina `dashboard`** para ele.
+**Agregados também são recortados.** Os cartões do topo do painel
+(`/api/dashboard/summary`) são somados no servidor sobre a carteira inteira — filtrar
+linha a linha não conserta isso. Para usuário restrito, os totais são **recalculados**
+sobre as empresas dele em `permissoes.resumo_restrito()`, espelhando a lógica da rota do
+exe (mesmo "último relatório por empresa") apenas com o recorte aplicado. A rota original
+não é tocada; a troca acontece na resposta.
 
 Senha e convites seguem o padrão do portal `queijeiros`: guarda-se o **sha256 do token**,
 nunca o token; uso único, com validade; um convite novo invalida o anterior. A entrega do

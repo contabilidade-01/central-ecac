@@ -270,6 +270,15 @@ def registrar_seguranca(app) -> None:
             if permissoes.empresas_do_usuario(usuario) == permissoes.TODAS:
                 return resposta
 
+            # Agregado não se conserta filtrando linha: os cartões do topo do painel
+            # são somados no servidor sobre a carteira inteira. Aqui eles são
+            # RECALCULADOS para as empresas do usuário.
+            if request.path == '/api/dashboard/summary':
+                resumo = permissoes.resumo_restrito(
+                    permissoes.empresas_do_usuario(usuario))
+                resposta.set_data(json.dumps(resumo, ensure_ascii=False))
+                return resposta
+
             corpo = resposta.get_json(silent=True)
             filtrado, mudou = _filtrar_por_empresa(usuario, corpo)
             if mudou:

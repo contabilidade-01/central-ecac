@@ -133,9 +133,11 @@ def create_app() -> Flask:
                 # DESVIO INTENCIONAL (10o): telas de login, servidas pelo Flask.
                 # Sem esta excecao o catch-all devolveria o index.html da SPA e a
                 # tela de login nunca apareceria.
-                or path in ('/login', '/logout', '/primeiro-acesso')
+                or path in ('/login', '/logout', '/primeiro-acesso', '/definir-senha')
                 # DESVIO INTENCIONAL (11o): tela de restauracao de dados.
-                or path == '/restaurar'):
+                or path == '/restaurar'
+                # DESVIO INTENCIONAL (13o): administracao de usuarios e acessos.
+                or path == '/usuarios'):
             return None
         if '.' in path.split('/')[-1]:
             return None
@@ -174,6 +176,11 @@ def create_app() -> Flask:
     # navegador, para nao depender de SSH/scp/chown na VPS. Pedido do Jean em 03/08/2026.
     from app.routes.restaurar import restaurar_bp
     app.register_blueprint(restaurar_bp)
+
+    # DESVIO INTENCIONAL (13o) — tela /usuarios: varios usuarios, com rotinas e empresas
+    # limitadas por usuario. Exclusiva de administrador. Pedido do Jean em 03/08/2026.
+    from app.routes.usuarios import usuarios_bp
+    app.register_blueprint(usuarios_bp)
 
     from app.scheduler import iniciar as iniciar_agendador
     iniciar_agendador(app)

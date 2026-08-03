@@ -41,10 +41,42 @@
       (function () {
         const ID = 'secao-administracao';
         const ITENS = [
-          { href: '/procuracoes', texto: 'Procurações',     dica: 'Quem a SERPRO recusa e trava de chamadas pagas' },
-          { href: '/agendamento', texto: 'Agendamento',     dica: 'Rotinas automáticas e teto de gasto' },
-          { href: '/restaurar',   texto: 'Restaurar dados', dica: 'Enviar banco e certificado A1' },
+          { href: '/usuarios',    texto: 'Usuários e acessos', dica: 'Quem entra, em quais telas e empresas', rotina: '__admin__' },
+          { href: '/procuracoes', texto: 'Procurações',     dica: 'Quem a SERPRO recusa e trava de chamadas pagas', rotina: 'procuracoes' },
+          { href: '/agendamento', texto: 'Agendamento',     dica: 'Rotinas automáticas e teto de gasto', rotina: 'agendamento' },
+          { href: '/restaurar',   texto: 'Restaurar dados', dica: 'Enviar banco e certificado A1', rotina: 'restaurar' },
         ];
+
+        // DESVIO INTENCIONAL (13o) — o menu reflete a permissão do usuário.
+        // Isto é conforto, NÃO segurança: quem vale é o servidor, que recusa a rota
+        // mesmo se alguém digitar a URL na mão.
+        const BOTOES = {
+          'dashboard': 'dashboard',
+          'configurações': 'configuracoes',
+          'configuracoes': 'configuracoes',
+          'pagamentos de tributos': 'pagamentos',
+          'dctfweb lote': 'dctfweb',
+          'das lote': 'das',
+          'caixa postal': 'caixa_postal',
+          'parcelamentos': 'parcelamentos',
+          'custos api': 'custos_api',
+        };
+        let EU = null;
+
+        function podeRotina(chave) {
+          if (!EU) return true;                       // ainda carregando: não esconde nada
+          if (chave === '__admin__') return !!EU.admin;
+          if (EU.admin) return true;
+          return (EU.rotinas || []).includes(chave);
+        }
+
+        function aplicarPermissoes(barra) {
+          if (!EU) return;
+          barra.querySelectorAll('button.btn').forEach(b => {
+            const chave = BOTOES[(b.textContent || '').trim().toLowerCase()];
+            if (chave) b.style.display = podeRotina(chave) ? '' : 'none';
+          });
+        }
 
         function montar(barra) {
           const caixa = document.createElement('div');
@@ -84,11 +116,19 @@
             return a;
           }
 
-          ITENS.forEach(i => lista.appendChild(item(i.href, i.texto, i.dica)));
+          ITENS.filter(i => podeRotina(i.rotina))
+               .forEach(i => lista.appendChild(item(i.href, i.texto, i.dica)));
 
           const risco = document.createElement('div');
           risco.style.cssText = 'height:1px;background:#e3e5e8;margin:6px 4px;';
           lista.appendChild(risco);
+
+          if (EU) {
+            const quem = document.createElement('div');
+            quem.textContent = (EU.nome || EU.usuario) + (EU.admin ? ' · administrador' : '');
+            quem.style.cssText = 'padding:4px 10px;font-size:11px;color:#6b7280;';
+            lista.appendChild(quem);
+          }
           lista.appendChild(item('/logout', 'Sair', 'Encerrar a sessão', '#b3261e'));
 
           botao.addEventListener('click', (ev) => {
@@ -106,16 +146,30 @@
         }
 
         function injetar() {
-          if (document.getElementById(ID)) return;      // já está lá
           const barra = document.querySelector('.header .row');
-          if (barra) montar(barra);
+          if (!barra) return;
+          // Esconder o que o usuário não pode abrir roda SEMPRE: o React redesenha os
+          // botões a cada troca de aba e eles voltam visíveis.
+          aplicarPermissoes(barra);
+          if (document.getElementById(ID)) return;      // a seção já está lá
+          montar(barra);
         }
 
         // O React redesenha o cabeçalho ao trocar de aba e leva o botão junto;
-        // o observer recoloca. O injetar() sai cedo se já existir, então não há laço.
+        // o observer recoloca. O injetar() só remonta a seção se ela sumiu, então
+        // não há laço.
         new MutationObserver(injetar).observe(
           document.getElementById('root'), { childList: true, subtree: true });
         injetar();
+
+        // Quem sou eu chega depois; ao responder, refaz a seção já com as permissões.
+        fetch('/api/me').then(r => r.ok ? r.json() : null).then(eu => {
+          if (!eu || !eu.autenticado) return;
+          EU = eu;
+          const antiga = document.getElementById(ID);
+          if (antiga) antiga.remove();                  // remonta com os itens certos
+          injetar();
+        }).catch(() => {});
       })();
     </script>
   </body>

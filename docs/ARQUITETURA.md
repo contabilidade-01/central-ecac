@@ -34,7 +34,7 @@ verdade, não funcionavam.
 
 ---
 
-## Os 12 desvios intencionais
+## Os 13 desvios intencionais
 
 | # | O quê | Por quê | Onde |
 |---|---|---|---|
@@ -50,6 +50,31 @@ verdade, não funcionavam.
 | 10 | Tela de login com sessão | o Basic do 7º dependia de variável de ambiente; se o painel não aplicasse, o sistema **abria sem senha e ninguém percebia** — aconteceu em 03/08/2026. Agora, sem credencial, o sistema não abre | `app/security.py`, `services/usuarios_service.py` |
 | 11 | Tela `/restaurar` | levar banco e `.pfx` para o volume exigia SSH + `scp` + `chown` (o container roda como uid 10001; arquivo enviado por root deixa o SQLite somente leitura). Enviando pelo navegador, quem grava é o app — o dono já sai certo | `app/routes/restaurar.py` |
 | 12 | Seção "Administração" no menu da SPA | as telas do Flask não existiam no menu, e o bundle React é compilado sem fonte. Injetado por script no `index.html` (que já não era idêntico ao do exe); os arquivos em `/assets` seguem intocados. Leva junto o **Sair**, que a SPA não tinha | `app/static/app/index.html` |
+| 13 | Vários usuários, com rotinas e empresas por usuário | o exe tinha um operador só, dono da máquina. Na VPS, o segundo usuário não pode ver dado fiscal de cliente que não é dele nem disparar lote pago | `services/usuarios_service.py`, `services/permissoes.py`, `security.py`, `routes/usuarios.py` |
+
+### Detalhe do 13º — como a permissão é aplicada
+
+Tudo passa por **um único `before_request`** em `app/security.py` mais um filtro de
+resposta. **Nenhuma rota do exe foi alterada** — a regra vive fora delas, então a
+fidelidade ao bytecode continua intacta.
+
+| Camada | O que faz |
+|---|---|
+| Rotina | o prefixo da URL vira uma chave (`caixa_postal`, `das`…) e é comparado com o que o usuário pode abrir. `/api/das/dctfweb` casa antes de `/api/das` |
+| Empresa (entrada) | `company_id` na URL, no corpo ou na query é conferido contra a lista do usuário |
+| Lote | escrita **sem** empresa explícita é recusada para usuário restrito — é exatamente o caso dos lotes, que rodam sobre a carteira inteira e gastam dinheiro |
+| Empresa (saída) | as listas devolvidas pela API são filtradas, para que linha de empresa não liberada não chegue ao navegador |
+
+O menu esconde o que o usuário não pode abrir, mas isso é **conforto, não segurança**:
+quem decide é o servidor, que recusa mesmo se a URL for digitada na mão.
+
+⚠️ **Limitação conhecida:** os **totais do Dashboard** são somados no servidor sobre a
+carteira inteira; filtrar linha a linha não recalcula agregado. Se o operador não puder
+ver números globais, **não libere a rotina `dashboard`** para ele.
+
+Senha e convites seguem o padrão do portal `queijeiros`: guarda-se o **sha256 do token**,
+nunca o token; uso único, com validade; um convite novo invalida o anterior. A entrega do
+link é feita pelo próprio admin (sem SMTP).
 
 ### Detalhe do 9º — por que era bloqueador de deploy
 

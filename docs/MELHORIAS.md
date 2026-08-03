@@ -32,7 +32,7 @@ operador é aceitável; para o escritório inteiro, não.
 autor nas ações que gastam dinheiro.
 **Ganho:** rastreabilidade de quem disparou chamada paga. **Esforço:** médio.
 
-> Feito em 03/08/2026: tela de login com sessão, logout, bloqueio após 5 tentativas e senha em hash no volume. Falta ainda o **multiusuário** — hoje é uma credencial só, e o log registra usuário e IP de cada login.
+> Feito em 03/08/2026, em duas etapas: (1) tela de login com sessão, logout, bloqueio após 5 tentativas e senha em hash no volume; (2) **multiusuário** com papéis admin/operador, permissão por rotina e por empresa, convite de primeiro acesso e recuperação de senha por link de uso único. O log registra usuário e IP de cada login.
 
 ---
 

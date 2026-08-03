@@ -15,7 +15,7 @@ pendências, parcelamentos, caixa postal do e-CAC, emissão de DAS/DARF e pagame
 
 | Documento | Para quê |
 |---|---|
-| [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Como o sistema é organizado, o que é fiel ao exe e os **13 desvios intencionais** |
+| [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Como o sistema é organizado, o que é fiel ao exe e os **14 desvios intencionais** |
 | [docs/DEPLOY_EASYPANEL.md](docs/DEPLOY_EASYPANEL.md) | **Passo a passo do deploy**: GitHub → EasyPanel → subdomínio → HTTPS |
 | [docs/OPERACAO.md](docs/OPERACAO.md) | Rotina do dia a dia: custos da API, backup, restauração, o que é grátis e o que é pago |
 | [docs/MELHORIAS.md](docs/MELHORIAS.md) | Lista priorizada de melhorias — o que já foi feito e o que falta |
@@ -27,8 +27,8 @@ pendências, parcelamentos, caixa postal do e-CAC, emissão de DAS/DARF e pagame
 ## Telas próprias (fora da SPA)
 
 A SPA React é a compilada do exe e não temos o fonte, então as funções novas ganharam
-páginas próprias servidas pelo Flask. Todas ficam no menu **Administração**, injetado no
-cabeçalho da SPA pelo `index.html` (12º desvio):
+páginas próprias servidas pelo Flask. Todas ficam na **barra lateral**, montada por cima da SPA
+compilada (14º desvio) a partir de `permissoes.MENU`:
 
 | Tela | Para quê |
 |---|---|

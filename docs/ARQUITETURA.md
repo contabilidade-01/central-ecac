@@ -34,7 +34,7 @@ verdade, não funcionavam.
 
 ---
 
-## Os 13 desvios intencionais
+## Os 14 desvios intencionais
 
 | # | O quê | Por quê | Onde |
 |---|---|---|---|
@@ -51,6 +51,28 @@ verdade, não funcionavam.
 | 11 | Tela `/restaurar` | levar banco e `.pfx` para o volume exigia SSH + `scp` + `chown` (o container roda como uid 10001; arquivo enviado por root deixa o SQLite somente leitura). Enviando pelo navegador, quem grava é o app — o dono já sai certo | `app/routes/restaurar.py` |
 | 12 | Seção "Administração" no menu da SPA | as telas do Flask não existiam no menu, e o bundle React é compilado sem fonte. Injetado por script no `index.html` (que já não era idêntico ao do exe); os arquivos em `/assets` seguem intocados. Leva junto o **Sair**, que a SPA não tinha | `app/static/app/index.html` |
 | 13 | Vários usuários, com rotinas e empresas por usuário | o exe tinha um operador só, dono da máquina. Na VPS, o segundo usuário não pode ver dado fiscal de cliente que não é dele nem disparar lote pago | `services/usuarios_service.py`, `services/permissoes.py`, `security.py`, `routes/usuarios.py` |
+| 14 | Barra lateral por cima da SPA | o layout de cabeçalho horizontal não comportava as telas novas nem a navegação por seções. Como o bundle não tem fonte, a barra é montada por fora: o cabeçalho original é escondido por CSS e **cada item clica no botão original**, que segue no DOM | `app/static/app/index.html`, `app/ui.py`, `services/permissoes.py` |
+
+### Detalhe do 14º — a barra lateral
+
+O menu tem **uma fonte só**: `permissoes.MENU`. As telas do Flask montam a barra pelo
+servidor (`app/ui.py`); a SPA recebe a mesma estrutura, já filtrada pela permissão, em
+`/api/me`. Assim as duas nunca divergem.
+
+Como a navegação funciona sem o fonte do React: o cabeçalho azul é escondido com
+`display:none` (os botões continuam no DOM) e o item da barra chama `.click()` no botão
+correspondente, casando pelo rótulo. Vindo de uma tela do Flask, o link é `/?aba=<chave>`
+e o script clica no botão certo assim que a SPA carrega.
+
+Recolhimento: botão na barra superior, estado guardado em `localStorage`, então
+atravessa recarregamento e navegação entre SPA e telas do Flask. Abaixo de 760px a barra
+vira gaveta sobreposta.
+
+Duas armadilhas de CSS resolvidas no caminho:
+* `margin:0 auto` dentro de um flex *column* **desliga o stretch** no eixo transversal, e
+  o bloco passa a se dimensionar pelo conteúdo — daí `width:100%` no `.wrap`;
+* a SPA foi desenhada para largura cheia, então `overflow-x:auto` fica no `.conteudo`:
+  a rolagem se resolve lá dentro em vez de empurrar a barra para fora da tela.
 
 ### Detalhe do 13º — como a permissão é aplicada
 

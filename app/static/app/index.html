@@ -27,149 +27,207 @@
       observer.observe(document.getElementById('root'), { childList: true, subtree: true });
     </script>
 
+    <style>
+      /* DESVIO INTENCIONAL (14o) — barra lateral por cima da SPA compilada.
+         Nomes de classe conferidos contra o CSS do bundle: nenhuma colisão. */
+      .header { display: none !important; }
+      body { margin: 0; background: #f1f5f9; }
+      .app { display: flex; min-height: 100vh; }
+      .lateral { width: 252px; flex: 0 0 252px; background: #0f172a; color: #cbd5e1;
+                 display: flex; flex-direction: column; position: sticky; top: 0;
+                 height: 100vh; overflow-y: auto;
+                 transition: margin-left .18s ease, opacity .18s ease;
+                 font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; }
+      .lateral::-webkit-scrollbar { width: 6px; }
+      .lateral::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+      .marca-topo { display: flex; align-items: center; gap: 11px; padding: 18px 18px 14px; }
+      .marca { width: 36px; height: 36px; border-radius: 10px; flex: 0 0 auto;
+               background: linear-gradient(135deg,#2563eb,#1e40af); color: #fff;
+               display: flex; align-items: center; justify-content: center;
+               font-weight: 700; font-size: 13px; }
+      .marca-topo b { display: block; font-size: 14px; color: #fff; line-height: 1.25; }
+      .marca-topo span { display: block; font-size: 11px; color: #94a3b8; }
+      .lateral nav { padding: 4px 10px 16px; flex: 1; }
+      .secao { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;
+               letter-spacing: .09em; padding: 14px 10px 6px; }
+      .item { display: flex; align-items: center; gap: 11px; padding: 9px 10px;
+              border-radius: 9px; color: #cbd5e1; text-decoration: none; font-size: 13.5px;
+              cursor: pointer; border: 0; background: transparent; width: 100%;
+              text-align: left; font-family: inherit; margin-bottom: 1px; }
+      .item svg { width: 17px; height: 17px; flex: 0 0 auto; stroke: currentColor;
+                  fill: none; stroke-width: 1.8; stroke-linecap: round;
+                  stroke-linejoin: round; }
+      .item:hover { background: #1e293b; color: #fff; }
+      .item.ativo { background: #1d4ed8; color: #fff; font-weight: 600; }
+      .item.sair { color: #fca5a5; }
+      .item.sair:hover { background: #7f1d1d; color: #fff; }
+      .lateral-rodape { padding: 14px 18px 18px; font-size: 11px; color: #64748b;
+                        border-top: 1px solid #1e293b; }
+      .conteudo { flex: 1; min-width: 0; display: flex; flex-direction: column;
+                 overflow-x: auto; }
+      .barra { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 22px;
+               display: flex; align-items: center; gap: 14px; position: sticky; top: 0;
+               z-index: 20;
+               font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; }
+      .barra b { font-size: 14px; font-weight: 600; color: #0f172a; }
+      .barra .fim { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+      .alternar { background: transparent; border: 1px solid #e2e8f0; border-radius: 8px;
+                  padding: 6px 9px; cursor: pointer; color: #64748b; line-height: 0;
+                  margin: 0; }
+      .alternar:hover { background: #f1f5f9; color: #0f172a; }
+      .alternar svg { width: 17px; height: 17px; stroke: currentColor; fill: none;
+                      stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .pilula { display: inline-flex; align-items: center; gap: 7px; font-size: 12px;
+                font-weight: 500; color: #15803d; background: #dcfce7; padding: 5px 12px;
+                border-radius: 999px;
+                font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; }
+      .pilula i { width: 7px; height: 7px; border-radius: 50%; background: currentColor;
+                  display: block; }
+      .app.retraida .lateral { margin-left: -252px; opacity: 0; pointer-events: none; }
+      @media (max-width: 760px) {
+        .lateral { position: fixed; z-index: 40; box-shadow: 0 0 40px rgba(0,0,0,.4);
+                   margin-left: -252px; opacity: 0; pointer-events: none; }
+        .app.aberta .lateral { margin-left: 0; opacity: 1; pointer-events: auto; }
+      }
+    </style>
+
     <script>
-      // DESVIO INTENCIONAL (12o) — seção "Administração" no menu da SPA.
+      // DESVIO INTENCIONAL (14o) — barra lateral montada por cima da SPA compilada.
       //
-      // As telas novas (procurações, agendamento, restaurar) são servidas pelo Flask e
-      // não existem no bundle React, que é compilado e sem fonte — não dá para
-      // acrescentar botão nele. A saída é injetar aqui, no index.html, que já não é
-      // idêntico ao do exe (o script de máscara de senha acima também foi acrescentado).
-      // Os arquivos em /assets continuam intocados.
+      // O bundle React não tem fonte, então não dá para reescrever a navegação dele.
+      // O que se faz aqui: o cabeçalho azul original é escondido por CSS (os botões
+      // continuam no DOM) e cada item da barra lateral **clica no botão original**.
+      // É o único jeito de trocar de aba sem o fonte — e continua funcionando mesmo
+      // que a SPA seja recompilada, desde que os rótulos dos botões não mudem.
       //
-      // O "Sair" entra junto: com a tela de login (10o desvio), o usuário precisava de
-      // uma forma de encerrar a sessão, e a SPA não tem nenhuma.
+      // O menu vem de /api/me, a MESMA fonte que as telas do Flask usam
+      // (app/services/permissoes.py), já filtrado pela permissão do usuário.
       (function () {
-        const ID = 'secao-administracao';
-        const ITENS = [
-          { href: '/usuarios',    texto: 'Usuários e acessos', dica: 'Quem entra, em quais telas e empresas', rotina: '__admin__' },
-          { href: '/procuracoes', texto: 'Procurações',     dica: 'Quem a SERPRO recusa e trava de chamadas pagas', rotina: 'procuracoes' },
-          { href: '/agendamento', texto: 'Agendamento',     dica: 'Rotinas automáticas e teto de gasto', rotina: 'agendamento' },
-          { href: '/restaurar',   texto: 'Restaurar dados', dica: 'Enviar banco e certificado A1', rotina: 'restaurar' },
-        ];
+        var EU = null;
 
-        // DESVIO INTENCIONAL (13o) — o menu reflete a permissão do usuário.
-        // Isto é conforto, NÃO segurança: quem vale é o servidor, que recusa a rota
-        // mesmo se alguém digitar a URL na mão.
-        const BOTOES = {
-          'dashboard': 'dashboard',
-          'configurações': 'configuracoes',
-          'configuracoes': 'configuracoes',
-          'pagamentos de tributos': 'pagamentos',
-          'dctfweb lote': 'dctfweb',
-          'das lote': 'das',
-          'caixa postal': 'caixa_postal',
-          'parcelamentos': 'parcelamentos',
-          'custos api': 'custos_api',
-        };
-        let EU = null;
-
-        function podeRotina(chave) {
-          if (!EU) return true;                       // ainda carregando: não esconde nada
-          if (chave === '__admin__') return !!EU.admin;
-          if (EU.admin) return true;
-          return (EU.rotinas || []).includes(chave);
+        function svg(d) {
+          return d ? '<svg viewBox="0 0 24 24"><path d="' + d + '"/></svg>' : '';
         }
 
-        function aplicarPermissoes(barra) {
-          if (!EU) return;
-          barra.querySelectorAll('button.btn').forEach(b => {
-            const chave = BOTOES[(b.textContent || '').trim().toLowerCase()];
-            if (chave) b.style.display = podeRotina(chave) ? '' : 'none';
+        function botaoDaSPA(rotulo) {
+          var alvo = null;
+          document.querySelectorAll('.header .row button.btn').forEach(function (b) {
+            if ((b.textContent || '').trim() === rotulo) alvo = b;
           });
+          return alvo;
         }
 
-        function montar(barra) {
-          const caixa = document.createElement('div');
-          caixa.id = ID;
-          caixa.style.cssText = 'position:relative;display:inline-block;';
+        function marcarAtivo(el) {
+          document.querySelectorAll('.lateral .item').forEach(function (i) {
+            i.classList.remove('ativo');
+          });
+          if (el) el.classList.add('ativo');
+        }
 
-          const botao = document.createElement('button');
-          botao.className = 'btn secondary';
-          botao.type = 'button';
-          botao.textContent = 'Administração ▾';
+        function montar() {
+          if (document.getElementById('app-lateral')) return;
+          var raiz = document.getElementById('root');
+          if (!raiz || !EU) return;
 
-          const lista = document.createElement('div');
-          lista.style.cssText = [
-            'position:absolute', 'right:0', 'top:calc(100% + 6px)', 'min-width:230px',
-            'background:#fff', 'border:1px solid #e3e5e8', 'border-radius:10px',
-            'box-shadow:0 6px 20px rgba(0,0,0,.14)', 'padding:6px', 'z-index:9999',
-            'display:none', 'text-align:left',
-          ].join(';');
+          var app = document.createElement('div');
+          app.className = 'app';
+          app.id = 'app-lateral';
 
-          function item(href, texto, dica, cor) {
-            const a = document.createElement('a');
-            a.href = href;
-            a.style.cssText = 'display:block;padding:8px 10px;border-radius:7px;'
-              + 'text-decoration:none;color:' + (cor || '#1c1e21') + ';';
-            const t = document.createElement('div');
-            t.textContent = texto;
-            t.style.cssText = 'font-size:14px;font-weight:600;';
-            a.appendChild(t);
-            if (dica) {
-              const d = document.createElement('div');
-              d.textContent = dica;
-              d.style.cssText = 'font-size:11px;color:#6b7280;margin-top:1px;';
-              a.appendChild(d);
-            }
-            a.addEventListener('mouseenter', () => a.style.background = '#f0f1f3');
-            a.addEventListener('mouseleave', () => a.style.background = 'transparent');
-            return a;
+          // ------------------------------------------------------------ lateral
+          var lateral = document.createElement('aside');
+          lateral.className = 'lateral';
+
+          var html = '<div class="marca-topo"><div class="marca">eC</div>'
+            + '<div><b>Central e-CAC</b><span>Pendências &amp; débitos</span></div></div><nav>';
+
+          (EU.menu || []).forEach(function (grupo) {
+            html += '<div class="secao">' + grupo.titulo + '</div>';
+            grupo.itens.forEach(function (item) {
+              var attrs = item.url
+                ? 'href="' + item.url + '"'
+                : 'href="#" data-spa="' + (item.spa || '') + '"';
+              html += '<a class="item" ' + attrs + '>' + svg(item.icone)
+                + '<span>' + item.rotulo + '</span></a>';
+            });
+          });
+
+          html += '<div class="secao">Sessão</div>'
+            + '<a class="item sair" href="/logout">' + svg(EU.icone_sair)
+            + '<span>Sair</span></a></nav>'
+            + '<div class="lateral-rodape">' + (EU.nome || EU.usuario || '')
+            + '<br>Direitos reservados @Warley.contador</div>';
+          lateral.innerHTML = html;
+
+          // ----------------------------------------------------------- conteúdo
+          var conteudo = document.createElement('div');
+          conteudo.className = 'conteudo';
+          var barra = document.createElement('div');
+          barra.className = 'barra';
+          barra.innerHTML =
+            '<button class="alternar" title="Recolher menu">'
+            + '<svg viewBox="0 0 24 24"><path d="M3 4h18v16H3zM9 4v16"/></svg></button>'
+            + '<b>Central Pendências e-CAC</b>'
+            + '<div class="fim"><span class="pilula"><i></i>Sistema no ar</span></div>';
+          conteudo.appendChild(barra);
+
+          app.appendChild(lateral);
+          app.appendChild(conteudo);
+          raiz.parentNode.insertBefore(app, raiz);
+          conteudo.appendChild(raiz);   // a SPA passa a viver dentro do conteúdo
+
+          // ------------------------------------------------------------- ações
+          barra.querySelector('.alternar').addEventListener('click', function () {
+            var estreito = window.matchMedia('(max-width: 760px)').matches;
+            if (estreito) { app.classList.toggle('aberta'); return; }
+            app.classList.toggle('retraida');
+            try {
+              localStorage.setItem('ecac_lateral',
+                app.classList.contains('retraida') ? '1' : '0');
+            } catch (e) {}
+          });
+          try {
+            if (localStorage.getItem('ecac_lateral') === '1') app.classList.add('retraida');
+          } catch (e) {}
+
+          lateral.querySelectorAll('.item[data-spa]').forEach(function (a) {
+            a.addEventListener('click', function (ev) {
+              ev.preventDefault();
+              var b = botaoDaSPA(a.getAttribute('data-spa'));
+              if (b) { b.click(); marcarAtivo(a); }
+              if (window.matchMedia('(max-width: 760px)').matches) {
+                app.classList.remove('aberta');
+              }
+            });
+          });
+
+          // Abertura direta vinda das telas do Flask: /?aba=caixa_postal
+          var aba = new URLSearchParams(location.search).get('aba');
+          var inicial = lateral.querySelector('.item[data-spa]');
+          if (aba) {
+            var alvo = lateral.querySelector('.item[href="#"][data-spa]');
+            lateral.querySelectorAll('.item[data-spa]').forEach(function (a) {
+              if (a.getAttribute('href') === '#' &&
+                  (EU.menu || []).some(function (g) {
+                    return g.itens.some(function (i) {
+                      return i.chave === aba && i.spa === a.getAttribute('data-spa');
+                    });
+                  })) { alvo = a; }
+            });
+            if (alvo) { setTimeout(function () { alvo.click(); }, 60); return; }
           }
-
-          ITENS.filter(i => podeRotina(i.rotina))
-               .forEach(i => lista.appendChild(item(i.href, i.texto, i.dica)));
-
-          const risco = document.createElement('div');
-          risco.style.cssText = 'height:1px;background:#e3e5e8;margin:6px 4px;';
-          lista.appendChild(risco);
-
-          if (EU) {
-            const quem = document.createElement('div');
-            quem.textContent = (EU.nome || EU.usuario) + (EU.admin ? ' · administrador' : '');
-            quem.style.cssText = 'padding:4px 10px;font-size:11px;color:#6b7280;';
-            lista.appendChild(quem);
-          }
-          lista.appendChild(item('/logout', 'Sair', 'Encerrar a sessão', '#b3261e'));
-
-          botao.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            lista.style.display = lista.style.display === 'none' ? 'block' : 'none';
-          });
-          document.addEventListener('click', () => { lista.style.display = 'none'; });
-          document.addEventListener('keydown', (ev) => {
-            if (ev.key === 'Escape') lista.style.display = 'none';
-          });
-
-          caixa.appendChild(botao);
-          caixa.appendChild(lista);
-          barra.appendChild(caixa);
+          marcarAtivo(inicial);
         }
 
-        function injetar() {
-          const barra = document.querySelector('.header .row');
-          if (!barra) return;
-          // Esconder o que o usuário não pode abrir roda SEMPRE: o React redesenha os
-          // botões a cada troca de aba e eles voltam visíveis.
-          aplicarPermissoes(barra);
-          if (document.getElementById(ID)) return;      // a seção já está lá
-          montar(barra);
-        }
-
-        // O React redesenha o cabeçalho ao trocar de aba e leva o botão junto;
-        // o observer recoloca. O injetar() só remonta a seção se ela sumiu, então
-        // não há laço.
-        new MutationObserver(injetar).observe(
-          document.getElementById('root'), { childList: true, subtree: true });
-        injetar();
-
-        // Quem sou eu chega depois; ao responder, refaz a seção já com as permissões.
-        fetch('/api/me').then(r => r.ok ? r.json() : null).then(eu => {
-          if (!eu || !eu.autenticado) return;
-          EU = eu;
-          const antiga = document.getElementById(ID);
-          if (antiga) antiga.remove();                  // remonta com os itens certos
-          injetar();
-        }).catch(() => {});
+        fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (eu) {
+            if (!eu || !eu.autenticado) return;
+            EU = eu;
+            montar();
+            // o React redesenha o cabeçalho ao trocar de aba; se a estrutura sumir,
+            // remonta. montar() sai cedo quando já existe, então não há laço.
+            new MutationObserver(montar).observe(
+              document.body, { childList: true, subtree: false });
+          }).catch(function () {});
       })();
     </script>
   </body>

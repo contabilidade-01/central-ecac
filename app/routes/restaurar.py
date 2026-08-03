@@ -31,7 +31,7 @@ from flask import Blueprint, jsonify, render_template_string, request
 
 from app.extensions import db
 from app.models import AppSetting, Company
-from app.ui import CSS, topo
+from app.ui import CSS, FIM, lateral
 
 restaurar_bp = Blueprint('restaurar', __name__)
 
@@ -229,7 +229,7 @@ PAGINA = """
 <style>""" + CSS + """</style>
 </head>
 <body>
-""" + topo() + """
+""" + lateral('restaurar') + """
 <div class="wrap">
   <h1>Restaurar dados</h1>
   <p class="sub">
@@ -275,7 +275,7 @@ PAGINA = """
   </div>
 
   <p class="rodape">
-    Terminou? <a href="/">Voltar ao painel</a> — o menu destrava assim que o banco entrar.
+    Terminou? O menu destrava assim que o banco entrar.
   </p>
 </div>
 
@@ -318,6 +318,7 @@ function enviar(idForm, idMsg, url, campo) {
 enviar('f-banco', 'm-banco', '/api/restaurar/banco', 'banco');
 enviar('f-cert', 'm-cert', '/api/restaurar/certificado', 'certificado');
 </script>
+""" + FIM + """
 </body>
 </html>
 """

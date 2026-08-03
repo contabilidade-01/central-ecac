@@ -11,7 +11,7 @@ Rotas: `/agendamento` (página) e `/api/agendamento*` (API).
 
 from flask import Blueprint, jsonify, render_template_string, request
 
-from app.ui import CSS, topo
+from app.ui import CSS, FIM, lateral
 from app.services.agendamento_service import (
     MODULOS,
     executar_modulo,
@@ -74,7 +74,7 @@ PAGINA = """
 <style>""" + CSS + """</style>
 </head>
 <body>
-""" + topo() + """
+""" + lateral('agendamento') + """
 <div class="wrap">
   <h1>Automação das rotinas</h1>
   <p class="sub">
@@ -227,6 +227,7 @@ async function executar(modulo) {
 carregar();
 </script>
 </div>
+""" + FIM + """
 </body>
 </html>
 """

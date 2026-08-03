@@ -100,6 +100,76 @@ _PREFIXOS = sorted(
 )
 
 
+# --------------------------------------------------------------------- menu
+#
+# Fonte única do menu lateral (14o desvio). As telas do Flask montam a barra a partir
+# daqui (`app/ui.py`), e a SPA compilada recebe a mesma estrutura já filtrada em
+# `/api/me` — assim as duas nunca divergem.
+#
+# `spa`  = rótulo do botão original do bundle; o item da barra CLICA nesse botão, que
+#          é o único jeito de trocar de aba sem ter o fonte do React.
+# `url`  = tela servida pelo Flask (navegação normal).
+# `chave` = rotina para a permissão; `__admin__` aparece só para administrador.
+
+ICONES = {
+    'dashboard':     'M3 3h7v7H3zM14 3h7v4h-7zM14 10h7v11h-7zM3 13h7v8H3z',
+    'caixa_postal':  'M3 5h18v14H3zM3 5l9 7 9-7',
+    'parcelamentos': 'M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+    'pagamentos':    'M3 6h18v12H3zM3 10h18M7 15h4',
+    'dctfweb':       'M8 3h9l4 4v14H8zM17 3v4h4M4 7v14h9',
+    'das':           'M6 2h9l5 5v15H6zM15 2v5h5M9 13h8M9 17h5',
+    'custos_api':    'M12 3a9 9 0 109 9h-9z M12 3v9h9',
+    'configuracoes': 'M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1L14.5 3h-5l-.3 2.6a7 7 0 00-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.3 2.4h5l.3-2.4a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6c.1-.3.1-.7.1-1z',
+    'procuracoes':   'M9 12l2 2 4-4M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z',
+    'agendamento':   'M8 2v4M16 2v4M3 10h18M5 6h14v15H5zM12 14v3',
+    'restaurar':     'M21 12a9 9 0 11-3-6.7M21 3v6h-6',
+    '__admin__':     'M17 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9.5 6.5a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0zM22 20v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8',
+    'sair':          'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
+}
+
+MENU: List = [
+    ('Painel', [
+        {'chave': 'dashboard',     'rotulo': 'Dashboard',     'spa': 'Dashboard'},
+        {'chave': 'caixa_postal',  'rotulo': 'Caixa Postal',  'spa': 'Caixa Postal'},
+        {'chave': 'parcelamentos', 'rotulo': 'Parcelamentos', 'spa': 'Parcelamentos'},
+    ]),
+    ('Rotinas', [
+        {'chave': 'pagamentos', 'rotulo': 'Pagamentos de Tributos',
+         'spa': 'Pagamentos de Tributos'},
+        {'chave': 'dctfweb', 'rotulo': 'DCTFWeb Lote', 'spa': 'DCTFWeb Lote'},
+        {'chave': 'das',     'rotulo': 'DAS Lote',     'spa': 'DAS Lote'},
+    ]),
+    ('Administração', [
+        {'chave': 'procuracoes', 'rotulo': 'Procurações',       'url': '/procuracoes'},
+        {'chave': 'agendamento', 'rotulo': 'Agendamento',       'url': '/agendamento'},
+        {'chave': '__admin__',   'rotulo': 'Usuários e acessos', 'url': '/usuarios'},
+        {'chave': 'restaurar',   'rotulo': 'Restaurar dados',   'url': '/restaurar'},
+    ]),
+    ('Sistema', [
+        {'chave': 'configuracoes', 'rotulo': 'Configurações', 'spa': 'Configurações'},
+        {'chave': 'custos_api',    'rotulo': 'Custos API',    'spa': 'Custos API'},
+    ]),
+]
+
+
+def menu_do_usuario(usuario: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Menu já filtrado pelo que este usuário pode abrir."""
+    saida = []
+    for titulo, itens in MENU:
+        liberados = []
+        for item in itens:
+            chave = item['chave']
+            if chave == '__admin__':
+                if not e_admin(usuario):
+                    continue
+            elif not pode_rotina(usuario, chave):
+                continue
+            liberados.append({**item, 'icone': ICONES.get(chave, '')})
+        if liberados:
+            saida.append({'titulo': titulo, 'itens': liberados})
+    return saida
+
+
 def catalogo(inclui_admin: bool = True) -> List[Dict[str, Any]]:
     """Lista para montar a tela de permissões."""
     return [

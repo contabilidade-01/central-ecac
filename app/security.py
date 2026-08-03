@@ -406,6 +406,10 @@ def registrar_seguranca(app) -> None:
             'admin': permissoes.e_admin(usuario),
             'rotinas': permissoes.rotinas_do_usuario(usuario),
             'empresas': permissoes.empresas_do_usuario(usuario),
+            # DESVIO INTENCIONAL (14o) — a SPA compilada monta a barra lateral a partir
+            # daqui. Mesma fonte que as telas do Flask usam, então as duas não divergem.
+            'menu': permissoes.menu_do_usuario(usuario),
+            'icone_sair': permissoes.ICONES['sair'],
         })
 
     @app.get('/healthz')

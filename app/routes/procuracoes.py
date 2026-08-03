@@ -16,7 +16,7 @@ import threading
 from flask import Blueprint, current_app, jsonify, render_template_string, request
 
 from app.models import Company
-from app.ui import CSS, topo
+from app.ui import CSS, FIM, lateral
 from app.services.procuracao_service import (
     SITUACAO_DESCONHECIDA,
     SITUACAO_OK,
@@ -155,7 +155,7 @@ PAGINA = """
 <style>""" + CSS + """</style>
 </head>
 <body>
-""" + topo() + """
+""" + lateral('procuracoes') + """
 <div class="wrap">
   <h1>Procurações</h1>
   <p class="sub">
@@ -287,6 +287,7 @@ async function marcar(cnpj, situacao) {
 carregar();
 </script>
 </div>
+""" + FIM + """
 </body>
 </html>
 """

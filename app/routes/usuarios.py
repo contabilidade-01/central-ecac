@@ -19,7 +19,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, render_template_string, request
 
 from app.models import Company
-from app.ui import CSS, topo
+from app.ui import CSS, FIM, lateral
 from app.services import permissoes, usuarios_service
 
 usuarios_bp = Blueprint('usuarios', __name__)
@@ -117,7 +117,7 @@ PAGINA = """
 <style>""" + CSS + """</style>
 </head>
 <body>
-""" + topo() + """
+""" + lateral('__admin__') + """
 <div class="wrap">
   <h1>Usuários e acessos</h1>
   <p class="sub">
@@ -154,7 +154,6 @@ PAGINA = """
     <div id="m-lista"></div>
   </div>
 
-  <p class="rodape"><a href="/">Voltar ao painel</a></p>
 </div>
 
 <dialog id="dlg">
@@ -346,6 +345,7 @@ function copiar() {
 
 carregar();
 </script>
+""" + FIM + """
 </body>
 </html>
 """

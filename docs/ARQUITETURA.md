@@ -34,7 +34,7 @@ verdade, não funcionavam.
 
 ---
 
-## Os 11 desvios intencionais
+## Os 12 desvios intencionais
 
 | # | O quê | Por quê | Onde |
 |---|---|---|---|
@@ -49,6 +49,7 @@ verdade, não funcionavam.
 | 9 | `config.json` dinâmico + `ProxyFix` | a SPA compilada usa `server_url` do `config.json` como baseURL do axios; o arquivo traz `http://localhost:5847`, que **quebra em qualquer domínio** (e é conteúdo misto sob HTTPS). Sem o fonte do React, a correção tem de ser no servidor | `app/__init__.py` |
 | 10 | Tela de login com sessão | o Basic do 7º dependia de variável de ambiente; se o painel não aplicasse, o sistema **abria sem senha e ninguém percebia** — aconteceu em 03/08/2026. Agora, sem credencial, o sistema não abre | `app/security.py`, `services/usuarios_service.py` |
 | 11 | Tela `/restaurar` | levar banco e `.pfx` para o volume exigia SSH + `scp` + `chown` (o container roda como uid 10001; arquivo enviado por root deixa o SQLite somente leitura). Enviando pelo navegador, quem grava é o app — o dono já sai certo | `app/routes/restaurar.py` |
+| 12 | Seção "Administração" no menu da SPA | as telas do Flask não existiam no menu, e o bundle React é compilado sem fonte. Injetado por script no `index.html` (que já não era idêntico ao do exe); os arquivos em `/assets` seguem intocados. Leva junto o **Sair**, que a SPA não tinha | `app/static/app/index.html` |
 
 ### Detalhe do 9º — por que era bloqueador de deploy
 

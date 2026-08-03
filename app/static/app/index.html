@@ -26,5 +26,97 @@
       });
       observer.observe(document.getElementById('root'), { childList: true, subtree: true });
     </script>
+
+    <script>
+      // DESVIO INTENCIONAL (12o) — seção "Administração" no menu da SPA.
+      //
+      // As telas novas (procurações, agendamento, restaurar) são servidas pelo Flask e
+      // não existem no bundle React, que é compilado e sem fonte — não dá para
+      // acrescentar botão nele. A saída é injetar aqui, no index.html, que já não é
+      // idêntico ao do exe (o script de máscara de senha acima também foi acrescentado).
+      // Os arquivos em /assets continuam intocados.
+      //
+      // O "Sair" entra junto: com a tela de login (10o desvio), o usuário precisava de
+      // uma forma de encerrar a sessão, e a SPA não tem nenhuma.
+      (function () {
+        const ID = 'secao-administracao';
+        const ITENS = [
+          { href: '/procuracoes', texto: 'Procurações',     dica: 'Quem a SERPRO recusa e trava de chamadas pagas' },
+          { href: '/agendamento', texto: 'Agendamento',     dica: 'Rotinas automáticas e teto de gasto' },
+          { href: '/restaurar',   texto: 'Restaurar dados', dica: 'Enviar banco e certificado A1' },
+        ];
+
+        function montar(barra) {
+          const caixa = document.createElement('div');
+          caixa.id = ID;
+          caixa.style.cssText = 'position:relative;display:inline-block;';
+
+          const botao = document.createElement('button');
+          botao.className = 'btn secondary';
+          botao.type = 'button';
+          botao.textContent = 'Administração ▾';
+
+          const lista = document.createElement('div');
+          lista.style.cssText = [
+            'position:absolute', 'right:0', 'top:calc(100% + 6px)', 'min-width:230px',
+            'background:#fff', 'border:1px solid #e3e5e8', 'border-radius:10px',
+            'box-shadow:0 6px 20px rgba(0,0,0,.14)', 'padding:6px', 'z-index:9999',
+            'display:none', 'text-align:left',
+          ].join(';');
+
+          function item(href, texto, dica, cor) {
+            const a = document.createElement('a');
+            a.href = href;
+            a.style.cssText = 'display:block;padding:8px 10px;border-radius:7px;'
+              + 'text-decoration:none;color:' + (cor || '#1c1e21') + ';';
+            const t = document.createElement('div');
+            t.textContent = texto;
+            t.style.cssText = 'font-size:14px;font-weight:600;';
+            a.appendChild(t);
+            if (dica) {
+              const d = document.createElement('div');
+              d.textContent = dica;
+              d.style.cssText = 'font-size:11px;color:#6b7280;margin-top:1px;';
+              a.appendChild(d);
+            }
+            a.addEventListener('mouseenter', () => a.style.background = '#f0f1f3');
+            a.addEventListener('mouseleave', () => a.style.background = 'transparent');
+            return a;
+          }
+
+          ITENS.forEach(i => lista.appendChild(item(i.href, i.texto, i.dica)));
+
+          const risco = document.createElement('div');
+          risco.style.cssText = 'height:1px;background:#e3e5e8;margin:6px 4px;';
+          lista.appendChild(risco);
+          lista.appendChild(item('/logout', 'Sair', 'Encerrar a sessão', '#b3261e'));
+
+          botao.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            lista.style.display = lista.style.display === 'none' ? 'block' : 'none';
+          });
+          document.addEventListener('click', () => { lista.style.display = 'none'; });
+          document.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Escape') lista.style.display = 'none';
+          });
+
+          caixa.appendChild(botao);
+          caixa.appendChild(lista);
+          barra.appendChild(caixa);
+        }
+
+        function injetar() {
+          if (document.getElementById(ID)) return;      // já está lá
+          const barra = document.querySelector('.header .row');
+          if (barra) montar(barra);
+        }
+
+        // O React redesenha o cabeçalho ao trocar de aba e leva o botão junto;
+        // o observer recoloca. O injetar() sai cedo se já existir, então não há laço.
+        new MutationObserver(injetar).observe(
+          document.getElementById('root'), { childList: true, subtree: true });
+        injetar();
+      })();
+    </script>
   </body>
 </html>

@@ -89,11 +89,14 @@ DATA_DIR=/data
 PORT=5847
 TZ=America/Sao_Paulo
 SECRET_KEY=<cole aqui a chave gerada>
-AUTH_USER=nescon
-AUTH_PASSWORD=<senha forte>
+SESSION_COOKIE_SECURE=1
 SCHEDULER_ENABLED=1
-LIMITE_GASTO_MENSAL=0
+LIMITE_GASTO_MENSAL=100
 ```
+
+**A senha de acesso não vem daqui.** Ela é definida na tela `/primeiro-acesso`, no
+primeiro acesso ao sistema, e fica em hash no volume. `SECRET_KEY` continua obrigatória:
+é ela que assina o cookie de sessão do login.
 
 `SCHEDULER_ENABLED=1` liga a automação (já é o padrão da imagem).
 `LIMITE_GASTO_MENSAL` é o teto mensal em reais — `0` = sem teto. Ele também pode ser
@@ -112,9 +115,16 @@ certificado** não são variáveis de ambiente — ficam no banco, cadastradas p
 **Configurações** do próprio sistema. O certificado `.pfx` é um arquivo e vai para o
 volume (passo 6).
 
-`AUTH_USER`/`AUTH_PASSWORD` são o login do sistema. Se ficarem vazias **o sistema abre
-sem senha** — o que na internet significa expor dados fiscais de todos os clientes e
-botões que gastam dinheiro. Nunca deixe em branco no servidor.
+### ⚠️ Defina a senha ANTES de carregar os dados
+
+Assim que o domínio responder, abra `https://ecac.gestaoempresa.com` — o sistema leva
+para **`/primeiro-acesso`**, onde você define usuário e senha. Faça isso **na hora**:
+até a senha existir, quem souber o endereço pode cadastrá-la.
+
+Enquanto não houver credencial, nenhuma tela e nenhuma rota `/api/` abre — o sistema
+fica travado de propósito. Confirme com `/healthz`: tem de mostrar `"auth":"ligada"`.
+
+Esqueceu a senha? No terminal do container: `python scripts/definir_senha.py`.
 
 ---
 

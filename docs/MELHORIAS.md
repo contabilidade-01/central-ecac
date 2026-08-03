@@ -25,12 +25,14 @@ retorno.
 deixando a tela acompanhar por `/api/caixa-postal/monitorar/status`, que já existe.
 **Ganho:** fim dos timeouts. **Esforço:** baixo. **Atenção:** é desvio do exe.
 
-### 3. Trocar HTTP Basic por login de verdade
+### 3. ✅ FEITO — Trocar HTTP Basic por login de verdade
 **Problema:** Basic tem um usuário só, sem logout, sem trilha de quem fez o quê. Para um
 operador é aceitável; para o escritório inteiro, não.
 **Proposta:** tabela de usuários com hash (bcrypt/argon2), sessão Flask, e registrar
 autor nas ações que gastam dinheiro.
 **Ganho:** rastreabilidade de quem disparou chamada paga. **Esforço:** médio.
+
+> Feito em 03/08/2026: tela de login com sessão, logout, bloqueio após 5 tentativas e senha em hash no volume. Falta ainda o **multiusuário** — hoje é uma credencial só, e o log registra usuário e IP de cada login.
 
 ---
 

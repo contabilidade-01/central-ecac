@@ -34,7 +34,7 @@ verdade, não funcionavam.
 
 ---
 
-## Os 9 desvios intencionais
+## Os 10 desvios intencionais
 
 | # | O quê | Por quê | Onde |
 |---|---|---|---|
@@ -47,6 +47,7 @@ verdade, não funcionavam.
 | 7 | HTTP Basic + `/healthz` + erro 500 neutro | o exe era desktop em localhost; na internet as mesmas rotas expõem dados fiscais e botões que gastam dinheiro | `app/security.py` |
 | 8 | Agendamento automático + teto de gasto | o exe dependia de alguém clicar em cada botão; sem teto, um lote grande gasta sem freio (pedido do Jean) | `services/agendamento_service.py`, `services/limite_gasto_service.py`, `scheduler.py`, `routes/agendamento.py` |
 | 9 | `config.json` dinâmico + `ProxyFix` | a SPA compilada usa `server_url` do `config.json` como baseURL do axios; o arquivo traz `http://localhost:5847`, que **quebra em qualquer domínio** (e é conteúdo misto sob HTTPS). Sem o fonte do React, a correção tem de ser no servidor | `app/__init__.py` |
+| 10 | Tela de login com sessão | o Basic do 7º dependia de variável de ambiente; se o painel não aplicasse, o sistema **abria sem senha e ninguém percebia** — aconteceu em 03/08/2026. Agora, sem credencial, o sistema não abre | `app/security.py`, `services/usuarios_service.py` |
 
 ### Detalhe do 9º — por que era bloqueador de deploy
 

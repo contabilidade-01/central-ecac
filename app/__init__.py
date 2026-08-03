@@ -129,7 +129,11 @@ def create_app() -> Flask:
                 # DESVIO INTENCIONAL (8o): tela do agendamento automatico.
                 or path == '/agendamento'
                 # DESVIO INTENCIONAL (7o): healthcheck do container.
-                or path == '/healthz'):
+                or path == '/healthz'
+                # DESVIO INTENCIONAL (10o): telas de login, servidas pelo Flask.
+                # Sem esta excecao o catch-all devolveria o index.html da SPA e a
+                # tela de login nunca apareceria.
+                or path in ('/login', '/logout', '/primeiro-acesso')):
             return None
         if '.' in path.split('/')[-1]:
             return None

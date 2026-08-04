@@ -31,6 +31,7 @@ from app.services.serpro_procurador_service import (
     only_digits,
     tipo_pessoa,
 )
+from app.services import certificado
 from app.services.serpro_service import SerproService
 from app.utils.paths import app_data_dir
 
@@ -195,7 +196,9 @@ class CaixaPostalService:
         `get_auth_token()` (devolve access_token + jwt_token).
         """
         auth_service = SerproService(
-            certificate_content=Path(setting.certificado_path).read_bytes(),
+            # DESVIO 3o: resolve o caminho — o gravado aponta para a máquina onde
+            # o certificado foi cadastrado e não existe no servidor.
+            certificate_content=certificado.carregar(setting.certificado_path),
             certificate_password=(setting.certificado_password or "").strip(),
             contratante_cnpj=only_digits(setting.contador_cnpj),
             contador_cnpj=only_digits(setting.contador_cnpj),

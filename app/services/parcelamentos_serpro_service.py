@@ -22,6 +22,7 @@ import pycurl
 from flask import current_app
 from app.extensions import db
 from app.models import AppSetting, Company, ParcelamentoParcela, ParcelamentoPedido
+from app.services import certificado
 from app.services.serpro_service import SerproService
 from app.services.serpro_procurador_service import SerproProcuradorService
 from app.services.api_usage_service import ApiUsageService
@@ -152,10 +153,8 @@ class ParcelamentosSerproService:
             setting = self._get_setting()
             if not setting or not setting.certificado_password:
                 return None
-            if not Path(certificado_path).exists():
-                return None
-            with open(certificado_path, "rb") as f:
-                cert_bytes = f.read()
+            # DESVIO 3o: resolve o caminho antes de abrir.
+            cert_bytes = certificado.carregar(certificado_path)
             return (cert_bytes, setting.certificado_password)
         except Exception as e:
             logger.exception(f"Erro ao carregar certificado: {e}")

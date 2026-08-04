@@ -210,10 +210,17 @@ async function carregar() {
     <div class="tile"><span>Ainda não verificadas</span><b>${c.desconhecida || 0}</b></div>`;
 
   document.getElementById('corpo').innerHTML = d.empresas.map(e => {
-    const erro = e.erro_texto || e.erro_codigo
-      ? `<code>${texto(e.erro_codigo)}</code> ${texto(e.erro_texto)}
-         <br><small>${texto(e.erro_servico)} · HTTP ${texto(e.erro_http)} · ${texto(e.erro_erro_em || e.ultimo_erro_em)}</small>`
-      : '—';
+    // Nem todo erro tem o formato da SERPRO: falha de certificado, rede ou
+    // configuração chega como texto solto. Antes isso virava "—" e escondia
+    // justamente o diagnóstico. Agora, sem código/texto, mostramos o BRUTO.
+    let erro = '—';
+    if (e.erro_texto || e.erro_codigo) {
+      erro = `<code>${texto(e.erro_codigo)}</code> ${texto(e.erro_texto)}
+              <br><small>${texto(e.erro_servico)} · HTTP ${texto(e.erro_http)} · ${texto(e.ultimo_erro_em)}</small>`;
+    } else if (e.erro_bruto) {
+      erro = `<code style="white-space:pre-wrap">${texto(e.erro_bruto).slice(0, 300)}</code>
+              <br><small>${texto(e.erro_servico)} · ${texto(e.ultimo_erro_em)}</small>`;
+    }
     const acao = e.situacao === 'sem_procuracao'
       ? `<button onclick="marcar('${e.cnpj}','ok')">Liberar</button>`
       : `<button onclick="marcar('${e.cnpj}','sem_procuracao')">Marcar sem procuração</button>`;

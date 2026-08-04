@@ -23,6 +23,7 @@ import requests
 
 from app.models import AppSetting
 from app.services.serpro_logging import serpro_post
+from app.services import certificado
 from app.services.serpro_service import SerproService
 from app.services.serpro_procurador_service import SerproProcuradorService
 
@@ -118,11 +119,8 @@ class SerproDasService:
         if not contador_cnpj:
             raise ValueError('CNPJ/CPF do contador não configurado em Configurações')
 
-        cert_file = Path(certificado_path)
-        if not cert_file.exists():
-            raise ValueError('Arquivo do certificado não encontrado nas Configurações')
-
-        certificate_content = cert_file.read_bytes()
+        # DESVIO 3o: resolve o caminho — o gravado pode ser de outra máquina.
+        certificate_content = certificado.carregar(certificado_path)
         auth_service = SerproService(
             certificate_content=certificate_content,
             certificate_password=certificado_password,

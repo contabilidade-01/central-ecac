@@ -93,27 +93,11 @@ class ReportService:
         outra máquina. Se o caminho gravado não existir, procura o mesmo arquivo
         (e depois o nome padrão) dentro do CERTS_DIR desta máquina.
         """
-        if certificado_path and Path(certificado_path).exists():
-            return certificado_path
-
-        certs_dir = Path(current_app.config['CERTS_DIR'])
-        candidatos = []
-        if certificado_path:
-            candidatos.append(certs_dir / Path(certificado_path).name)
-        candidatos.append(certs_dir / 'contador_certificado.pfx')
-
-        for candidato in candidatos:
-            if candidato.exists():
-                current_app.logger.info(
-                    'Certificado não encontrado em %s; usando %s',
-                    certificado_path, candidato)
-                return str(candidato)
-
-        raise ValueError(
-            f'Certificado não encontrado: {certificado_path}. '
-            f'Reenvie o certificado A1 pela tela de Configurações ou rode '
-            f'scripts/configurar_certificado.py nesta máquina.'
-        )
+        # A lógica vive em `services/certificado.py` desde 03/08/2026, porque os
+        # demais módulos (caixa postal, parcelamentos, DAS, pagamentos) liam o caminho
+        # direto e quebravam no servidor.
+        from app.services import certificado as _cert
+        return _cert.resolver(certificado_path)
 
     def _tipo_from_key(self, key: str) -> str:
         if key.startswith('debitosSN'):

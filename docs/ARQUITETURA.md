@@ -40,7 +40,7 @@ verdade, não funcionavam.
 |---|---|---|---|
 | 1 | Hook `before_request` da SPA | com `static_url_path='/'`, abrir `/dashboard` direto devolvia 404 | `app/__init__.py` |
 | 2 | `DATA_DIR` fora do `%LOCALAPPDATA%` | banco/PDFs compartilhados (OneDrive) e, no servidor, volume persistente | `app/config.py` |
-| 3 | Fallback do caminho do `.pfx` | consequência do 2: caminho absoluto de uma máquina não existe na outra | `report_service._resolver_certificado()` |
+| 3 | Fallback do caminho do `.pfx` | consequência do 2: caminho absoluto de uma máquina não existe na outra. **Ampliado em 03/08** para todos os módulos — antes só o `report_service` tinha, e todo o resto quebrava no servidor | `services/certificado.py` |
 | 4 | Parcelamento/PGFN nas Pendências | a PGFN não é coberta pela API, mas está no texto do PDF (pedido do Jean) | `pdf_parser`, `report_service` |
 | 5 | Mapa de procurações + trava de chamadas pagas | não repetir chamada paga em empresa que a SERPRO recusa (pedido do Jean) | `services/procuracao_service.py`, `routes/procuracoes.py` |
 | 6 | Não rebaixar detalhe já baixado e inalterado | o exe rebaixava a caixa inteira a cada consulta — 17 chamadas onde bastavam 2 | `caixa_postal_service.consultar_mensagens_empresa()` |

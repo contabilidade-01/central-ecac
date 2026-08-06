@@ -77,6 +77,7 @@ td.valor { text-align:right; font-variant-numeric:tabular-nums; }
       </div>
       <div>
         <button onclick="limpar()">Limpar filtros</button>
+        <button class="primario" onclick="imprimir()" title="Imprimir lista filtrada">🖨️ Imprimir</button>
       </div>
     </div>
   </div>
@@ -177,6 +178,86 @@ function limpar() {
   document.getElementById('f-debito-tipo').value = '';
   document.getElementById('f-receita').value = '';
   filtrar();
+}
+
+function imprimir() {
+  const pend = document.getElementById('f-pendencia');
+  const deb = document.getElementById('f-debito-tipo');
+  const rec = document.getElementById('f-receita');
+  const qtd = document.getElementById('qtd').textContent;
+
+  // Montar descrição do filtro ativo
+  let filtroDesc = [];
+  if (pend.value) filtroDesc.push('Pendência: ' + pend.value);
+  if (deb.value) filtroDesc.push('Débito: ' + deb.value);
+  if (rec.value) filtroDesc.push('Receita: ' + rec.value);
+  const filtroTexto = filtroDesc.length ? filtroDesc.join(' | ') : 'Sem filtros (todas as empresas)';
+
+  // Pegar dados da tabela
+  const linhas = document.querySelectorAll('#corpo tr');
+  let tabelaHTML = '';
+  linhas.forEach(tr => {
+    const tds = tr.querySelectorAll('td');
+    if (tds.length < 6) return;
+    tabelaHTML += '<tr>';
+    // Pegar só as 6 primeiras colunas (sem PDF)
+    for (let i = 0; i < 6; i++) {
+      tabelaHTML += '<td>' + tds[i].textContent.trim() + '</td>';
+    }
+    tabelaHTML += '</tr>';
+  });
+
+  const agora = new Date().toLocaleString('pt-BR');
+
+  const html = `<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Filtros - Central e-CAC</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; padding: 20px 30px; color: #1a1a1a; font-size: 12px; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  .sub { color: #555; font-size: 11px; margin: 0 0 12px; }
+  .filtro { background: #f4f7fa; border: 1px solid #ddd; border-radius: 6px; padding: 8px 14px; margin-bottom: 12px; font-size: 11px; }
+  .filtro b { color: #1d4ed8; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+  th { background: #f0f4f8; font-weight: 600; font-size: 10px; text-transform: uppercase; }
+  td.valor { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:nth-child(even) { background: #fafbfc; }
+  .rodape { margin-top: 16px; font-size: 10px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
+  @media print {
+    body { padding: 10px; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+<h1>Central Pendências e-CAC — Filtros</h1>
+<p class="sub">${qtd} • Gerado em ${agora}</p>
+<div class="filtro">Filtros aplicados: <b>${filtroTexto}</b></div>
+<table>
+  <thead>
+    <tr>
+      <th>Empresa</th>
+      <th>CNPJ</th>
+      <th>Situação</th>
+      <th>Pend.</th>
+      <th>Déb.</th>
+      <th class="valor">Valor total débitos</th>
+    </tr>
+  </thead>
+  <tbody>${tabelaHTML}</tbody>
+</table>
+<div class="rodape">Nescon Serviços Empresariais • Central Pendências e-CAC</div>
+<script>window.onload = function() { window.print(); }<\/script>
+</body>
+</html>`;
+
+  const janela = window.open('', '_blank');
+  janela.document.write(html);
+  janela.document.close();
 }
 
 carregarFiltros();

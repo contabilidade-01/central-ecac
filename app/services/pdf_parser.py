@@ -18,9 +18,8 @@ class PDFParser:
                 pdf_file = io.BytesIO(pdf_content)
 
             reader = PyPDF2.PdfReader(pdf_file)
-            text = ''
-            for page in reader.pages:
-                text += page.extract_text() or ''
+            paginas = [(page.extract_text() or '') for page in reader.pages]
+            text = ''.join(self._remover_cabecalho_repetido(paginas))
             text = text.replace('*', '')
             return self._parse_text_to_json(text)
         except Exception as e:
@@ -29,6 +28,47 @@ class PDFParser:
         finally:
             if pdf_file:
                 pdf_file.close()
+
+    @staticmethod
+    def _remover_cabecalho_repetido(paginas):
+        """Tira o cabeçalho que se repete a partir da 2a página.
+
+        ⚠️ DESVIO INTENCIONAL (16o) — o exe NÃO faz isto, e por isso lia errado.
+
+        Toda página do relatório começa com o mesmo bloco:
+
+            MINISTÉRIO DA ECONOMIA ...
+            SECRETARIA ... Autor pedido: 35.736.034/0001-23. Contratante: 35.736.034/0001-23
+            PROCURADORIA-GERAL ... 30/07/2026 23:32:13
+            INFORMAÇÕES DE APOIO PARA EMISSÃO DE CERTIDÃO
+            CNPJ: 08.108.132 - FULANO
+
+        Quando uma seção de omissão atravessa a quebra de página, esse bloco cai no
+        MEIO do texto capturado. Como o extrator procura qualquer numero de 4 digitos, ele pegava
+        o **0001** do CNPJ (três vezes: autor, contratante e a linha do CNPJ) e o
+        **2026** da data — virando pendências fantasma do tipo "DCTFWeb 0001 —".
+
+        A 1a página é preservada inteira: é dela que saem CNPJ, razão social,
+        endereço e data/hora do relatório.
+        """
+        if len(paginas) < 2:
+            return paginas
+
+        linhas = [pagina.split(chr(10)) for pagina in paginas]
+        comuns = 0
+        while True:
+            if any(len(bloco) <= comuns for bloco in linhas):
+                break
+            referencia = linhas[0][comuns].strip()
+            if not referencia:
+                break
+            if any(bloco[comuns].strip() != referencia for bloco in linhas[1:]):
+                break
+            comuns += 1
+
+        if comuns == 0:
+            return paginas
+        return [paginas[0]] + [chr(10).join(bloco[comuns:]) for bloco in linhas[1:]]
 
     def _parse_text_to_json(self, text):
         data = {}
@@ -173,24 +213,41 @@ class PDFParser:
             match = re.search(pattern, text, re.DOTALL)
             if match:
                 raw_data = match.group(1).replace('\n', ' ')
-                entries = re.findall(r'(\d{4}(?: - (?:[A-Z]{3}\s*)+)?|\b[A-Z]{3}\b)', raw_data)
-                detailed_entries = []
-                for entry in entries:
-                    if '-' in entry:
-                        year, months = entry.split(' - ', 1)
-                        if len(year.strip()) == 4:
-                            detailed_entries.append({
-                                'ano': year.strip(),
-                                'meses': months.strip().split(),
-                            })
-                    else:
-                        detailed_entries.append({'ano': entry.strip(), 'meses': []})
-                return [item for item in detailed_entries if item['ano'].isdigit()]
+
+                # DESVIO INTENCIONAL (16o) — o exe usa
+                #     (\d{4}(?: - (?:[A-Z]{3}\s*)+)?|\b[A-Z]{3}\b)
+                # que aceita QUALQUER número de 4 dígitos como ano. Com isso o "0001"
+                # de um CNPJ e o "2026" de uma data viravam pendência fantasma. Aqui:
+                #   * o ano não pode estar colado em / . ou - (recorta CNPJ e data);
+                #   * tem de ser plausível (19xx/20xx).
+                # A remoção do cabeçalho repetido já evita a maior parte; esta é a
+                # segunda barreira, para número solto no meio da seção.
+                entries = re.findall(
+                    r'(?<![\d./-])((?:19|20)\d{2})(?![\d./-])'
+                    r'(?:\s*-\s*((?:[A-Z]{3}[\s,]*)+))?',
+                    raw_data,
+                )
+
+                # O mesmo ano pode aparecer repetido (seção quebrada em duas páginas):
+                # junta os meses e não devolve linha duplicada.
+                juntos = {}
+                for ano, meses in entries:
+                    alvo = juntos.setdefault(ano, [])
+                    for mes in re.findall(r'[A-Z]{3}', meses or ''):
+                        if mes not in alvo:
+                            alvo.append(mes)
+                return [{'ano': ano, 'meses': meses} for ano, meses in juntos.items()]
             return []
 
-        for section in ('DEFIS', 'PGDAS-D', 'DCTF', 'DCTFWeb', 'GFIP',
-                        'DASSNSIMEI', 'ECF', 'EFD-CONTRIB'):
-            result = extract_pendencia_section(f'Omissão de {section}')
+        # DESVIO INTENCIONAL (16o) — o exe procura 'Omissão de DASSNSIMEI', mas o título
+        # no PDF é 'Omissão de DASN SIMEI' (com espaço): essa omissão NUNCA era
+        # capturada. A chave guardada continua 'DASSNSIMEI', para não mudar o formato do
+        # dado que já está no banco.
+        for section, titulo in (('DEFIS', 'DEFIS'), ('PGDAS-D', 'PGDAS-D'),
+                                ('DCTF', 'DCTF'), ('DCTFWeb', 'DCTFWeb'),
+                                ('GFIP', 'GFIP'), ('DASSNSIMEI', 'DASN SIMEI'),
+                                ('ECF', 'ECF'), ('EFD-CONTRIB', 'EFD-CONTRIB')):
+            result = extract_pendencia_section(f'Omissão de {titulo}')
             if result:
                 pendencias[section] = result
 

@@ -34,7 +34,7 @@ verdade, não funcionavam.
 
 ---
 
-## Os 15 desvios intencionais
+## Os 16 desvios intencionais
 
 | # | O quê | Por quê | Onde |
 |---|---|---|---|
@@ -53,6 +53,40 @@ verdade, não funcionavam.
 | 13 | Vários usuários, com rotinas e empresas por usuário | o exe tinha um operador só, dono da máquina. Na VPS, o segundo usuário não pode ver dado fiscal de cliente que não é dele nem disparar lote pago | `services/usuarios_service.py`, `services/permissoes.py`, `security.py`, `routes/usuarios.py` |
 | 14 | Barra lateral por cima da SPA | o layout de cabeçalho horizontal não comportava as telas novas nem a navegação por seções. Como o bundle não tem fonte, a barra é montada por fora: o cabeçalho original é escondido por CSS e **cada item clica no botão original**, que segue no DOM | `app/static/app/index.html`, `app/ui.py`, `services/permissoes.py` |
 | 15 | Backup do banco (botão + automático) | no exe o banco ficava na máquina do usuário, dentro do backup dele. Num servidor, sem isto, um erro operacional não tem volta | `services/backup_service.py`, `routes/restaurar.py`, `scheduler.py` |
+| 16 | Correção da leitura de pendências | **o exe lê errado.** O cabeçalho se repete em toda página e, quando uma seção atravessa a quebra, entra no meio do texto; como o extrator aceita qualquer número de 4 dígitos como ano, o `0001` do CNPJ e o `2026` da data viravam pendência fantasma. E `DASN SIMEI` nunca era capturada, por causa de um espaço | `services/pdf_parser.py` |
+
+### Detalhe do 16º — por que a leitura vinha errada
+
+Confirmado no bytecode: o exe usa exatamente o mesmo regex
+`(\d{4}(?: - (?:[A-Z]{3}\s*)+)?|[A-Z]{3})` e a mesma string `'DASSNSIMEI'`. A
+reconstrução estava **fiel** — o defeito é do sistema original.
+
+O cabeçalho repetido em cada página é:
+
+```
+SECRETARIA ESPECIAL DA RECEITA FEDERAL DO BRASIL  Autor pedido: 35.736.034/0001-23. Contratante: 35.736.034/0001-23
+PROCURADORIA-GERAL DA FAZENDA NACIONAL            30/07/2026 23:32:13
+CNPJ: 47.742.894 - FULANO
+```
+
+Reproduzido em teste: o regex antigo devolvia
+`['0001', '0001', '2026', '2026 - JAN FEV', '0001', '0001']` — as linhas fantasma
+`DCTFWeb 0001 —` (três) e `DCTFWeb 2026 —` que apareciam na tela.
+
+Três correções:
+1. o cabeçalho repetido sai a partir da 2ª página (a 1ª fica intacta — é dela que saem
+   CNPJ, razão social, endereço e data/hora);
+2. o ano precisa ser plausível (19xx/20xx) e não pode estar colado em `/ . -`, o que
+   recorta CNPJ e data;
+3. anos repetidos (seção quebrada em duas páginas) são unidos num registro só, com os
+   meses somados — antes viravam linhas duplicadas;
+4. `Omissão de DASN SIMEI` passa a ser encontrada. A chave gravada continua
+   `DASSNSIMEI`, para não mudar o formato do dado já existente.
+
+⚠️ **O que já está no banco continua errado.** Os relatórios gravados antes desta
+correção mantêm as linhas fantasma e não têm as omissões de DASN SIMEI. Reprocessar
+resolve — e os PDFs estão salvos em `reports/`, então dá para refazer **sem chamar a
+SERPRO e sem custo**.
 
 ### Detalhe do 15º — backup
 

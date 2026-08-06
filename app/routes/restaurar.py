@@ -114,6 +114,75 @@ def estado():
 
 # ---------------------------------------------------------------- backups (15o)
 
+@restaurar_bp.post('/api/reprocessar-pendencias')
+def reprocessar_pendencias():
+    """Relê os PDFs já salvos e regrava as pendências. Custo ZERO (16o desvio).
+
+    Corrige retroativamente as leituras erradas: ano `0001`/`1099`/`1082`, linhas
+    duplicadas e a omissão de DASN SIMEI que nunca era capturada. Não chama a SERPRO.
+    As pendências de PARCELAMENTO/PGFN (4o desvio) são preservadas.
+    """
+    from app.models import PendenciaRelatorio, RelatorioSitFiscal
+    from app.services.pdf_parser import PDFParser
+
+    simular = bool((request.get_json(silent=True) or {}).get('simular'))
+    preservados = ('PARCELAMENTO', 'PGFN')
+    leitor = PDFParser()
+
+    alterados = sem_pdf = falhas = removidas = criadas = 0
+    exemplos = []
+
+    for rel in RelatorioSitFiscal.query.order_by(RelatorioSitFiscal.id).all():
+        caminho = Path(rel.pdf_local_path) if rel.pdf_local_path else None
+        if not caminho or not caminho.exists():
+            sem_pdf += 1
+            continue
+        try:
+            lido = leitor.parse_pdf_content(str(caminho))
+        except Exception:
+            falhas += 1
+            continue
+
+        antigas = [p for p in rel.pendencias if p.tipo not in preservados]
+        novas = [(tipo, item.get('ano', ''), item.get('meses', []))
+                 for tipo, itens in (lido.get('pendencias') or {}).items()
+                 for item in itens]
+
+        antes = sorted(f'{p.tipo} {p.ano}' for p in antigas)
+        depois = sorted(f'{t_} {a}' for t_, a, _ in novas)
+        if antes == depois:
+            continue
+
+        alterados += 1
+        removidas += len(antigas)
+        criadas += len(novas)
+        if len(exemplos) < 8:
+            exemplos.append({
+                'empresa': (rel.company.razao_social or rel.company.cnpj)[:40],
+                'antes': antes, 'depois': depois,
+            })
+
+        if not simular:
+            for p in antigas:
+                db.session.delete(p)
+            for tipo, ano, meses in novas:
+                db.session.add(PendenciaRelatorio(
+                    relatorio_id=rel.id, tipo=tipo, ano=ano, meses_json=meses))
+
+    if not simular:
+        db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'simulacao': simular,
+        'alterados': alterados, 'removidas': removidas, 'criadas': criadas,
+        'sem_pdf': sem_pdf, 'falhas': falhas, 'exemplos': exemplos,
+        'message': (f'{"Simulação: " if simular else ""}{alterados} relatório(s) '
+                    f'com leitura corrigida · {removidas} pendência(s) errada(s) '
+                    f'removida(s) · {criadas} gravada(s). Custo: R$ 0,00.'),
+    })
+
+
 @restaurar_bp.get('/api/backups')
 def listar_backups():
     from app.services import backup_service
@@ -300,6 +369,19 @@ PAGINA = """
   </div>
 
   <div class="card">
+    <h2>Corrigir leituras dos relatórios</h2>
+    <p class="dica">
+      Relê os PDFs já salvos e regrava as pendências, corrigindo as leituras erradas
+      (ano <code>0001</code>, <code>1099</code>, <code>1082</code>, linhas repetidas) e
+      recuperando as omissões de <b>DASN SIMEI</b>, que nunca eram capturadas.
+      <b>Custo: R$ 0,00</b> — não chama a SERPRO, usa os PDFs em disco.
+    </p>
+    <button onclick="reprocessar(true)">Simular (não grava)</button>
+    <button class="primario" onclick="reprocessar(false)">Corrigir agora</button>
+    <div id="m-reproc"></div>
+  </div>
+
+  <div class="card">
     <h2>1. Banco de dados</h2>
     <p class="dica">
       No seu PC:<br>
@@ -371,6 +453,35 @@ function enviar(idForm, idMsg, url, campo) {
     }
   });
 }
+async function reprocessar(simular) {
+  const alvo = document.getElementById('m-reproc');
+  alvo.className = 'msg ok';
+  alvo.textContent = simular ? 'Simulando…' : 'Corrigindo…';
+  try {
+    const r = await fetch('/api/reprocessar-pendencias', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ simular }),
+    });
+    const j = await r.json();
+    alvo.className = 'msg ' + (j.success ? 'ok' : 'bad');
+    let html = '<b>' + (j.message || '') + '</b>';
+    if (j.sem_pdf) html += '<br><small>' + j.sem_pdf + ' relatório(s) sem PDF em disco — esses só se reprocessarem pela tela (aí custa API).</small>';
+    if ((j.exemplos || []).length) {
+      html += '<div style="margin-top:8px;font-size:12px">';
+      j.exemplos.forEach(e => {
+        html += '<div style="margin-bottom:4px"><b>' + e.empresa + '</b><br>'
+             + 'antes: <code>' + (e.antes.join(', ') || '—') + '</code><br>'
+             + 'depois: <code>' + (e.depois.join(', ') || '—') + '</code></div>';
+      });
+      html += '</div>';
+    }
+    alvo.innerHTML = html;
+  } catch (e) {
+    alvo.className = 'msg bad';
+    alvo.textContent = 'Erro: ' + e.message;
+  }
+}
+
 async function carregarBackups() {
   const corpo = document.getElementById('lista-backups');
   try {

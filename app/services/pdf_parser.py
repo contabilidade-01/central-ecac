@@ -209,7 +209,19 @@ class PDFParser:
         pendencias = {}
 
         def extract_pendencia_section(section_name):
-            pattern = f'{section_name}' + r'\s.*?\(.*?\)(.+?)(?:Omissão|Pendência|$)'
+            # DESVIO INTENCIONAL (16o) — o exe para a captura em `(?:Omissão|Pendência|$)`.
+            # No relatório, porém, só 2 dos 12 títulos de bloco começam com essas
+            # palavras: "Parcelamento com Exigibilidade Suspensa", "Diagnóstico Fiscal na
+            # PGFN" e "Inscrição com Exigibilidade Suspensa" NÃO param. Quando a omissão é
+            # seguida por um desses, a captura ia até o FIM do documento e engolia CNPJs,
+            # datas e a tabela de débitos — daí saírem "GFIP 1099" e "GFIP 1082", que são
+            # códigos de receita, não anos.
+            #
+            # Aqui a parada é estrutural: todo título de bloco é seguido de uma régua de
+            # sublinhados. `_{6,}` fecha a seção em qualquer bloco novo, inclusive os que
+            # ainda não conhecemos. O lookahead não consome o delimitador.
+            pattern = (f'{section_name}'
+                       + r'\s.*?\(.*?\)(.+?)(?=_{6,}|Omissão|Pendência|$)')
             match = re.search(pattern, text, re.DOTALL)
             if match:
                 raw_data = match.group(1).replace('\n', ' ')

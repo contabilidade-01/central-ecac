@@ -108,6 +108,10 @@ class ReportService:
             return 'MAED'
         if key.startswith('debitosIRRF'):
             return 'IRRF'
+        if key == 'debitosMEI':
+            return 'MEI'
+        if key == 'debitosOutros':
+            return 'OUTROS'
         return key.replace('debitos', '')
 
     def process_company(self, company_id: int) -> ProcessResult:

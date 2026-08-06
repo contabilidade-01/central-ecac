@@ -183,6 +183,200 @@ def reprocessar_pendencias():
     })
 
 
+# ---------------------------------------------------------------- releitura completa
+
+_reprocessar_completo_status = {
+    'rodando': False,
+    'progresso': 0,
+    'total': 0,
+    'alterados': 0,
+    'mensagem': '',
+    'resultado': None,
+}
+
+
+def _executar_reprocessamento_completo(app):
+    """Relê PDFs e regrava pendências + débitos. Roda em thread separada."""
+    import threading
+    from decimal import Decimal
+    from app.models import (
+        PendenciaRelatorio, DebitoRelatorio, RelatorioSitFiscal)
+    from app.services.pdf_parser import PDFParser
+    from app.services.report_service import ReportService
+
+    status = _reprocessar_completo_status
+    status['rodando'] = True
+    status['progresso'] = 0
+    status['alterados'] = 0
+    status['mensagem'] = 'Iniciando releitura...'
+    status['resultado'] = None
+
+    preservados_pend = ('PARCELAMENTO', 'PGFN')
+    leitor = PDFParser()
+    report_svc = ReportService()
+
+    with app.app_context():
+        relatorios = RelatorioSitFiscal.query.order_by(RelatorioSitFiscal.id).all()
+        status['total'] = len(relatorios)
+        sem_pdf = falhas = alterados = 0
+        pend_removidas = pend_criadas = deb_removidos = deb_criados = 0
+
+        for i, rel in enumerate(relatorios, 1):
+            status['progresso'] = i
+            status['mensagem'] = f'Lendo {i}/{len(relatorios)}...'
+
+            caminho = Path(rel.pdf_local_path) if rel.pdf_local_path else None
+            if not caminho or not caminho.exists():
+                sem_pdf += 1
+                continue
+
+            try:
+                lido = leitor.parse_pdf_content(str(caminho))
+            except Exception:
+                falhas += 1
+                continue
+
+            mudou = False
+
+            # --- Pendências (omissões) ---
+            antigas_pend = [p for p in rel.pendencias if p.tipo not in preservados_pend]
+            novas_pend = [(tipo, item.get('ano', ''), item.get('meses', []))
+                         for tipo, itens in (lido.get('pendencias') or {}).items()
+                         for item in itens]
+
+            antes_pend = sorted(f'{p.tipo} {p.ano}' for p in antigas_pend)
+            depois_pend = sorted(f'{t} {a}' for t, a, _ in novas_pend)
+            if antes_pend != depois_pend:
+                mudou = True
+                pend_removidas += len(antigas_pend)
+                pend_criadas += len(novas_pend)
+                for p in antigas_pend:
+                    db.session.delete(p)
+                for tipo, ano, meses in novas_pend:
+                    db.session.add(PendenciaRelatorio(
+                        relatorio_id=rel.id, tipo=tipo, ano=ano, meses_json=meses))
+
+            # --- Parcelamentos/PGFN (regravar sempre) ---
+            antigas_parc = [p for p in rel.pendencias if p.tipo in preservados_pend]
+            # Regravar a partir do parser
+            parcelamentos_pgfn = lido.get('parcelamentos_pgfn') or []
+            if parcelamentos_pgfn or antigas_parc:
+                for p in antigas_parc:
+                    db.session.delete(p)
+                # Regravar usando a lógica do report_service
+                report_svc._gravar_pendencias_parcelamento_pgfn(rel, lido)
+                mudou = True
+
+            # --- Débitos ---
+            antigos_deb = list(rel.debitos)
+            novos_deb = []
+            for key, items in lido.items():
+                if not key.startswith('debitos'):
+                    continue
+                if not isinstance(items, list):
+                    continue
+                tipo = report_svc._tipo_from_key(key)
+                for d in items:
+                    novos_deb.append({
+                        'tipo': tipo,
+                        'receita': d.get('receita', ''),
+                        'periodo_apuracao': d.get('periodo_apuracao', ''),
+                        'data_vencimento': report_svc._parse_date(
+                            d.get('data_vencimento')),
+                        'valor_original': Decimal(str(d.get('valor_original', 0))),
+                        'saldo_devedor': Decimal(str(d.get('saldo_devedor', 0))),
+                        'multa': Decimal(str(d.get('multa', 0))),
+                        'juros': Decimal(str(d.get('juros', 0))),
+                        'saldo_devedor_total': Decimal(
+                            str(d.get('saldo_devedor_total', 0))),
+                        'situacao': d.get('situacao', ''),
+                    })
+
+            # Comparar: mudou se qtd diferente ou receitas diferentes
+            antes_deb = sorted(f"{d.tipo}|{d.receita}|{d.periodo_apuracao}"
+                               for d in antigos_deb)
+            depois_deb = sorted(f"{d['tipo']}|{d['receita']}|{d['periodo_apuracao']}"
+                                for d in novos_deb)
+            if antes_deb != depois_deb:
+                mudou = True
+                deb_removidos += len(antigos_deb)
+                deb_criados += len(novos_deb)
+                for d in antigos_deb:
+                    db.session.delete(d)
+                for d in novos_deb:
+                    db.session.add(DebitoRelatorio(
+                        relatorio_id=rel.id, **d))
+
+            if mudou:
+                alterados += 1
+
+        db.session.commit()
+        status['alterados'] = alterados
+        status['mensagem'] = 'Concluído'
+        status['resultado'] = {
+            'success': True,
+            'alterados': alterados,
+            'sem_pdf': sem_pdf,
+            'falhas': falhas,
+            'pendencias_removidas': pend_removidas,
+            'pendencias_criadas': pend_criadas,
+            'debitos_removidos': deb_removidos,
+            'debitos_criados': deb_criados,
+            'message': (f'{alterados} relatório(s) atualizado(s). '
+                        f'Pendências: -{pend_removidas}/+{pend_criadas}. '
+                        f'Débitos: -{deb_removidos}/+{deb_criados}. '
+                        f'Custo: R$ 0,00.'),
+        }
+        status['rodando'] = False
+
+
+@restaurar_bp.post('/api/reprocessar-completo')
+def reprocessar_completo():
+    """Relê PDFs e regrava pendências + débitos com o parser atualizado.
+
+    Roda em background. Custo zero — não chama a SERPRO.
+    """
+    import threading
+    from flask import current_app
+
+    status = _reprocessar_completo_status
+
+    if status['rodando']:
+        return jsonify({
+            'success': False,
+            'message': 'Já existe uma releitura em andamento.',
+            'progresso': status['progresso'],
+            'total': status['total'],
+        }), 409
+
+    app = current_app._get_current_object()
+    thread = threading.Thread(
+        target=_executar_reprocessamento_completo,
+        args=(app,),
+        daemon=True,
+    )
+    thread.start()
+
+    return jsonify({
+        'success': True,
+        'message': 'Releitura iniciada em background.',
+    })
+
+
+@restaurar_bp.get('/api/reprocessar-completo/status')
+def reprocessar_completo_status():
+    """Consulta progresso da releitura em background."""
+    status = _reprocessar_completo_status
+    return jsonify({
+        'rodando': status['rodando'],
+        'progresso': status['progresso'],
+        'total': status['total'],
+        'alterados': status['alterados'],
+        'mensagem': status['mensagem'],
+        'resultado': status['resultado'],
+    })
+
+
 @restaurar_bp.get('/api/backups')
 def listar_backups():
     from app.services import backup_service
@@ -369,7 +563,7 @@ PAGINA = """
   </div>
 
   <div class="card">
-    <h2>Corrigir leituras dos relatórios</h2>
+    <h2>Corrigir leituras dos relatórios (só pendências)</h2>
     <p class="dica">
       Relê os PDFs já salvos e regrava as pendências, corrigindo as leituras erradas
       (ano <code>0001</code>, <code>1099</code>, <code>1082</code>, linhas repetidas) e
@@ -379,6 +573,23 @@ PAGINA = """
     <button onclick="reprocessar(true)">Simular (não grava)</button>
     <button class="primario" onclick="reprocessar(false)">Corrigir agora</button>
     <div id="m-reproc"></div>
+  </div>
+
+  <div class="card">
+    <h2>Reler todos os documentos (completo)</h2>
+    <p class="dica">
+      Relê os PDFs já salvos e atualiza <b>pendências E débitos</b> usando o parser
+      mais recente. Use após atualizações do sistema que melhorem a leitura dos
+      relatórios.<br>
+      <b>Custo: R$ 0,00</b> — não chama a SERPRO.<br>
+      Roda em background — você pode fechar esta aba e voltar depois.
+    </p>
+    <button class="primario" id="btn-releitura" onclick="releituraCompleta()">Iniciar releitura completa</button>
+    <div id="m-releitura"></div>
+    <div id="prog-releitura" style="display:none;margin-top:10px">
+      <progress id="barra-releitura" value="0" max="100" style="width:100%;height:20px"></progress>
+      <small id="txt-releitura"></small>
+    </div>
   </div>
 
   <div class="card">
@@ -534,6 +745,56 @@ carregarBackups();
 
 enviar('f-banco', 'm-banco', '/api/restaurar/banco', 'banco');
 enviar('f-cert', 'm-cert', '/api/restaurar/certificado', 'certificado');
+
+// --- Releitura completa ---
+let _pollReleitura = null;
+async function releituraCompleta() {
+  const btn = document.getElementById('btn-releitura');
+  const msg = document.getElementById('m-releitura');
+  const prog = document.getElementById('prog-releitura');
+  btn.disabled = true; btn.textContent = 'Iniciando...';
+  msg.className = ''; msg.textContent = '';
+  try {
+    const r = await fetch('/api/reprocessar-completo', { method: 'POST' });
+    const j = await r.json();
+    if (!j.success) { msg.className = 'msg bad'; msg.textContent = j.message; btn.disabled = false; btn.textContent = 'Iniciar releitura completa'; return; }
+    msg.className = 'msg ok'; msg.textContent = j.message;
+    prog.style.display = 'block';
+    _pollReleitura = setInterval(pollReleitura, 2000);
+  } catch(e) { msg.className = 'msg bad'; msg.textContent = 'Erro: ' + e.message; btn.disabled = false; btn.textContent = 'Iniciar releitura completa'; }
+}
+async function pollReleitura() {
+  const btn = document.getElementById('btn-releitura');
+  const msg = document.getElementById('m-releitura');
+  const barra = document.getElementById('barra-releitura');
+  const txt = document.getElementById('txt-releitura');
+  const prog = document.getElementById('prog-releitura');
+  try {
+    const r = await fetch('/api/reprocessar-completo/status');
+    const j = await r.json();
+    const pct = j.total ? Math.round(j.progresso / j.total * 100) : 0;
+    barra.value = pct; barra.max = 100;
+    txt.textContent = j.mensagem + ' (' + pct + '%)';
+    if (!j.rodando) {
+      clearInterval(_pollReleitura); _pollReleitura = null;
+      btn.disabled = false; btn.textContent = 'Iniciar releitura completa';
+      if (j.resultado) {
+        msg.className = 'msg ok';
+        msg.innerHTML = '<b>' + j.resultado.message + '</b>';
+      }
+      setTimeout(() => { prog.style.display = 'none'; }, 3000);
+    }
+  } catch(e) { /* ignora erros de polling */ }
+}
+// Ao carregar, verificar se já há uma releitura em andamento
+fetch('/api/reprocessar-completo/status').then(r=>r.json()).then(j => {
+  if (j.rodando) {
+    document.getElementById('btn-releitura').disabled = true;
+    document.getElementById('btn-releitura').textContent = 'Em andamento...';
+    document.getElementById('prog-releitura').style.display = 'block';
+    _pollReleitura = setInterval(pollReleitura, 2000);
+  }
+}).catch(()=>{});
 </script>
 """ + FIM + """
 </body>

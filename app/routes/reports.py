@@ -1,4 +1,5 @@
 import io
+import re
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -8,6 +9,7 @@ from flask import Blueprint, Response, jsonify, request, send_file, current_app
 from app.extensions import db
 from app.models import Company, RelatorioSitFiscal, AppSetting
 from app.services.report_service import ReportService
+from app.services.receita_lookup import descrever_receita
 import threading
 
 reports_bp = Blueprint('reports', __name__)
@@ -24,6 +26,34 @@ def _safe_filename_part(value):
 
     normalized = ' '.join(''.join(allowed).split())
     return normalized.replace(' ', '_')[:80] or 'EMPRESA'
+
+
+def _enriquecer_debito(d):
+    """Monta dict do débito com campo extra `receita_ref` da tabela de referência."""
+    item = {
+        'id': d.id,
+        'tipo': d.tipo,
+        'receita': d.receita,
+        'periodo_apuracao': d.periodo_apuracao,
+        'data_vencimento': (d.data_vencimento.isoformat()
+                            if d.data_vencimento else None),
+        'valor_original': float(d.valor_original or 0),
+        'saldo_devedor': float(d.saldo_devedor or 0),
+        'multa': float(d.multa or 0),
+        'juros': float(d.juros or 0),
+        'saldo_devedor_total': float(d.saldo_devedor_total or 0),
+        'situacao': d.situacao,
+        'receita_ref': None,
+    }
+
+    # Tenta extrair código-extensão do campo receita (ex: "4406-01 - MAED - PGDAS-D")
+    m = re.match(r'(\d{4})-(\d{2})', d.receita or '')
+    if m:
+        info = descrever_receita(m.group(1), m.group(2))
+        if info:
+            item['receita_ref'] = info['nome_curto']
+
+    return item
 
 
 def _unique_zip_name(used_names, filename):
@@ -122,23 +152,7 @@ def latest_company_report(company_id: int):
             }
             for p in relatorio.pendencias
         ],
-        'debitos': [
-            {
-                'id': d.id,
-                'tipo': d.tipo,
-                'receita': d.receita,
-                'periodo_apuracao': d.periodo_apuracao,
-                'data_vencimento': (d.data_vencimento.isoformat()
-                                    if d.data_vencimento else None),
-                'valor_original': float(d.valor_original or 0),
-                'saldo_devedor': float(d.saldo_devedor or 0),
-                'multa': float(d.multa or 0),
-                'juros': float(d.juros or 0),
-                'saldo_devedor_total': float(d.saldo_devedor_total or 0),
-                'situacao': d.situacao,
-            }
-            for d in relatorio.debitos
-        ],
+        'debitos': [_enriquecer_debito(d) for d in relatorio.debitos],
     })
 
 
@@ -177,23 +191,79 @@ def company_debitos(company_id: int):
     if not relatorio:
         return jsonify([])
 
-    return jsonify([
-        {
-            'id': d.id,
-            'tipo': d.tipo,
-            'receita': d.receita,
-            'periodo_apuracao': d.periodo_apuracao,
-            'data_vencimento': (d.data_vencimento.isoformat()
-                                if d.data_vencimento else None),
-            'valor_original': float(d.valor_original or 0),
-            'saldo_devedor': float(d.saldo_devedor or 0),
-            'multa': float(d.multa or 0),
-            'juros': float(d.juros or 0),
-            'saldo_devedor_total': float(d.saldo_devedor_total or 0),
-            'situacao': d.situacao,
-        }
-        for d in relatorio.debitos
-    ])
+    return jsonify([_enriquecer_debito(d) for d in relatorio.debitos])
+
+
+@reports_bp.get('/storage-info')
+def storage_info():
+    """Visão geral do armazenamento de PDFs."""
+    from pathlib import Path as _P
+    reports_dir = _P(current_app.config['REPORTS_DIR'])
+
+    total_pdfs = 0
+    total_bytes = 0
+    empresas_com_pdf = set()
+
+    if reports_dir.exists():
+        for cnpj_dir in reports_dir.iterdir():
+            if cnpj_dir.is_dir():
+                pdfs = list(cnpj_dir.glob('*.pdf'))
+                if pdfs:
+                    empresas_com_pdf.add(cnpj_dir.name)
+                    total_pdfs += len(pdfs)
+                    total_bytes += sum(p.stat().st_size for p in pdfs)
+
+    total_empresas = Company.query.filter_by(ativo=True).count()
+
+    return jsonify({
+        'total_pdfs': total_pdfs,
+        'total_size_mb': round(total_bytes / (1024 * 1024), 2),
+        'empresas_com_pdf': len(empresas_com_pdf),
+        'empresas_sem_pdf': max(0, total_empresas - len(empresas_com_pdf)),
+        'caminho_base': str(reports_dir),
+    })
+
+
+@reports_bp.get('/company/<int:company_id>/pdfs')
+def company_pdfs(company_id: int):
+    """Lista todos os PDFs salvos para uma empresa."""
+    relatorios = (
+        RelatorioSitFiscal.query
+        .filter_by(company_id=company_id)
+        .order_by(RelatorioSitFiscal.id.desc())
+        .all()
+    )
+
+    items = []
+    for rel in relatorios:
+        if not rel.pdf_local_path:
+            continue
+        path = Path(rel.pdf_local_path)
+        if not path.exists():
+            continue
+        items.append({
+            'report_id': rel.id,
+            'filename': path.name,
+            'data_hora': rel.data_hora.isoformat() if rel.data_hora else None,
+            'tamanho_kb': round(path.stat().st_size / 1024, 1),
+        })
+
+    return jsonify(items)
+
+
+@reports_bp.get('/view-pdf/<int:report_id>')
+def view_pdf(report_id: int):
+    """Serve o PDF inline para visualização no browser."""
+    relatorio = db.session.get(RelatorioSitFiscal, report_id)
+    if not relatorio or not relatorio.pdf_local_path:
+        return jsonify({'success': False, 'message': 'PDF não encontrado'}), 404
+
+    path = Path(relatorio.pdf_local_path)
+    if not path.exists():
+        return jsonify({'success': False,
+                        'message': 'Arquivo PDF não encontrado'}), 404
+
+    return send_file(path, mimetype='application/pdf')
 
 
 @reports_bp.get('/download-pdf/<int:report_id>')
@@ -361,20 +431,5 @@ def diagnostic_data(report_id: int):
             }
             for p in relatorio.pendencias
         ],
-        'debitos': [
-            {
-                'tipo': d.tipo,
-                'receita': d.receita,
-                'periodo_apuracao': d.periodo_apuracao,
-                'data_vencimento': (d.data_vencimento.isoformat()
-                                    if d.data_vencimento else None),
-                'valor_original': float(d.valor_original or 0),
-                'saldo_devedor': float(d.saldo_devedor or 0),
-                'multa': float(d.multa or 0),
-                'juros': float(d.juros or 0),
-                'saldo_devedor_total': float(d.saldo_devedor_total or 0),
-                'situacao': d.situacao,
-            }
-            for d in relatorio.debitos
-        ],
+        'debitos': [_enriquecer_debito(d) for d in relatorio.debitos],
     })

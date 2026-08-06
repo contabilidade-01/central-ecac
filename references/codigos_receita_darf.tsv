@@ -1,0 +1,959 @@
+CODIGO	EXTENSAO	CATEGORIA	NOME_CURTO	NOME_OFICIAL	VIGENTE_DESDE
+0026		IRRF	Rendimentos do Trabalho de Qualquer Natureza, como os Provenientes de Pensão, Ap	IRRF-Rendimentos do Trabalho de Qualquer Natureza, como os Provenientes de Pensão, Aposentadoria, Prêmios em Concursos e Comissões-Residentes no Exterior-Oper. Intra Orçament.	02/03/2007
+0039		IRRF	Remuneração Serviços Prestados por Pessoa Jurídica-Operações Intra Orçamentárias	IRRF-Remuneração Serviços Prestados por Pessoa Jurídica-Operações Intra Orçamentárias	02/03/2007
+0422		IRRF	Royalties e Assistência Técnica - Residentes no Exterior	IRRF - Royalties e Assistência Técnica - Residentes no Exterior	—
+0473		IRRF	Rendimentos do Trabalho e de Qualquer Natureza, como os Provenientes de Pensão, 	IRRF - Rendimentos do Trabalho e de Qualquer Natureza, como os Provenientes de Pensão, Aposentadoria, Prêmios em Concursos e Comissões - Residentes no Exterior	—
+0481		IRRF	Juros e Comissões em Geral - Residentes no Exterior	IRRF - Juros e Comissões em Geral - Residentes no Exterior	—
+0561		IRRF	Rendimento do Trabalho Assalariado	IRRF - Rendimento do Trabalho Assalariado	—
+0588		IRRF	Rendimento do Trabalho sem Vínculo Empregatício	IRRF - Rendimento do Trabalho sem Vínculo Empregatício	—
+0610		IRRF	Rendimentos Prestação Serviços Transporte Rodoviário Internacional de Carga, Pag	IRRF - Rendimentos Prestação Serviços Transporte Rodoviário Internacional de Carga, Pagos Por PJ Domiciliada no País, Auferidos por Transportador Autônomo PF Residente no Paraguai	01/10/2008
+0916		IRRF	Prêmios Obtidos em Concursos e Sorteios	IRRF - Prêmios Obtidos em Concursos e Sorteios	—
+0924		IRRF	Demais Rendimentos Capital	IRRF - Demais Rendimentos Capital	—
+1708		IRRF	Remuneração Serviços Prestados por Pessoa Jurídica	IRRF - Remuneração Serviços Prestados por Pessoa Jurídica	—
+1889		IRRF	Rendimentos Acumulados - Art. 12-A da Lei nº 7.713, de 22 de dezembro de 1988	IRRF - Rendimentos Acumulados - Art. 12-A da Lei nº 7.713, de 22 de dezembro de 1988	24/02/2011
+1895		IRRF	Rendimento Decorrente de Decisão da Justiça dos Estados/Distrito Federal, Exceto	IRRF - Rendimento Decorrente de Decisão da Justiça dos Estados/Distrito Federal, Exceto o Disposto no Artigo 12-A da Lei nº 7.713, de 22 de dezembro de 1988	24/02/2011
+2063		IRRF	Tributação Exclusiva sobre Remuneração Indireta	IRRF - Tributação Exclusiva sobre Remuneração Indireta	—
+2932		IRRF	Lançamento de Ofício	IRRF - Lançamento de Ofício	—
+3208		IRRF	Aluguéis e Royalties Pagos a Pessoa Física	IRRF - Aluguéis e Royalties Pagos a Pessoa Física	—
+3223		IRRF	Resgate Previdência Complementar/Modalidade Contribuição Definida/Variável - Não	IRRF - Resgate Previdência Complementar/Modalidade Contribuição Definida/Variável - Não Optante Tributação Exclusiva	—
+3277		IRRF	Rendimentos de Partes Beneficiárias ou de Fundador	IRRF - Rendimentos de Partes Beneficiárias ou de Fundador	—
+3280		IRRF	Rem Serv Prest Associad Coop Trabalho	IRRF - Rem Serv Prest Associad Coop Trabalho	—
+3426		IRRF	Aplicações Financeiras de Renda Fixa - Pessoa Jurídica	IRRF - Aplicações Financeiras de Renda Fixa - Pessoa Jurídica	—
+3533		IRRF	Provento de aposentadoria, reserva ou reforma e de pensão civil ou militar pago 	IRRF - Provento de aposentadoria, reserva ou reforma e de pensão civil ou militar pago por Previdência da União, Estados, DF ou Municípios (regime geral ou do servidor público)	01/02/2013
+3540		IRRF	Benefício previdenciário, modalidade beneficio ou contrib definido ou de contrib	IRRF - Benefício previdenciário, modalidade beneficio ou contrib definido ou de contrib variável, pagos por prev. complementar ou soc. seguradora, ou Fapi, não op tribut exclusiva	01/02/2013
+3550		IRRF	Rendimento do Trabalho - Cobrança	IRRF - Rendimento do Trabalho - Cobrança	—
+3556		IRRF	Resgate de valores acumulados relativos a planos de caráter previdenciário estru	IRRF - Resgate de valores acumulados relativos a planos de caráter previdenciário estruturados na modalidade de beneficio definido, não optantes pela tributação exclusiva	01/02/2013
+3562		IRRF	Participação dos trabalhadores nos lucros ou resultados (PLR) objeto de negociaç	IRRF - Participação dos trabalhadores nos lucros ou resultados (PLR) objeto de negociação entre a empresa e seus empregados	01/02/2013
+3563		IRRF	Rendimentos de Capital - Cobrança	IRRF - Rendimentos de Capital - Cobrança	—
+3576		IRRF	Outros Rendimentos - Cobrança	IRRF - Outros Rendimentos - Cobrança	—
+3579		IRRF	Resgate previdência complementar/socied. seguradora (modalidade contribuição def	IRRF - Resgate previdência complementar/socied. seguradora (modalidade contribuição definida/variável), seguro vida cobertura por sobrevivência ou Fapi - Optantes Trib. Exclusiva	01/02/2013
+3699		IRRF	Aplicações Financeiras em Ativos de Infraestrutura - Tributação Exclusiva	IRRF - Aplicações Financeiras em Ativos de Infraestrutura - Tributação Exclusiva	01/08/2013
+5029		IRRF	Ganho de Capital - Integralização de Cotas com Ativos - Lei nº 13.043/2014 (Art.	IRRF - Ganho de Capital - Integralização de Cotas com Ativos - Lei nº 13.043/2014 (Art. 1º)	13/01/2015
+5035		IRRF	Fundos de Investimento - Lei nº 13.043/2014 (Art. 8º)/Lei nº 15.265/2025 (Art. 2	IRRF - Fundos de Investimento - Lei nº 13.043/2014 (Art. 8º)/Lei nº 15.265/2025 (Art. 24) e Lei nº 14.801/2024 (Art. 4º)	13/01/2015
+5192		IRRF	Obras Audiovisuais Cinematográficas e Videofônicas ( L 8685/93) - Residentes no 	IRRF - Obras Audiovisuais Cinematográficas e Videofônicas ( L 8685/93) - Residentes no Exterior	01/01/1994
+5200		IRRF	Rendimentos do Trabalho - Honorários Advocatícios de Sucumbência - Lei nº 13.327	IRRF - Rendimentos do Trabalho - Honorários Advocatícios de Sucumbência - Lei nº 13.327, de 2016	16/02/2017
+5204		IRRF	Juros Indenizações Lucros Cessantes	IRRF - Juros Indenizações Lucros Cessantes	01/01/1995
+5217		IRRF	Pagamento a Beneficiário não Identificado	IRRF - Pagamento a Beneficiário não Identificado	01/01/1995
+5232		IRRF	Fundos de Investimento Imobiliário (FII) e Fundos de Investimento nas Cadeias Pr	IRRF - Fundos de Investimento Imobiliário (FII) e Fundos de Investimento nas Cadeias Produtivas do Agronegócio (Fiagro)	01/01/1995
+5273		IRRF	Operações de Swap (art. 74 L 8981/95)	IRRF - Operações de Swap (art. 74 L 8981/95)	01/01/1995
+5286		IRRF	Aplicações Financeiras de Residentes ou Domiciliados no Exterior	IRRF - Aplicações Financeiras de Residentes ou Domiciliados no Exterior	01/01/1995
+5299		IRRF	Juros sobre Empréstimos Externos (DL 2303/86)	IRRF - Juros sobre Empréstimos Externos (DL 2303/86)	01/01/1995
+5557		IRRF	Ganhos Líquidos em Operações em Bolsas e Assemelhados	IRRF - Ganhos Líquidos em Operações em Bolsas e Assemelhados	30/12/2004
+5565		IRRF	Benefício previdência complementar/socied. seguradora (modalidade contribuição d	IRRF - Benefício previdência complementar/socied. seguradora (modalidade contribuição definida/variável), seguro vida cobertura por sobrevivência ou Fapi - Optantes Trib. Exclusiva	09/02/2005
+5706		IRRF	Juros sobre o Capital Próprio	IRRF - Juros sobre o Capital Próprio	01/01/1996
+5928		IRRF	Rendimento Decorrente de Decisão da Justiça Federal, Exceto o Disposto no Artigo	IRRF - Rendimento Decorrente de Decisão da Justiça Federal, Exceto o Disposto no Artigo 12-A da Lei nº 7.713, de 22 de dezembro de 1988	01/02/2004
+5936		IRRF	Rendimento Decorrente de Decisão da Justiça do trabalho, Exceto o Disposto no Ar	IRRF - Rendimento Decorrente de Decisão da Justiça do trabalho, Exceto o Disposto no Artigo 12-A da Lei nº 7.713, de 22 de dezembro de 1988	30/12/2003
+5944		IRRF	Pagamento de Pessoa Jurídica a Pessoa Jurídica por Serviços de Factoring	IRRF - Pagamento de Pessoa Jurídica a Pessoa Jurídica por Serviços de Factoring	01/02/2004
+6216		IRRF	Fundo de Investimento - Regra de Transição - Opção de Pagamento com Alíquota Red	IRRF - Fundo de Investimento - Regra de Transição - Opção de Pagamento com Alíquota Reduzida a 8% (Lei nº 14.754/2023, Art. 28, Inciso I)	15/12/2023
+6222		IRRF	Fundo de Investimento - Regra de Transição - Opção de Pagamento com Alíquota Red	IRRF - Fundo de Investimento - Regra de Transição - Opção de Pagamento com Alíquota Reduzida a 8% (Lei nº 14.754/2023, Art. 28, Inciso II)	15/12/2023
+6336		IRRF	Fundo de Investimento - Regra de transição - Amortização/Resgate/Alienação de Co	IRRF - Fundo de Investimento - Regra de transição - Amortização/Resgate/Alienação de Cotas - Pagamento à Alíquota de15% (Lei nº 14.754/2023, art. 27, § 8º)	22/04/2023
+6800		IRRF	Fundo de Investimento Sujeito à Tributação Periódica	IRRF - Fundo de Investimento Sujeito à Tributação Periódica	21/12/1997
+6813		IRRF	Fundos de Investimento - Ações	IRRF - Fundos de Investimento - Ações	21/12/1997
+6891		IRRF	Vida Gerador de Benefício Livre - VGBL	IRRF - Vida Gerador de Benefício Livre - VGBL	26/02/2003
+6904		IRRF	Rendimentos de Indenização por Danos Morais	IRRF - Rendimentos de Indenização por Danos Morais	26/02/2003
+7431		IRRF	Depósito Judicial	IRRF - Depósito Judicial	26/11/1998
+7594		IRRF	Depósito Administrativo	IRRF - Depósito Administrativo	26/11/1998
+7769		IRRF	Demais Rendimentos Trans Navios	IRRF - Demais Rendimentos Trans Navios	26/11/1998
+8045		IRRF	Outros Rendimentos	IRRF - Outros Rendimentos	—
+8053		IRRF	Aplicações Financeiras de Renda Fixa - Pessoa Física	IRRF - Aplicações Financeiras de Renda Fixa - Pessoa Física	—
+8468		IRRF	Day-Trade Operações em Bolsa	IRRF - Day-Trade Operações em Bolsa	06/01/2000
+8673		IRRF	Bingos (Decreto 3659/2000 art. 14 I)	IRRF - Bingos (Decreto 3659/2000 art. 14 I)	24/11/2000
+9385		IRRF	Multas e Vantagens	IRRF - Multas e Vantagens	17/01/2002
+9412		IRRF	Fretes Internacionais - Residentes no Exterior	IRRF - Fretes Internacionais - Residentes no Exterior	17/01/2002
+9427		IRRF	Remuneração de Direitos - Residentes no Exterior	IRRF - Remuneração de Direitos - Residentes no Exterior	17/01/2002
+9453		IRRF	Juros sobre o Capital Próprio - Residentes no Exterior	IRRF - Juros sobre o Capital Próprio - Residentes no Exterior	17/01/2002
+9466		IRRF	Benefícios e Resgate de Previdência Privada e FAPI - Residentes no Exterior	IRRF - Benefícios e Resgate de Previdência Privada e FAPI - Residentes no Exterior	17/01/2002
+9478		IRRF	Aluguel e Arrendamento - Residentes no Exterior	IRRF - Aluguel e Arrendamento - Residentes no Exterior	17/01/2002
+4085		CSRF	Retenção de Contribuições sobre Pagamentos dos Estados, DF e Municípios pela Aqu	Retenção de Contribuições sobre Pagamentos dos Estados, DF e Municípios pela Aquisição de Bens e Serviços - CSLL, Cofins e PIS	15/12/2004
+5952		CSRF	Retenção de Contribuições sobre Pagamentos de Pessoa Jurídica a Pessoa Jurídica 	Retenção de Contribuições sobre Pagamentos de Pessoa Jurídica a Pessoa Jurídica de Direito Privado - CSLL, Cofins e PIS	01/02/2004
+0220		IRPJ	PJ Obrigadas ao Lucro Real - Entidades não Financeiras - Balanço Trimestral	IRPJ-PJ Obrigadas ao Lucro Real - Entidades não Financeiras - Balanço Trimestral	—
+0416		IRPJ	Regime Especial de Tributação - Patrimônio de Afetação - Lançamento de Ofício	IRPJ - Regime Especial de Tributação - Patrimônio de Afetação - Lançamento de Ofício	21/12/2007
+0450		IRPJ	Ganho de Capital - Alienação de Ativos de ME/EPP Optantes pelo Simples - Lançame	IRPJ - Ganho de Capital - Alienação de Ativos de ME/EPP Optantes pelo Simples - Lançamento de Ofício	12/09/2006
+0507		IRPJ	Ganho de Capital - Alienação de Ativos de ME/EPP Optantes pelo Simples Nacional	IRPJ - Ganho de Capital - Alienação de Ativos de ME/EPP Optantes pelo Simples Nacional	21/12/2007
+0733		IRPJ	Devolução de Recursos Aplicados como Redução por Reinvestimento	IRPJ - Devolução de Recursos Aplicados como Redução por Reinvestimento	12/09/2006
+1113		IRPJ	Simples Nacional - Lançamento de Ofício	IRPJ - Simples Nacional - Lançamento de Ofício	11/08/2009
+1599		IRPJ	PJ Obrigadas ao Lucro Real - Entidades Financeiras - Balanço Trimestral	IRPJ - PJ Obrigadas ao Lucro Real - Entidades Financeiras - Balanço Trimestral	—
+2089		IRPJ	Lucro Presumido	IRPJ - Lucro Presumido	—
+2319		IRPJ	PJ Obrigadas ao Lucro Real - Entidades Financeiras - Estimativa Mensal	IRPJ - PJ Obrigadas ao Lucro Real - Entidades Financeiras - Estimativa Mensal	—
+2362		IRPJ	PJ Obrigadas ao Lucro Real - Entidades Não Financeiras - Estimativa Mensal	IRPJ- PJ Obrigadas ao Lucro Real - Entidades Não Financeiras - Estimativa Mensal	—
+2390		IRPJ	PJ Obrigadas ao Lucro Real - Entidades Financeiras - Declaração de Ajuste	IRPJ - PJ Obrigadas ao Lucro Real - Entidades Financeiras - Declaração de Ajuste	—
+2430		IRPJ	PJ Obrigadas ao Lucro Real-Entidades Não Financeiras-Declaração de Ajuste	IRPJ - PJ Obrigadas ao Lucro Real-Entidades Não Financeiras-Declaração de Ajuste	—
+2456		IRPJ	PJ Não Obrigadas ao Lucro Real - Declaração de Ajuste	IRPJ - PJ Não Obrigadas ao Lucro Real - Declaração de Ajuste	—
+2917		IRPJ	Lançamento de Ofício	IRPJ - Lançamento de Ofício	—
+3219		IRPJ	Ganho de Capital - Alienação de Ativos - Simples Nacional - Lançamento de Ofício	IRPJ - Ganho de Capital - Alienação de Ativos - Simples Nacional - Lançamento de Ofício	14/08/2012
+3225		IRPJ	Ganhos Líquidos em Operações na Bolsa - Simples Nacional	IRPJ - Ganhos Líquidos em Operações na Bolsa - Simples Nacional	14/08/2012
+3317		IRPJ	Ganhos Líquidos em Operações na Bolsa - Lucro Real	IRPJ - Ganhos Líquidos em Operações na Bolsa - Lucro Real	—
+3320		IRPJ	Lucro Inflacionário	IRPJ - Lucro Inflacionário	—
+3373		IRPJ	PJ Não Obrigadas ao Lucro Real - Balanço Trimestral	IRPJ - PJ Não Obrigadas ao Lucro Real - Balanço Trimestral	—
+3375		IRPJ	Retenção na Fonte sobre Pagamentos de Empresa Pública, Sociedade de Economia Mis	IRPJ - Retenção na Fonte sobre Pagamentos de Empresa Pública, Sociedade de Economia Mista e outras Entidades a Pessoa Jurídica de Direito Privado - Lançamento de Ofício	04/02/2005
+3548		IRPJ	Cobrança	IRPJ - Cobrança	—
+4112		IRPJ	Regime Especial de Tributação do Patrimônio de Afetação	IRPJ - Regime Especial de Tributação do Patrimônio de Afetação	06/12/2004
+5625		IRPJ	Lucro Arbitrado	IRPJ - Lucro Arbitrado	01/01/1995
+5788		IRPJ	Suplementar	IRPJ - Suplementar	01/01/1996
+5993		IRPJ	Optantes pela Apuraçao com Base no Lucro Real - Estimativa Mensal	IRPJ - Optantes pela Apuraçao com Base no Lucro Real - Estimativa Mensal	01/01/1997
+6256		IRPJ	Retenção na Fonte sobre Pagamento à Pessoa Jurídica (art. 34 da Lei nº 10.833/20	IRPJ - Retenção na Fonte sobre Pagamento à Pessoa Jurídica (art. 34 da Lei nº 10.833/2003)	01/01/1997
+6297		IRPJ	Ganhos de Capital na Alien. de Ativos Micro Empresa/EPP Optante pelo Simples	IRPJ-Ganhos de Capital na Alien. de Ativos Micro Empresa/EPP Optante pelo Simples	01/01/1997
+6462		IRPJ	Atualização do Valor de Bens Imóveis	IRPJ - Atualização do Valor de Bens Imóveis	25/09/2024
+7104		IRPJ	Simples	IRPJ - Simples	01/01/1997
+7429		IRPJ	Depósito Judicial	IRPJ - Depósito Judicial	26/11/1998
+7581		IRPJ	Depósito Administrativo	IRPJ - Depósito Administrativo	26/11/1998
+7756		IRPJ	Trans Navios	IRPJ - Trans Navios	26/11/1998
+8972		IRPJ	Previdência Complementar/Sociedade Seguradora/FAPI Optante pelo Ret (art. 2º MP 	IRPJ - Previdência Complementar/Sociedade Seguradora/FAPI Optante pelo Ret (art. 2º MP nº 2.222/01)	01/09/2001
+9086		IRPJ	Ganhos Líquidos Operações Bolsa Investimentos de País C/ Tributação Favorecida	IRPJ - Ganhos Líquidos Operações Bolsa Investimentos de País C/ Tributação Favorecida	14/03/2000
+0191		CSLL	Tributação Diferida/Opção pelo Simples - Lançamento de Ofício	CSLL - Tributação Diferida/Opção pelo Simples - Lançamento de Ofício	20/08/2007
+0542		CSLL	Regime Especial de Tributação - Patrimônio de Afetação - Lançamento de Ofício	CSLL - Regime Especial de Tributação - Patrimônio de Afetação - Lançamento de Ofício	21/12/2007
+1324		CSLL	Simples Nacional - Lançamento de Ofício	CSLL - Simples Nacional - Lançamento de Ofício	12/08/2009
+2030		CSLL	Entidades Financeiras - Balanço Trimestral	CSLL - Entidades Financeiras - Balanço Trimestral	—
+2372		CSLL	PJ que Apuram o IRPJ com Base em Lucro Presumido ou Arbitrado	CSLL - PJ que Apuram o IRPJ com Base em Lucro Presumido ou Arbitrado	—
+2469		CSLL	Entidades Financeiras - Estimativa Mensal	CSLL - Entidades Financeiras - Estimativa Mensal	—
+2484		CSLL	Demais PJ que Apuram o IRPJ com base em Lucro Real - Estimativa Mensal	CSLL - Demais PJ que Apuram o IRPJ com base em Lucro Real - Estimativa Mensal	—
+2973		CSLL	Lançamento de Ofício	CSLL - Lançamento de Ofício	—
+3260		CSLL	Retenção na Fonte sobre Pagamentos de Pessoa Jurídica a outra Pessoa Jurídica de	CSLL - Retenção na Fonte sobre Pagamentos de Pessoa Jurídica a outra Pessoa Jurídica de Direito Privado - Lançamento de Ofício	04/02/2005
+3308		CSLL	Retenção na Fonte sobre Pagamentos de Empresa Pública, Sociedade de Economia Mis	CSLL - Retenção na Fonte sobre Pagamentos de Empresa Pública, Sociedade de Economia Mista e outras Entidades a Pessoa Jurídica de Direito Privado - Lançamento de Ofício	04/02/2005
+3657		CSLL	Cobrança	CSLL - Cobrança	—
+4153		CSLL	Regime Especial de Tributação do Patrimônio de Afetação	CSLL - Regime Especial de Tributação do Patrimônio de Afetação	06/12/2004
+4397		CSLL	Retenção na Fonte sobre Pagamentos dos Estados, DF e Municípios pela Aquisição d	CSLL - Retenção na Fonte sobre Pagamentos dos Estados, DF e Municípios pela Aquisição de Bens e Serviços	15/12/2004
+5802		CSLL	Suplementar	CSLL - Suplementar	01/01/1996
+5987		CSLL	Retenção sobre Pagamentos de Pessoa Jurídica a Pessoa Jurídica de Direito Privad	CSLL - Retenção sobre Pagamentos de Pessoa Jurídica a Pessoa Jurídica de Direito Privado (art. 30 da Lei nº 10.833/2003)	01/02/2004
+6012		CSLL	Demais PJ que Apuram o IRPJ com Base em Lucro Real - Balanço Trimestral	CSLL - Demais PJ que Apuram o IRPJ com Base em Lucro Real - Balanço Trimestral	01/01/1997
+6228		CSLL	Retenção na Fonte sobre Pagamento a Pessoa Jurídica (art. 34 da Lei nº 10.833/20	CSLL - Retenção na Fonte sobre Pagamento a Pessoa Jurídica (art. 34 da Lei nº 10.833/2003)	01/01/1997
+6479		CSLL	Atualização do Valor de Bens Imóveis	CSLL - Atualização do Valor de Bens Imóveis	25/09/2024
+6758		CSLL	Entidades Financeiras - Declaração de Ajuste	CSLL - Entidades Financeiras - Declaração de Ajuste	27/11/1997
+6773		CSLL	Demais Pessoas Jurídicas - Declaração de Ajuste	CSLL - Demais Pessoas Jurídicas - Declaração de Ajuste	27/11/1997
+7307		CSLL	Simples	CSLL - Simples	01/01/1997
+7485		CSLL	Depósito Judicial	CSLL - Depósito Judicial	26/11/1998
+7647		CSLL	Depósito Administrativo	CSLL - Depósito Administrativo	26/11/1998
+7837		CSLL	Trans Navios	CSLL - Trans Navios	26/11/1998
+0447		PIS	Importação - Depósito Administrativo	PIS - Importação - Depósito Administrativo	01/09/2006
+0449		PIS	Importação de Serviços-Lançamento de Ofício	PIS-Importação de Serviços-Lançamento de Ofício	22/11/2006
+0513		PIS	Regime Especial de Tributação - Patrimônio de Afetação - Lançamento de Ofício	PIS - Regime Especial de Tributação - Patrimônio de Afetação - Lançamento de Ofício	21/12/2007
+0679		PIS	Tributação de Bebidas Frias - Cervejas	PIS - Tributação de Bebidas Frias - Cervejas	01/01/2009
+0691		PIS	Tributação de Bebidas Frias - Demais Bebidas	PIS - Tributação de Bebidas Frias - Demais Bebidas	01/01/2009
+0724		PIS	Importação - Tributação de Bebidas Frias - Cervejas	PIS - Importação - Tributação de Bebidas Frias - Cervejas	01/01/2009
+0753		PIS	Importação - Tributação de Bebidas Frias - Demais Bebidas	PIS - Importação - Tributação de Bebidas Frias - Demais Bebidas	01/01/2009
+0860		PIS	Depósito Administrativo	Pasep - Depósito Administrativo	01/09/2006
+0868		PIS	Depósito Judicial	Pasep - Depósito Judicial	01/09/2006
+0906		PIS	Regime Especial de Apuração e Pagamento - Álcool	PIS - Regime Especial de Apuração e Pagamento - Álcool	03/02/2009
+0912		PIS	Importação - Regime Especial de Apuração e Pagamento - Álcool	PIS - Importação - Regime Especial de Apuração e Pagamento - Álcool	03/02/2009
+1347		PIS	Simples Nacional - Lançamento de Ofício	PIS - Simples Nacional - Lançamento de Ofício	12/08/2009
+1921		PIS	Vendas à ZMF - Substituição Tributária	PIS - Vendas à ZMF - Substituição Tributária	17/05/2006
+1947		PIS	Importação - Depósito Judicial	PIS - Importação - Depósito Judicial	01/09/2006
+2979		PIS	Retenção sobre as Transferências Efetuadas para Estados, DF e Municípios	Pasep - Retenção sobre as Transferências Efetuadas para Estados, DF e Municípios	11/10/2011
+2986		PIS	Lançamento de Ofício	PIS - Lançamento de Ofício	—
+2999		PIS	Lançamento de Ofício	Pasep - Lançamento de Ofício	—
+3121		PIS	Operações Intra Orçamentárias	PIS - Operações Intra Orçamentárias	17/03/2006
+3359		PIS	Retenção na Fonte sobre Pagamentos de Pessoa Jurídica a outra Pessoa Jurídica de	PIS - Retenção na Fonte sobre Pagamentos de Pessoa Jurídica a outra Pessoa Jurídica de Direito Privado - Lançamento de Ofício	04/02/2005
+3360		PIS	Retenção na Fonte sobre Pagamentos de Empresa Pública, Sociedade de Economia Mis	PIS - Retenção na Fonte sobre Pagamentos de Empresa Pública, Sociedade de Economia Mista e outras Entidades a Pessoa Jurídica de Direito Privado - Lançamento de Ofício	04/02/2005
+3616		PIS	Cobrança	PIS - Cobrança	—
+3629		PIS	Cobrança	Pasep - Cobrança	—
+3703		PIS	Pessoa Jurídica de Direito Publico	Pasep - Pessoa Jurídica de Direito Publico	—
+3770		PIS	Retenção na Fonte - Aquisição de Autopeças	PIS - Retenção na Fonte - Aquisição de Autopeças	12/12/2005
+4138		PIS	Regime Especial de Tributação do Patrimônio de Afetação	PIS - Regime Especial de Tributação do Patrimônio de Afetação	06/12/2004
+4409		PIS	Retenção na Fonte sobre Pagamentos dos Estados, DF e Municípios pela Aquisição d	PIS - Retenção na Fonte sobre Pagamentos dos Estados, DF e Municípios pela Aquisição de Bens e Serviços	15/12/2004
+4562		PIS	Importação de Produtos - Lançamento de Ofício	PIS - Importação de Produtos - Lançamento de Ofício	27/07/2004
+4574		PIS	Entidades Financeiras e Equiparadas	PIS - Entidades Financeiras e Equiparadas	01/01/1994
+5434		PIS	Importação de Serviços	PIS - Importação de Serviços	17/05/2004
+5602		PIS	Importação	PIS - Importação	01/05/2004
+5979		PIS	Retenção sobre Pagamentos de Pessoa Jurídica a Pessoa Jurídica de Direito Privad	PIS - Retenção sobre Pagamentos de Pessoa Jurídica a Pessoa Jurídica de Direito Privado	01/02/2004
+6230		PIS	Retenção na Fonte sobre Pagamento Efetuado por Órgão Público à Pessoa Jurídica	PIS - Retenção na Fonte sobre Pagamento Efetuado por Órgão Público à Pessoa Jurídica	01/01/1997
+6656		PIS	Não-Cumulativo - Lançamento de Ofício	PIS - Não-Cumulativo - Lançamento de Ofício	27/07/2004
+6824		PIS	Combustíveis	PIS - Combustíveis	16/01/2003
+6912		PIS	Não Cumulativo (Lei 10.637/02)	PIS - Não Cumulativo (Lei 10.637/02)	28/03/2003
+7200		PIS	Simples	PIS - Simples	01/01/1997
+7460		PIS	Depósito Judicial	PIS - Depósito Judicial	26/11/1998
+7634		PIS	Depósito Administrativo	PIS - Depósito Administrativo	26/11/1998
+7797		PIS	Trans Navios	PIS - Trans Navios	26/11/1998
+8002		PIS	Dedução	PIS - Dedução	—
+8109		PIS	Faturamento	PIS - Faturamento	01/01/1995
+8205		PIS	Repique Imposto de Renda	PIS - Repique Imposto de Renda	01/01/1995
+8301		PIS	Folha de Pagamento	PIS - Folha de Pagamento	—
+8496		PIS	Fabricação e Importação de Veículos em Substituição Tributária	PIS - Fabricação e Importação de Veículos em Substituição Tributária	26/05/2000
+8707		PIS	Regime Especial de Parcelamento - MP 38/2002 e Lei 10.684/03	Pasep - Regime Especial de Parcelamento - MP 38/2002 e Lei 10.684/03	03/07/2002
+0434		COFINS	Importação de Serviços-Lançamento de Ofício	Cofins-Importação de Serviços-Lançamento de Ofício	22/11/2006
+0468		COFINS	Regime Especial de Tributação - Patrimônio de Afetação - Lançamento de Ofício	Cofins - Regime Especial de Tributação - Patrimônio de Afetação - Lançamento de Ofício	21/12/2007
+0760		COFINS	Tributação de Bebidas Frias - Cervejas	Cofins - Tributação de Bebidas Frias - Cervejas	01/01/2009
+0776		COFINS	Tributação de Bebidas Frias - Demais Bebidas	Cofins - Tributação de Bebidas Frias - Demais Bebidas	01/01/2009
+0782		COFINS	Importação - Tributação de Bebidas Frias - Cervejas	Cofins - Importação - Tributação de Bebidas Frias - Cervejas	01/01/2009
+0809		COFINS	Importação - Tributação de Bebidas Frias - Demais Bebidas	Cofins - Importação - Tributação de Bebidas Frias - Demais Bebidas	01/01/2009
+0855		COFINS	Importação - Depósito Administrativo	Cofins - Importação - Depósito Administrativo	01/09/2006
+0929		COFINS	Regime Epecial de Apuração e Pagamento - Álcool	Cofins - Regime Epecial de Apuração e Pagamento - Álcool	03/02/2009
+0935		COFINS	Importação - Regime Especial de Apuração e Pagamento - Álcool	Cofins - Importação - Regime Especial de Apuração e Pagamento - Álcool	03/02/2009
+1330		COFINS	Simples Nacional - Lançamento de Ofício	Cofins - Simples Nacional - Lançamento de Ofício	12/08/2009
+1840		COFINS	Vendas à ZMF - Substituição Tributária	Cofins - Vendas à ZMF - Substituição Tributária	17/05/2006
+1994		COFINS	Importação - Depósito Judicial	Cofins - Importação - Depósito Judicial	01/09/2006
+2172		COFINS	Contribuição para Financiamento Seguridade Social	Cofins - Contribuição para Financiamento Seguridade Social	—
+2960		COFINS	Lançamento de Ofício	Cofins - Lançamento de Ofício	—
+3316		COFINS	Retenção na Fonte sobre Pagamentos de Pessoa Jurídica a outra Pessoa Jurídica de	Cofins - Retenção na Fonte sobre Pagamentos de Pessoa Jurídica a outra Pessoa Jurídica de Direito Privado - Lançamento de Ofício	04/02/2005
+3332		COFINS	Retenção na Fonte sobre Pagamentos de Empresa Pública, Sociedade de Economia Mis	Cofins - Retenção na Fonte sobre Pagamentos de Empresa Pública, Sociedade de Economia Mista e outras Entidades a Pessoa Jurídica de Direito Privado - Lançamento de Ofício	04/02/2005
+3644		COFINS	Cobrança	Cofins - Cobrança	—
+3746		COFINS	Retenção na Fonte - Aquisição de Autopeças	Cofins - Retenção na Fonte - Aquisição de Autopeças	12/12/2005
+4166		COFINS	Regime Especial de Tributação do Patrimônio de Afetação	Cofins - Regime Especial de Tributação do Patrimônio de Afetação	06/12/2004
+4407		COFINS	Retenção na Fonte sobre Pagamentos dos Estados, DF e Municípios pela Aquisição d	Cofins - Retenção na Fonte sobre Pagamentos dos Estados, DF e Municípios pela Aquisição de Bens e Serviços	15/12/2004
+4685		COFINS	Importação de Bens - Lançamento de Ofício	Cofins - Importação de Bens - Lançamento de Ofício	27/07/2004
+5442		COFINS	Importação de Serviços	Cofins - Importação de Serviços	17/05/2004
+5477		COFINS	Não-Cumulativa - Lançamento de Ofício	Cofins - Não-Cumulativa - Lançamento de Ofício	27/07/2004
+5629		COFINS	Importação	Cofins - Importação	01/05/2004
+5856		COFINS	Cofins Não-Cumulativa	Cofins Não-Cumulativa	01/02/2004
+5960		COFINS	Retenção sobre Pagamentos de Pessoa Jurídica a Pessoa Jurídica de Direito Privad	Cofins - Retenção sobre Pagamentos de Pessoa Jurídica a Pessoa Jurídica de Direito Privado (art. 30 da Lei nº 10.833/2003)	01/02/2004
+6243		COFINS	Retenção na Fonte sobre Pagamento à Pessoa Jurídica (art. 34 da Lei nº 10.833/20	Cofins - Retenção na Fonte sobre Pagamento à Pessoa Jurídica (art. 34 da Lei nº 10.833/2003)	01/01/1997
+6840		COFINS	Combustíveis	Cofins - Combustíveis	16/01/2003
+7403		COFINS	Simples	Cofins - Simples	01/01/1997
+7498		COFINS	Depósito Judicial	Cofins - Depósito Judicial	26/11/1998
+7650		COFINS	Depósito Administrativo	Cofins - Depósito Administrativo	26/11/1998
+7784		COFINS	Trans Navios	Cofins - Trans Navios	26/11/1998
+7987		COFINS	Entidades Financeiras e Equiparadas	Cofins - Entidades Financeiras e Equiparadas	01/02/1999
+8645		COFINS	Fabricação e Importação de Veículos em Substituição Tributária	Cofins - Fabricação e Importação de Veículos em Substituição Tributária	26/05/2000
+2096		CP_DCTFWEB	Segurados - Contribuição Segurados - Lançamento de Ofício	CP Segurados - Contribuição Segurados - Lançamento de Ofício	01/08/2011
+2141		CP_DCTFWEB	Patronal - Contribuição Empresa/Empregador - Lançamento de Ofício	CP Patronal - Contribuição Empresa/Empregador - Lançamento de Ofício	01/08/2011
+2226		CP_DCTFWEB	Segurado - Depósito Judicial	Contribuição Segurado - Depósito Judicial	01/08/2011
+2300		CP_DCTFWEB	Empresa/Empregador - Depósito Judicial	Contribuição Empresa/Empregador - Depósito Judicial	01/08/2011
+2619		CP_DCTFWEB	Segurado - Depósito Administrativo	Contribuição Segurado - Depósito Administrativo	01/08/2011
+2625		CP_DCTFWEB	Empresa/Empregador - Depósito Administrativo	Contribuição Empresa/Empregador - Depósito Administrativo	01/08/2011
+2985		CP_DCTFWEB	Previdenciária Sobre Receita Bruta - Art. 7º da Lei 12.546/2011	Contribuição Previdenciária Sobre Receita Bruta - Art. 7º da Lei 12.546/2011	05/12/2011
+2991		CP_DCTFWEB	Previdenciária Sobre Receita Bruta - Art. 8º da Lei 12.546/2011	Contribuição Previdenciária Sobre Receita Bruta - Art. 8º da Lei 12.546/2011	05/12/2011
+3601		CP_DCTFWEB	Previdenciária Sobre a Receita Bruta - Lançamento de Ofício	Contribuição Previdenciária Sobre a Receita Bruta - Lançamento de Ofício	10/04/2013
+4857		CP_DCTFWEB	Previdenciária sobre a Receita Bruta de Associações Desportivas que Mantêm Equip	Contribuição Previdenciária sobre a Receita Bruta de Associações Desportivas que Mantêm Equipe de Futebol Profissional em Substituição à Contribuição Patronal -Lançamento de Ofício	11/11/2014
+4863		CP_DCTFWEB	Previdenciária sobre a Comercialização da Produção Rural - Lançamento de Ofício	Contribuição Previdenciária sobre a Comercialização da Produção Rural - Lançamento de Ofício	11/11/2014
+4948		CP_DCTFWEB	Segurado - RGPS-Precatório e Requisição de Pequeno Valor	CP Segurado - RGPS-Precatório e Requisição de Pequeno Valor	16/06/2026
+4977		CP_DCTFWEB	Patronal - RGPS-Precatório e Requisição de Pequeno Valor	CP Patronal - RGPS-Precatório e Requisição de Pequeno Valor	16/06/2026
+5041		CP_DCTFWEB	Previdenciária sobre a Folha de Pagamento de Benefícios do Regime Geral de Previ	Contribuição Previdenciária sobre a Folha de Pagamento de Benefícios do Regime Geral de Previdência Social	31/03/2015
+0190		IRPF	Carnê Leão	IRPF - Carnê Leão	—
+0211		IRPF	Declaração de Ajuste Anual, Declaração de Saída Definitiva do País e Declaração 	IRPF - Declaração de Ajuste Anual, Declaração de Saída Definitiva do País e Declaração Final de Espólio	—
+0246		IRPF	Complementação Mensal	IRPF - Complementação Mensal	—
+1054		IRPF	Devolução Restituição Indevida - Tributário	IRPF - Devolução Restituição Indevida - Tributário	—
+2904		IRPF	Lançamento de Ofício	IRPF - Lançamento de Ofício	—
+4181		IRPF	Cobrança	IRPF - Cobrança	—
+4600		IRPF	Ganhos de Capital na Alienação de Bens Duráveis	IRPF - Ganhos de Capital na Alienação de Bens Duráveis	—
+6015		IRPF	Ganhos Líquidos em Operações em Bolsa	IRPF - Ganhos Líquidos em Operações em Bolsa	—
+6313		IRPF	Prêmio Líquido - Loteria de Apostas de Quota Fixa e Fantasy Sport	IRPF - Prêmio Líquido - Loteria de Apostas de Quota Fixa e Fantasy Sport	10/05/2024
+6371		IRPF	Ganho de Capital de Depósito em Conta Corrente, Cartão de Crédito ou Débito no E	IRPF - Ganho de Capital de Depósito em Conta Corrente, Cartão de Crédito ou Débito no Exterior	07/06/2024
+6456		IRPF	Atualização do Valor de Bens Imóveis	IRPF - Atualização do Valor de Bens Imóveis	25/09/2024
+7238		IRPF	Residentes no País - Atualização do Valor de Bens e Direitos no Exterior	IRPF - Residentes no País - Atualização do Valor de Bens e Direitos no Exterior	22/12/2023
+7416		IRPF	Depósito Judicial	IRPF - Depósito Judicial	26/11/1998
+7566		IRPF	Depósito Administrativo	IRPF - Depósito Administrativo	26/11/1998
+8523		IRPF	Ganhos de Capital na Alienação de Bens e Direitos Localizados no Exterior	IRPF - Ganhos de Capital na Alienação de Bens e Direitos Localizados no Exterior	23/08/2000
+8960		IRPF	Ganho de Capital na Alienação de Moeda Estrangeira Mantida em Espécie	IRPF - Ganho de Capital na Alienação de Moeda Estrangeira Mantida em Espécie	28/09/2001
+0668		IPI	Bebidas	IPI - Bebidas	—
+0676		IPI	Automóveis	IPI - Automóveis	—
+0821		IPI	Tributação de Bebidas Frias - Cervejas	IPI - Tributação de Bebidas Frias - Cervejas	01/01/2009
+0838		IPI	Tributação de Bebidas Frias - Demais Bebidas	IPI - Tributação de Bebidas Frias - Demais Bebidas	01/01/2009
+0850		IPI	Vinculado Importação - Tributação de Bebidas Frias - Cervejas	IPI - Vinculado Importação - Tributação de Bebidas Frias - Cervejas	01/01/2009
+0867		IPI	Vinculado Importação - Tributação de Bebidas Frias - Demais Bebidas	IPI - Vinculado Importação - Tributação de Bebidas Frias - Demais Bebidas	01/01/2009
+1020		IPI	Cigarros Contendo Tabaco	IPI - Cigarros Contendo Tabaco	—
+1038		IPI	Vinculado Importação	IPI - Vinculado Importação	—
+1097		IPI	Maquinas, Aparelhos e Material de Transporte	IPI - Maquinas, Aparelhos e Material de Transporte	—
+1318		IPI	Simples Nacional - Lançamento de Ofício	IPI - Simples Nacional - Lançamento de Ofício	12/08/2009
+2401		IPI	Bebidas - Operações Intra Orçamentárias	IPI - Bebidas - Operações Intra Orçamentárias	17/03/2006
+2410		IPI	outros - Operações Intra Orçamentárias	IPI - outros - Operações Intra Orçamentárias	17/03/2006
+2428		IPI	Vinculado Importação - Operações Intra Orçamentárias	IPI - Vinculado Importação - Operações Intra Orçamentárias	17/03/2006
+2945		IPI	Lançamento de Ofício	IPI - Lançamento de Ofício	—
+3345		IPI	Vinculado Importação - Lançamento de Ofício	IPI - Vinculado Importação - Lançamento de Ofício	—
+3589		IPI	Bebidas - Cobrança	IPI - Bebidas - Cobrança	—
+3591		IPI	outros - Cobrança	IPI - outros - Cobrança	—
+5042		IPI	Devolução de Crédito Negativo	IPI - Devolução de Crédito Negativo	16/11/2005
+5110		IPI	Tabaco e seus Sucedâneos Manufaturados, Exceto Cigarros Contendo Tabaco	IPI - Tabaco e seus Sucedâneos Manufaturados, Exceto Cigarros Contendo Tabaco	25/11/2004
+5123		IPI	Demais Produtos	IPI - Demais Produtos	25/11/2004
+5503		IPI	Vinculado Importação Veículos	IPI - Vinculado Importação Veículos	01/01/1995
+7389		IPI	Outros Depósito Judicial	IPI - Outros Depósito Judicial	26/11/1998
+7391		IPI	Vinculado Importação Depósito Judicial	IPI - Vinculado Importação Depósito Judicial	26/11/1998
+7540		IPI	Outros Depósito Administrativo	IPI - Outros Depósito Administrativo	26/11/1998
+7553		IPI	Vinculado Importação Depósito Administrativo	IPI - Vinculado Importação Depósito Administrativo	26/11/1998
+7606		IPI	Simples	IPI - Simples	01/01/1997
+7743		IPI	Vinculado Importação Trans Navios	IPI - Vinculado Importação Trans Navios	26/11/1998
+8957		IPI	Vinculado à Importação - Garantia Aduaneira Depósito Administrativo	IPI - Vinculado à Importação - Garantia Aduaneira Depósito Administrativo	28/09/2001
+1150		IOF	Operações de Crédito - Pessoa Jurídica	IOF - Operações de Crédito - Pessoa Jurídica	—
+2927		IOF	Contrato de Derivativos	IOF - Contrato de Derivativos	21/09/2011
+2958		IOF	Lançamento de Ofício	IOF - Lançamento de Ofício	—
+3467		IOF	Seguros	IOF - Seguros	—
+3603		IOF	Cobrança	IOF - Cobrança	—
+4028		IOF	Ouro Ativo Financeiro	IOF - Ouro Ativo Financeiro	—
+4290		IOF	Operações Externas	IOF - Operações Externas	—
+5220		IOF	Operações de Câmbio	IOF - Operações de Câmbio	01/01/1995
+6518		IOF	Seguro - Prêmio Aportado em Plano de Seguro de Vida com Cobertura por Sobrevivên	IOF - Seguro - Prêmio Aportado em Plano de Seguro de Vida com Cobertura por Sobrevivência (VGBL)	09/06/2025
+6854		IOF	Títulos ou Valores Mobiliários	IOF - Títulos ou Valores Mobiliários	08/01/1998
+6895		IOF	Factoring (art. 58 Lei 9532/97)	IOF - Factoring (art. 58 Lei 9532/97)	22/01/1998
+7444		IOF	Depósito Judicial	IOF - Depósito Judicial	26/11/1998
+7619		IOF	Depósito Administrativo	IOF - Depósito Administrativo	26/11/1998
+7893		IOF	Operações de Crédito - Pessoa Física	IOF - Operações de Crédito - Pessoa Física	01/01/1999
+0086		II	Imposto Importação - outros	II - Imposto Importação - outros	—
+0094		II	Imposto Importação - Bagagem Acompanhada	II - Imposto Importação - Bagagem Acompanhada	—
+1587		II	Remessa Expressa	Imposto Importação - Remessa Expressa	01/04/2010
+1593		II	Remessa Expressa - Lançamento de Ofício	Imposto Importação - Remessa Expressa - Lançamento de Ofício	05/04/2010
+1962		II	Imposto Importação - Petróleo e Derivados	II - Imposto Importação - Petróleo e Derivados	—
+2892		II	Imposto Importação - Lançamento de Ofício	II - Imposto Importação - Lançamento de Ofício	—
+3231		II	Remessa Postal	Imposto Importação - Remessa Postal	21/09/2012
+3254		II	Remessa Postal - Lançamento de Ofício	Imposto Importação - Remessa Postal - Lançamento de Ofício	21/09/2012
+5516		II	Imposto Importação - Veículos	II - Imposto Importação - Veículos	01/01/1995
+7363		II	Imposto Importação - Depósito Judicial	II - Imposto Importação - Depósito Judicial	26/11/1998
+7538		II	Imposto Importação - Depósito Administrativo	II - Imposto Importação - Depósito Administrativo	26/11/1998
+7730		II	Imposto Importação - Trans Navios	II - Imposto Importação - Trans Navios	26/11/1998
+8944		II	Imposto Importação - Garantia Aduaneira/Depósito Administrativo	II - Imposto Importação - Garantia Aduaneira/Depósito Administrativo	28/09/2001
+9064		II	Imposto Importação - Adicional	II - Imposto Importação - Adicional	—
+0107		IE	Imposto Exportação - outros	IE - Imposto Exportação - outros	—
+0298		IE	de Exportação-Lançamento de Ofício	Imposto de Exportação-Lançamento de Ofício	22/05/2007
+1089		IE	Imposto Exportação - Cacau	IE - Imposto Exportação - Cacau	—
+1070		ITR	Imposto sobre a Propriedade Territorial Rural	ITR - Imposto sobre a Propriedade Territorial Rural	14/07/1997
+2050		ITR	Taxa de Cadastro Contribuições Área Rural	ITR - Taxa de Cadastro Contribuições Área Rural	—
+2612		ITR	Operações Intra Orçamentárias	ITR - Operações Intra Orçamentárias	17/03/2006
+7051		ITR	Lançamento de Ofício	ITR - Lançamento de Ofício	24/08/1998
+7288		ITR	Parcelamento Lei 10.684/2003 - Exercício 1997 e Posteriores	ITR - Parcelamento Lei 10.684/2003 - Exercício 1997 e Posteriores	25/06/2003
+7457		ITR	Depósito Judicial	ITR - Depósito Judicial	26/11/1998
+7621		ITR	Depósito Administrativo	ITR - Depósito Administrativo	26/11/1998
+9113		ITR	Parcelamento Alternativo Exercício 1996 e Anteriores	ITR - Parcelamento Alternativo Exercício 1996 e Anteriores	14/03/2000
+9126		ITR	Parcelamento Alternativo Exercício 1997 e Posteriores	ITR - Parcelamento Alternativo Exercício 1997 e Posteriores	14/03/2000
+0148		CIDE	Combustíveis - Importação - Lançamento de Ofício	Cide - Combustíveis - Importação - Lançamento de Ofício	31/08/2007
+2369		CIDE	Sebrae/Apex/ABDI - Lançamento de Ofício	Cide - Sebrae/Apex/ABDI - Lançamento de Ofício	01/08/2011
+2592		CIDE	Sebrae/Apex/ABDI - Depósito Judicial	Cide - Sebrae/Apex/ABDI - Depósito Judicial	01/08/2011
+2842		CIDE	Sebrae/Apex/ABDI - Depósito Administrativo	Cide - Sebrae/Apex/ABDI - Depósito Administrativo	01/08/2011
+8741		CIDE	Remessas ao Exterior - L. 10332/01	Cide - Remessas ao Exterior - L. 10332/01	18/01/2001
+9303		CIDE	Remessa Exterior - Lei 10332/01 - Lançamento de Ofício	Cide - Remessa Exterior - Lei 10332/01 - Lançamento de Ofício	15/05/2002
+9304		CIDE	Combustíveis - Lançamento de Ofício	Cide - Combustíveis - Lançamento de Ofício	15/05/2002
+9331		CIDE	Combustíveis - Mercado Interno - Lei 10336/2001	Cide - Combustíveis - Mercado Interno - Lei 10336/2001	01/01/2002
+9438		CIDE	Combustíveis - Importação - Lei 10.336/2001	Cide - Combustíveis - Importação - Lei 10.336/2001	27/12/2001
+1661		CPSS	Servidor Civil Ativo	CPSS - Servidor Civil Ativo	11/08/2010
+1684		CPSS	Servidor Civil Licenciado/Afastado	CPSS - Servidor Civil Licenciado/Afastado	11/08/2010
+1700		CPSS	Servidor Civil Inativo	CPSS - Servidor Civil Inativo	11/08/2010
+1717		CPSS	Pensionista Civil	CPSS - Pensionista Civil	11/08/2010
+1723		CPSS	Servidor Civil Ativo - Precatório Judicial e Requisição de Pequeno Valor	CPSS - Servidor Civil Ativo - Precatório Judicial e Requisição de Pequeno Valor	11/08/2010
+1730		CPSS	Servidor Civil Inativo - Precatório Judicial e Requisição de Pequeno Valor	CPSS - Servidor Civil Inativo - Precatório Judicial e Requisição de Pequeno Valor	11/08/2010
+1752		CPSS	Pensionista - Precatório Judicial e Requisição de Pequeno Valor	CPSS - Pensionista - Precatório Judicial e Requisição de Pequeno Valor	11/08/2010
+1769		CPSS	Patronal - Servidor Civil Ativo - Operação Intra-Orçamentária	CPSS - Patronal - Servidor Civil Ativo - Operação Intra-Orçamentária	11/08/2010
+1781		CPSS	Patronal - Servidor Civil Licenciado/Afastado - Operação Intra-Orçamentária	CPSS - Patronal - Servidor Civil Licenciado/Afastado - Operação Intra-Orçamentária	11/08/2010
+1814		CPSS	Patronal - Servidor no Exterior - Operação Intra-Orçamentária	CPSS - Patronal - Servidor no Exterior - Operação Intra-Orçamentária	11/08/2010
+1837		CPSS	Patronal - Precatório Judicial e Requisição de Pequeno Valor - Operação Intra-Or	CPSS - Patronal - Precatório Judicial e Requisição de Pequeno Valor - Operação Intra-Orçamentária	11/08/2010
+1850		CPSS	do Plano de Seguridade Social do Servidor Público - CPSS - Patronal - Lançamento	Contribuição do Plano de Seguridade Social do Servidor Público - CPSS - Patronal - Lançamento de Ofício	28/10/2010
+1928		CPSS	do Plano de Seguridade Social do Servidor Público - CPSS - Não Patronal - Lançam	Contribuição do Plano de Seguridade Social do Servidor Público - CPSS - Não Patronal - Lançamento de Ofício	28/10/2010
+3300		CPSS	Não Patronal - Depósito Judicial	CPSS - Não Patronal - Depósito Judicial	11/10/2012
+3322		CPSS	Não Patronal - Depósito Administrativo	CPSS - Não Patronal - Depósito Administrativo	11/10/2012
+5492		CPSS	CPSS/FCDF - Servidor Civil Ativo	CPSS/FCDF - Servidor Civil Ativo	14/09/2016
+5502		CPSS	CPSS/FCDF - Servidor Civil Inativo/Pensionista	CPSS/FCDF - Servidor Civil Inativo/Pensionista	14/09/2016
+5519		CPSS	CPSS/FCDF - Patronal	CPSS/FCDF - Patronal	14/09/2016
+2164		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Salário Educação - Lançamento de Ofício	Contribuição Devida a Outras Entidades e Fundos - Salário Educação - Lançamento de Ofício	01/08/2011
+2187		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Rural - Se	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Rural - Senar - Lançamento de Ofício	01/08/2011
+2249		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Incra - Lançamento de Ofício	Contribuição Devida a Outras Entidades e Fundos - Incra - Lançamento de Ofício	01/08/2011
+2255		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Fundo Aeroviário - Lançamento de Ofício	Contribuição Devida a Outras Entidades e Fundos - Fundo Aeroviário - Lançamento de Ofício	01/08/2011
+2261		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Fundo de Desenvolvimento do Ensino Profissi	Contribuição Devida a Outras Entidades e Fundos - Fundo de Desenvolvimento do Ensino Profissional Marítimo - FDEPM - Lançamento de Ofício	01/08/2011
+2278		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Transpo	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Transporte - Senat - Lançamento de Ofício	01/08/2011
+2290		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Social de Transporte - Sest - Lança	Contribuição Devida a Outras Entidades e Fundos - Serviço Social de Transporte - Sest - Lançamento de Ofício	01/08/2011
+2317		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Industrial	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Industrial -Senai - Lançamento de Ofício	01/08/2011
+2323		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Social da Industria - Sesi - Lançam	Contribuição Devida a Outras Entidades e Fundos - Serviço Social da Industria - Sesi - Lançamento de Ofício	01/08/2011
+2346		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Comercial 	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Comercial - Senac - Lançamento de Ofício	01/08/2011
+2352		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Social do Comercio - Sesc - Lançame	Contribuição Devida a Outras Entidades e Fundos - Serviço Social do Comercio - Sesc - Lançamento de Ofício	01/08/2011
+2381		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Coopera	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Cooperativismo - Sescoop - Lançamento de Ofício	01/08/2011
+2450		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Salário Educação - Depósito Judicial	Contribuição Devida a Outras Entidades e Fundos - Salário Educação - Depósito Judicial	01/08/2011
+2466		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Rural - Se	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Rural - Senar - Depósito Judicial	01/08/2011
+2472		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Instituto Nacional de Colonização e Reforma	Contribuição Devida a Outras Entidades e Fundos - Instituto Nacional de Colonização e Reforma Agrária - Incra - Depósito Judicial	01/08/2011
+2489		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Fundo Aeroviário - Depósito Judicial	Contribuição Devida a Outras Entidades e Fundos - Fundo Aeroviário - Depósito Judicial	01/08/2011
+2505		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Fundo de Desenvolvimento do Ensino Profissi	Contribuição Devida a Outras Entidades e Fundos - Fundo de Desenvolvimento do Ensino Profissional Marítimo - FDEPM - Depósito Judicial	01/08/2011
+2528		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Transpo	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Transporte - Senat - Depósito Judicial	01/08/2011
+2534		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Social de Transporte - Sest - Depós	Contribuição Devida a Outras Entidades e Fundos - Serviço Social de Transporte - Sest - Depósito Judicial	01/08/2011
+2557		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Industrial	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Industrial - Senai - Depósito Judicial	01/08/2011
+2563		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Social da Industria - Sesi - Depósi	Contribuição Devida a Outras Entidades e Fundos - Serviço Social da Industria - Sesi - Depósito Judicial	01/08/2011
+2570		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Comercial 	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Comercial - Senac - Depósito Judicial	01/08/2011
+2586		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Social do Comércio - Sesc - Depósit	Contribuição Devida a Outras Entidades e Fundos - Serviço Social do Comércio - Sesc - Depósito Judicial	01/08/2011
+2602		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Coopera	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Cooperativismo - Sescoop - Depósito Judicial	01/08/2011
+2677		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Salário Educação - Depósito Administrativo	Contribuição Devida a Outras Entidades e Fundos - Salário Educação - Depósito Administrativo	01/08/2011
+2683		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Rural - Se	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Rural - Senar - Depósito Administrativo	01/08/2011
+2716		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Instituto Nacional de Colonização e Reforma	Contribuição Devida a Outras Entidades e Fundos - Instituto Nacional de Colonização e Reforma Agrária - Incra - Depósito Administrativo	01/08/2011
+2722		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Fundo Aeroviário - Depósito Administrativo	Contribuição Devida a Outras Entidades e Fundos - Fundo Aeroviário - Depósito Administrativo	01/08/2011
+2739		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Fundo de Desenvolvimento do Ensino Profissi	Contribuição Devida a Outras Entidades e Fundos - Fundo de Desenvolvimento do Ensino Profissional Marítimo - FDEPM - Depósito Administrativo	01/08/2011
+2745		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Transpo	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Transporte - Senat - Depósito Administrativo	01/08/2011
+2774		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Social de Transporte - Sest - Depós	Contribuição Devida a Outras Entidades e Fundos - Serviço Social de Transporte - Sest - Depósito Administrativo	01/08/2011
+2780		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Industrial	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Industrial - Senai - Depósito Administrativo	01/08/2011
+2797		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Social da Industria - Sesi - Depósi	Contribuição Devida a Outras Entidades e Fundos - Serviço Social da Industria - Sesi - Depósito Administrativo	01/08/2011
+2813		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Comercial 	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Comercial - Senac - Depósito Administrativo	01/08/2011
+2820		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Social do Comercio - Sesc - Depósit	Contribuição Devida a Outras Entidades e Fundos - Serviço Social do Comercio - Sesc - Depósito Administrativo	01/08/2011
+2859		OUTRAS_ENTIDADES	Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Coopera	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Cooperativismo - Sescoop - Depósito Administrativo	01/08/2011
+6106		SIMPLES	Simples - Pagamento de Micro Empresa e Empresa de Pequeno Porte	Simples - Pagamento de Micro Empresa e Empresa de Pequeno Porte	01/01/1997
+0285		PARCELAMENTO	Parcelamento para Ingresso no Simples Nacional	Parcelamento para Ingresso no Simples Nacional	02/07/2007
+0353		PARCELAMENTO	Parcelamento Timemania	Parcelamento Timemania	31/08/2007
+0520		PARCELAMENTO	Instituições de Ensino Superior - Lei nº 10.260/01	Parcelamento - Instituições de Ensino Superior - Lei nº 10.260/01	20/12/2007
+0701		PARCELAMENTO	Art 1º da Medida Provisoria 303/2006 - Deposito Judicial	Parcelamento - Art 1º da Medida Provisoria 303/2006 - Deposito Judicial	17/03/2009
+0830		PARCELAMENTO	art. 1º da Medida Provisória nº 303, de 29 de Junho de 2006 - Pessoa Jurídica Op	Parcelamento - art. 1º da Medida Provisória nº 303, de 29 de Junho de 2006 - Pessoa Jurídica Optante pelo Simples	25/07/2006
+0842		PARCELAMENTO	art. 1º da Medida Provisória nº 303, de 29 de Junho de 2006 - Demais Pessoas Jur	Parcelamento - art. 1º da Medida Provisória nº 303, de 29 de Junho de 2006 - Demais Pessoas Jurídicas	25/07/2006
+0873		PARCELAMENTO	Parcelamento para Ingresso no Simples Nacional - 2009	Parcelamento para Ingresso no Simples Nacional - 2009	01/01/2009
+0941		PARCELAMENTO	Artigo 1º da Medida Provisoria nº 449, de 3 de dezembro de 2008	Pagamento/Parcelamento - Artigo 1º da Medida Provisoria nº 449, de 3 de dezembro de 2008	13/03/2009
+0958		PARCELAMENTO	Art. 3º da MP 449, de 2008	Pagamento/Parcelamento - Art. 3º da MP 449, de 2008	13/03/2009
+0987		PARCELAMENTO	Art. 2º da MP 449, de 2008	Pagamento/Parcelamento - Art. 2º da MP 449, de 2008	13/03/2009
+1136		PARCELAMENTO	nº 11.941, de 2009 - PGFN - Débitos Previdenciários - Parcelamento de Dívidas Nã	Lei nº 11.941, de 2009 - PGFN - Débitos Previdenciários - Parcelamento de Dívidas Não Parceladas Anteriormente - art. 1º	12/08/2009
+1165		PARCELAMENTO	nº 11.941/2009 - PGFN - Débitos Previdenciários - Parcelamento de Saldo Remanesc	Lei nº 11.941/2009 - PGFN - Débitos Previdenciários - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamentos Ordinários - art. 3º	12/08/2009
+1171		PARCELAMENTO	nº 11.941, de 2009 - PGFN - Débitos Previdenciários - Pagamento a Vista com Util	Lei nº 11.941, de 2009 - PGFN - Débitos Previdenciários - Pagamento a Vista com Utilizaçao de Prejuízo Fiscal e Base de Cálculo Negativa da CSLL para Liquidar Multa e Juros	12/08/2009
+1188		PARCELAMENTO	nº 11.941, de 2009 - PGFN - Demais Débitos - Pagamento a Vista com Utilização de	Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Pagamento a Vista com Utilização de Prejuízo Fiscal e Base de Cálculo Negativa da CSLL para Liquidar Multa e Juros	12/08/2009
+1194		PARCELAMENTO	nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Dívidas Não Parcela	Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Dívidas Não Parceladas Anteriormente - art. 1º	12/08/2009
+1204		PARCELAMENTO	nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Saldo Remanescente 	Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamentos Ordinários - art. 3º	12/08/2009
+1210		PARCELAMENTO	nº 11.941, de 2009 - PGFN - Parcelamento de Dívida Decorrente de Aproveitamento 	Lei nº 11.941, de 2009 - PGFN - Parcelamento de Dívida Decorrente de Aproveitamento Indevido de Créditos do IPI - art. 2º	12/08/2009
+1233		PARCELAMENTO	nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento de Dívidas Não	Lei nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento de Dívidas Não Parceladas Anteriormente - art. 1º	12/08/2009
+1240		PARCELAMENTO	nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento de Saldo Reman	Lei nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamentos Ordinarios - art. 3º	12/08/2009
+1256		PARCELAMENTO	nº 11.941, de 2009 - RFB - Débitos Previdenciários - Pagamento a Vista com Utili	Lei nº 11.941, de 2009 - RFB - Débitos Previdenciários - Pagamento a Vista com Utilização de Prejuízo Fiscal e Base de Cálculo Negativa da CSLL para Liquidar Multa e Juros	12/08/2009
+1262		PARCELAMENTO	nº 11.941, de 2009 - RFB - Demais Débitos - Pagamento a Vista com Utilização de 	Lei nº 11.941, de 2009 - RFB - Demais Débitos - Pagamento a Vista com Utilização de Prejuízo Fiscal e Base de Cálculo Negativa da CSLL para Liquidar Multa e Juros	12/08/2009
+1279		PARCELAMENTO	nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Dívidas Não Parcelad	Lei nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Dívidas Não Parceladas Anteriormente - art. 1º	12/08/2009
+1285		PARCELAMENTO	nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Saldo Remanescente d	Lei nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamentos Ordinários - art. 3º	12/08/2009
+1291		PARCELAMENTO	nº 11.941, de 2009 - RFB - Parcelamento de Dívida Decorrente de Aproveitamento I	Lei nº 11.941, de 2009 - RFB - Parcelamento de Dívida Decorrente de Aproveitamento Indevido de Créditos do IPI - art. 2º	12/08/2009
+1382		PARCELAMENTO	nº 11.941, de 2009 - PGFN - Débitos Previdenciários - Parcelamento de Dívidas Nã	Lei nº 11.941, de 2009 - PGFN - Débitos Previdenciários - Parcelamento de Dívidas Não Parceladas Anteriormente - Art. 1º - Depósito Judicial	28/05/2009
+1399		PARCELAMENTO	nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Dívidas Não Parcela	Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Dívidas Não Parceladas Anteriormente - Art. 1º - Dep Judicial	28/05/2009
+1415		PARCELAMENTO	nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento de Dívidas Não	Lei nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento de Dívidas Não Parceladas Anteriormente - Art. 1º - Depósito Judicial	28/05/2009
+1421		PARCELAMENTO	nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Dívidas Não Parcelad	Lei nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Dívidas Não Parceladas Anteriormente - Art. 1º - Depósito Judicial	28/05/2009
+1444		PARCELAMENTO	MP 470/2009 - RFB	Pagamento/Parcelamento - MP 470/2009 - RFB	03/11/2009
+1919		PARCELAMENTO	art. 9º da Medida Provisória nº 303, de 29 de Junho de 2006 - Pessoa Jurídica Op	Parcelamento - art. 9º da Medida Provisória nº 303, de 29 de Junho de 2006 - Pessoa Jurídica Optante pelo Simples	25/07/2006
+1927		PARCELAMENTO	art. 8º da Medida Provisória nº 303, de 29 de Junho de 2006 - Pessoa Jurídica Op	Parcelamento - art. 8º da Medida Provisória nº 303, de 29 de Junho de 2006 - Pessoa Jurídica Optante pelo Simples	25/07/2006
+3043		PARCELAMENTO	nº 11.941, de 2009 - PGFN - Parcelamento de Dívida Decorrente de Aproveitamento 	Lei nº 11.941, de 2009 - PGFN - Parcelamento de Dívida Decorrente de Aproveitamento Indevido de Créditos do IPI - Art. 2º - Depósito Judicial	22/03/2012
+3066		PARCELAMENTO	nº 11.941/2009 - PGFN - Débitos Previdenciários - Parcelamento de Saldo Remanesc	Lei nº 11.941/2009 - PGFN - Débitos Previdenciários - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamentos Ordinários - Art. 3º - Depósito Judicial	22/03/2012
+3089		PARCELAMENTO	nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Saldo Remanescente 	Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamentos Ordinários - Art. 3º - Depósito Judicial	22/03/2012
+3095		PARCELAMENTO	nº 11.941, de 2009 - RFB - Parcelamento de Dívida Decorrente de Aproveitamento I	Lei nº 11.941, de 2009 - RFB - Parcelamento de Dívida Decorrente de Aproveitamento Indevido de Créditos do IPI - Art. 2º- Depósito Judicial	22/03/2012
+3111		PARCELAMENTO	nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento de Saldo Reman	Lei nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamentos Ordinarios - Art. 3º- Depósito Judicial	22/03/2012
+3128		PARCELAMENTO	nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Saldo Remanescente d	Lei nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamentos Ordinários - Art. 3º- Depósito Judicial	22/03/2012
+3780		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - PGFN - Débitos Previdenciários - Parcelament	Reabertura Lei nº 11.941, de 2009 - PGFN - Débitos Previdenciários - Parcelamento de Dívidas Não Parceladas Anteriormente - Art. 1º	21/10/2013
+3796		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - PGFN - Débitos Previdenciários - Parcelament	Reabertura Lei nº 11.941, de 2009 - PGFN - Débitos Previdenciários - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamentos Ordinários - Art. 3º	21/10/2013
+3812		PARCELAMENTO	Reabertura Lei nº 11.941/2009 - PGFN - Débitos Previdenciários - Pagamento à vis	Reabertura Lei nº 11.941/2009 - PGFN - Débitos Previdenciários - Pagamento à vista com utilização de Prejuízo Fiscal e Base de Cálculo Negativa da CSLL para liquidar multa e juros	21/10/2013
+3829		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Pagamento à vista co	Reabertura Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Pagamento à vista com utilização de Prejuízo Fiscal e Base de Cálculo Negativa da CSLL para liquidar multa e juros	21/10/2013
+3835		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Dívi	Reabertura Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Dívidas Não Parceladas Anteriormente - Art. 1º	21/10/2013
+3841		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Sald	Reabertura Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamentos Ordinários - Art. 3º	21/10/2013
+3858		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - PGFN - Parcelamento Dívida Decorrente de Apr	Reabertura Lei nº 11.941, de 2009 - PGFN - Parcelamento Dívida Decorrente de Aproveitamento Indevido de Créditos de IPI - Art. 2º	21/10/2013
+3870		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento	Reabertura Lei nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento de Dívidas Não Parceladas Anteriormente - Art. 1º	21/10/2013
+3887		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento	Reabertura Lei nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamentos Ordinários - Art. 3º	21/10/2013
+3903		PARCELAMENTO	Reabertura Lei nº 11.941/2009 - RFB - Débitos Previdenciários - Pagamento à vist	Reabertura Lei nº 11.941/2009 - RFB - Débitos Previdenciários - Pagamento à vista com utilização de Prejuízo Fiscal e Base de Cálculo Negativa da CSLL para liquidar multa e juros	21/10/2013
+3910		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - RFB - Demais Débitos - Pagamento à vista com	Reabertura Lei nº 11.941, de 2009 - RFB - Demais Débitos - Pagamento à vista com utilização de Prejuízo Fiscal e Base de Cálculo Negativa da CSLL para liquidar multa e juros	21/10/2013
+3914		PARCELAMENTO	Imóveis Extinta RFFSA - SPU	Parcelamento - Imóveis Extinta RFFSA - SPU	—
+3926		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Dívid	Reabertura Lei nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Dívidas Não Parceladas Anteriormente - Art. 1º	21/10/2013
+3932		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Saldo	Reabertura Lei nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamentos Ordinários - Art. 3º	21/10/2013
+3955		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - RFB - Parcelamento Dívida Decorrente de Apro	Reabertura Lei nº 11.941, de 2009 - RFB - Parcelamento Dívida Decorrente de Aproveitamento Indevido de Créditos de IPI - Art. 2º	21/10/2013
+4007		PARCELAMENTO	nº 12.865, de 2013 - RFB - Parcelamento PIS/COFINS - Instituições Financeiras e 	Lei nº 12.865, de 2013 - RFB - Parcelamento PIS/COFINS - Instituições Financeiras e Cia Seguradoras - Art. 39, Caput	21/10/2013
+4013		PARCELAMENTO	nº 12.865, de 2013 - PGFN - Parcelamento PIS/COFINS - Instituições Financeiras e	Lei nº 12.865, de 2013 - PGFN - Parcelamento PIS/COFINS - Instituições Financeiras e Cia Seguradoras - Art. 39, Caput	21/10/2013
+4020		PARCELAMENTO	12.865, de 2013 - RFB - Parcelamento PIS/COFINS - Art. 39, § 1º	Lei 12.865, de 2013 - RFB - Parcelamento PIS/COFINS - Art. 39, § 1º	21/10/2013
+4042		PARCELAMENTO	12.865, de 2013 - PGFN - Parcelamento PIS/COFINS - Art. 39, § 1º	Lei 12.865, de 2013 - PGFN - Parcelamento PIS/COFINS - Art. 39, § 1º	21/10/2013
+4059		PARCELAMENTO	nº 12.865, de 2013 - RFB - Parcelamento IRPJ/CSLL - Art. 40	Lei nº 12.865, de 2013 - RFB - Parcelamento IRPJ/CSLL - Art. 40	21/10/2013
+4065		PARCELAMENTO	nº 12.865, de 2013 - PGFN - Parcelamento IRPJ/CSLL - Art. 40	Lei nº 12.865, de 2013 - PGFN - Parcelamento IRPJ/CSLL - Art. 40	21/10/2013
+4071		PARCELAMENTO	nº 12.865, de 2013 - RFB - Pagamento à Vista - PIS/COFINS - Instituições Finance	Lei nº 12.865, de 2013 - RFB - Pagamento à Vista - PIS/COFINS - Instituições Financeiras e Cia Seguradoras - Art. 39, Caput	21/10/2013
+4088		PARCELAMENTO	nº 12.865, de 2013 - PGFN - Pagamento à Vista - PIS/COFINS - Instituições Financ	Lei nº 12.865, de 2013 - PGFN - Pagamento à Vista - PIS/COFINS - Instituições Financeiras e Cia Seguradoras - Art. 39, Caput	21/10/2013
+4094		PARCELAMENTO	12.865, de 2013 - RFB - Pagamento à Vista - PIS/COFINS - Art. 39, § 1º	Lei 12.865, de 2013 - RFB - Pagamento à Vista - PIS/COFINS - Art. 39, § 1º	21/10/2013
+4104		PARCELAMENTO	12.865, de 2013 - PGFN - Pagamento à Vista - PIS/COFINS - Art. 39, § 1º	Lei 12.865, de 2013 - PGFN - Pagamento à Vista - PIS/COFINS - Art. 39, § 1º	21/10/2013
+4110		PARCELAMENTO	nº 12.865, de 2013 - RFB - Pagamento à Vista - IRPJ/CSLL - Art. 40	Lei nº 12.865, de 2013 - RFB - Pagamento à Vista - IRPJ/CSLL - Art. 40	21/10/2013
+4127		PARCELAMENTO	nº 12.865, de 2013 - PGFN - Pagamento à Vista - IRPJ/CSLL - Art. 40	Lei nº 12.865, de 2013 - PGFN - Pagamento à Vista - IRPJ/CSLL - Art. 40	21/10/2013
+4396		PARCELAMENTO	Parcelamento de Arrematação - Primeira Parcela - Depósito Judicial	Parcelamento de Arrematação - Primeira Parcela - Depósito Judicial	30/12/2013
+4412		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Dívi	Reabertura Lei nº 11.941, de 2009 - PGFN - Demais Débitos - Parcelamento de Dívidas Não Parceladas Anteriormente - Art. 1º - Depósito Judicial	19/02/2014
+4429		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - PGFN - Débitos Previdenciários - Parcelament	Reabertura Lei nº 11.941, de 2009 - PGFN - Débitos Previdenciários - Parcelamento de Dívidas Não Parceladas Anteriormente - Art. 1º - Depósito Judicial	19/02/2014
+4435		PARCELAMENTO	Reabertura Lei 11941/09 - PGFN - Débitos Previdenciários - Parcelamento de Saldo	Reabertura Lei 11941/09 - PGFN - Débitos Previdenciários - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamento Ordinário - Art. 3º - Depósito Judicial	19/02/2014
+4464		PARCELAMENTO	Reabertura Lei nº 11941, de 2009 - PGFN - Demais Débitos - Parcelamento de Saldo	Reabertura Lei nº 11941, de 2009 - PGFN - Demais Débitos - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamento Ordinário - Art. 3º - Depósito Judicial	19/02/2014
+4470		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - PGFN - Parcelamento Dívida Decorrente de Apr	Reabertura Lei nº 11.941, de 2009 - PGFN - Parcelamento Dívida Decorrente de Aproveitamento Indevido de Créditos de IPI - Art. 2º - Depósito Judicial	19/02/2014
+4487		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento	Reabertura Lei nº 11.941, de 2009 - RFB - Débitos Previdenciários - Parcelamento de Dívidas Não Parceladas Anteriormente - Art. 1º - Depósito Judicial	19/02/2014
+4510		PARCELAMENTO	Reabertura Lei 11941/2009 - RFB - Débitos Previdenciários - Parcelamento de Sald	Reabertura Lei 11941/2009 - RFB - Débitos Previdenciários - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamento Ordinário - Art 3º - Depósito Judicial	19/02/2014
+4526		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Dívid	Reabertura Lei nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Dívidas Não Parceladas Anteriormente - Art. 1º - Depósito Judicial	19/02/2014
+4532		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Saldo	Reabertura Lei nº 11.941, de 2009 - RFB - Demais Débitos - Parcelamento de Saldo Remanescente dos Programas Refis, Paes, Paex e Parcelamento Ordinário - Art. 3º - Depósito Judicial	19/02/2014
+4549		PARCELAMENTO	Reabertura Lei nº 11.941, de 2009 - RFB - Parcelamento Dívida Decorrente de Apro	Reabertura Lei nº 11.941, de 2009 - RFB - Parcelamento Dívida Decorrente de Aproveitamento Indevido de Créditos de IPI - Art. 2º - Depósito Judicial	19/02/2014
+4617		PARCELAMENTO	nº 12.865, de 2013 - RFB - Parcelamento PIS/COFINS - Instituições Financeiras e 	Lei nº 12.865, de 2013 - RFB - Parcelamento PIS/COFINS - Instituições Financeiras e Cia Seguradoras - Art. 39, Caput - Depósito Judicial	19/02/2014
+4623		PARCELAMENTO	nº 12.865, de 2013 - PGFN - Parcelamento PIS/COFINS - Instituições Financeiras e	Lei nº 12.865, de 2013 - PGFN - Parcelamento PIS/COFINS - Instituições Financeiras e Cia Seguradoras - Art. 39, Caput - Depósito Judicial	19/02/2014
+4646		PARCELAMENTO	nº 12.865, de 2013 - RFB - Parcelamento PIS/COFINS - Art. 39, § 1º - Depósito Ju	Lei nº 12.865, de 2013 - RFB - Parcelamento PIS/COFINS - Art. 39, § 1º - Depósito Judicial	19/02/2014
+4652		PARCELAMENTO	nº 12.865, de 2013 - PGFN - Parcelamento PIS/COFINS - Art. 39, § 1º - Depósito J	Lei nº 12.865, de 2013 - PGFN - Parcelamento PIS/COFINS - Art. 39, § 1º - Depósito Judicial	19/02/2014
+4675		PARCELAMENTO	nº 12.865, de 2013 - RFB - Parcelamento IRPJ/CSLL - Art. 40 - Depósito Judicial	Lei nº 12.865, de 2013 - RFB - Parcelamento IRPJ/CSLL - Art. 40 - Depósito Judicial	19/02/2014
+4681		PARCELAMENTO	nº 12.865, de 2013 - PGFN - Parcelamento IRPJ/CSLL - Art. 40 - Depósito Judicial	Lei nº 12.865, de 2013 - PGFN - Parcelamento IRPJ/CSLL - Art. 40 - Depósito Judicial	19/02/2014
+4720		PARCELAMENTO	nº 12.996, de 2014 - PGFN - Débitos Previdenciários - Parcelamento	Lei nº 12.996, de 2014 - PGFN - Débitos Previdenciários - Parcelamento	25/07/2014
+4737		PARCELAMENTO	nº 12.996, de 2014 - PGFN - Demais Débitos - Parcelamento	Lei nº 12.996, de 2014 - PGFN - Demais Débitos - Parcelamento	25/07/2014
+4743		PARCELAMENTO	nº 12.996, de 2014 - RFB - Débitos Previdenciários - Parcelamento	Lei nº 12.996, de 2014 - RFB - Débitos Previdenciários - Parcelamento	25/07/2014
+4750		PARCELAMENTO	nº 12.996, de 2014 - RFB - Demais Débitos - Parcelamento	Lei nº 12.996, de 2014 - RFB - Demais Débitos - Parcelamento	25/07/2014
+4766		PARCELAMENTO	nº 12.996, de 2014 - PGFN - Débitos Previdenciários - Pagamento à vista com util	Lei nº 12.996, de 2014 - PGFN - Débitos Previdenciários - Pagamento à vista com utilização de Prejuízo Fiscal e Base de Cálculo Negativa da CSLL	25/07/2014
+4772		PARCELAMENTO	nº 12.996, de 2014 - PGFN - Demais Débitos - Pagamento à vista com utilização de	Lei nº 12.996, de 2014 - PGFN - Demais Débitos - Pagamento à vista com utilização de Prejuízo Fiscal e Base de Cálculo Negativa da CSLL	25/07/2014
+4789		PARCELAMENTO	nº 12.996, de 2014 - RFB - Débitos Previdenciários - Pagamento à vista com utili	Lei nº 12.996, de 2014 - RFB - Débitos Previdenciários - Pagamento à vista com utilização de Prejuízo Fiscal e Base de Cálculo Negativa da CSLL	25/07/2014
+4795		PARCELAMENTO	nº 12.996, de 2014 - RFB - Demais Débitos - Pagamento à vista com utilização de 	Lei nº 12.996, de 2014 - RFB - Demais Débitos - Pagamento à vista com utilização de Prejuízo Fiscal e Base de Cálculo Negativa da CSLL	25/07/2014
+4892		PARCELAMENTO	nº 12.996, de 2014 - PGFN - Débitos Previdenciários - Parcelamento - Depósito Ju	Lei nº 12.996, de 2014 - PGFN - Débitos Previdenciários - Parcelamento - Depósito Judicial	11/11/2014
+4902		PARCELAMENTO	nº 12.996, de 2014 - PGFN - Demais Débitos - Parcelamento - Depósito Judicial	Lei nº 12.996, de 2014 - PGFN - Demais Débitos - Parcelamento - Depósito Judicial	11/11/2014
+4919		PARCELAMENTO	nº 12.996, de 2014 - RFB - Débitos Previdenciários - Parcelamento - Depósito Jud	Lei nº 12.996, de 2014 - RFB - Débitos Previdenciários - Parcelamento - Depósito Judicial	11/11/2014
+4931		PARCELAMENTO	nº 12.996, de 2014 - RFB - Demais Débitos - Parcelamento - Depósito Judicial	Lei nº 12.996, de 2014 - RFB - Demais Débitos - Parcelamento - Depósito Judicial	11/11/2014
+4983		PARCELAMENTO	IRPJ/CSLL - Ganho de Capital - RFB	Parcelamento - IRPJ/CSLL - Ganho de Capital - RFB	18/11/2014
+4990		PARCELAMENTO	IRPJ/CSLL - Ganho de Capital - PGFN	Parcelamento - IRPJ/CSLL - Ganho de Capital - PGFN	18/11/2014
+5064		PARCELAMENTO	Parcelamento Programa de Modernização da Gestão e de Responsabilidade Fiscal do 	Parcelamento Programa de Modernização da Gestão e de Responsabilidade Fiscal do Futebol Brasileiro (Profut) - Demais Débitos - RFB	22/05/2015
+5087		PARCELAMENTO	Parcelamento Programa de Modernização da Gestão e de Responsabilidade Fiscal do 	Parcelamento Programa de Modernização da Gestão e de Responsabilidade Fiscal do Futebol Brasileiro (Profut) - Demais Débitos - PGFN	22/05/2015
+5879		PARCELAMENTO	Transação por Adesão no Contencioso Tributário de Pequeno Valor - Demais Débitos	Transação por Adesão no Contencioso Tributário de Pequeno Valor - Demais Débitos	03/09/2020
+5885		PARCELAMENTO	Transação por Adesão no Contencioso Tributário de Pequeno Valor - Débitos Previd	Transação por Adesão no Contencioso Tributário de Pequeno Valor - Débitos Previdenciários	03/09/2020
+5897		PARCELAMENTO	Parcelamento Pessoa Física - Simples	Parcelamento Pessoa Física - Simples	01/01/1997
+5909		PARCELAMENTO	Parcelamento Pessoa Jurídica - Simples	Parcelamento Pessoa Jurídica - Simples	01/01/1997
+5947		PARCELAMENTO	Recuperação Judicial - Débitos não Previdenciários Recolhíveis Originalmente em 	Parcelamento - Recuperação Judicial - Débitos não Previdenciários Recolhíveis Originalmente em Darf - Até 120 Parcelas ou até 84 Parcelas com Utilização de PF e BCN da CSLL	26/03/2021
+5976		PARCELAMENTO	Recuperação Judicial - Tributos Retidos/Descontados Recolhíveis Originalmente em	Parcelamento - Recuperação Judicial - Tributos Retidos/Descontados Recolhíveis Originalmente em Darf (IOF, IRRF, Contribuição Previdenciária) - Até 24 parcelas	26/03/2021
+5982		PARCELAMENTO	Recuperação Judicial - Débitos Patronais Recolhíveis Originalmente em Darf (Prev	Parcelamento - Recuperação Judicial - Débitos Patronais Recolhíveis Originalmente em Darf (Previdenciário e Contribuição Devida por Lei a Terceiros) - Até 60 Parcelas	26/03/2021
+6005		PARCELAMENTO	Recuperação Judicial - Débitos Patronais Recolhíveis Originalmente em GPS (Previ	Parcelamento - Recuperação Judicial - Débitos Patronais Recolhíveis Originalmente em GPS (Previdenciário e Contribuição Devida por Lei a Terceiros) - Até 60 Parcelas	26/03/2021
+6011		PARCELAMENTO	Recuperação Judicial - Débitos Retidos/Descontados Recolhíveis Originalmente em 	Parcelamento - Recuperação Judicial - Débitos Retidos/Descontados Recolhíveis Originalmente em GPS (Contribuição Previdenciária) - Até 24 parcelas	26/03/2021
+6028		PARCELAMENTO	Transação por Adesão no Contencioso Tributário de Relevante e Disseminada Contro	Transação por Adesão no Contencioso Tributário de Relevante e Disseminada Controvérsia Jurídica	18/05/2021
+6034		PARCELAMENTO	Reabertura da Transação por Adesão no Contencioso Tributário de Pequeno Valor - 	Reabertura da Transação por Adesão no Contencioso Tributário de Pequeno Valor - Demais Débitos	01/07/2021
+6063		PARCELAMENTO	Parcelamento Constitucional Excepcional dos Débitos Decorrentes de Contribuições	Parcelamento Constitucional Excepcional dos Débitos Decorrentes de Contribuições Previdenciárias dos Municípios	04/03/2022
+6070		PARCELAMENTO	Parcelamento Parametrizado em Contingência - Débitos Previdenciários	Parcelamento Parametrizado em Contingência - Débitos Previdenciários	10/12/2021
+6102		PARCELAMENTO	Programa de Redução de Litigiosidade Fiscal (PRLF)	Transação - Programa de Redução de Litigiosidade Fiscal (PRLF)	30/01/2023
+6268		PARCELAMENTO	Programa Litígio Zero 2024 - Débitos Previdenciários	Transação - Programa Litígio Zero 2024 - Débitos Previdenciários	28/03/2024
+6274		PARCELAMENTO	Programa Litígio Zero 2024 - Demais Débitos	Transação - Programa Litígio Zero 2024 - Demais Débitos	28/03/2024
+6280		PARCELAMENTO	Parcelamento de Débitos Instituídos pelo Art. 14 da Lei nº 14.789, de 2023	Parcelamento de Débitos Instituídos pelo Art. 14 da Lei nº 14.789, de 2023	03/04/2024
+6307		PARCELAMENTO	Débitos Tributários - Voto de Qualidade do Conselho Administrativo de Recursos F	Parcelamento - Débitos Tributários - Voto de Qualidade do Conselho Administrativo de Recursos Fiscais (Carf)	12/04/2024
+6320		PARCELAMENTO	Transação por Adesão no Contencioso Tributário de Relevante e Disseminada Contro	Transação por Adesão no Contencioso Tributário de Relevante e Disseminada Controvérsia Jurídica - Subvenção	22/04/2024
+6359		PARCELAMENTO	Parcelamento e/ou Transação Parametrizado(a) de Débitos em Contingência - Consol	Parcelamento e/ou Transação Parametrizado(a) de Débitos em Contingência - Consolidação	10/05/2024
+6648		PARCELAMENTO	Parcelamento Lei 10.684/03 (Paes) - Depósito Judicial	Parcelamento Lei 10.684/03 (Paes) - Depósito Judicial	27/07/2004
+7042		PARCELAMENTO	Parcelamento Lei 10.684/03 - Pessoa Física	Parcelamento Lei 10.684/03 - Pessoa Física	13/06/2003
+7093		PARCELAMENTO	Parcelamento Lei 10.684/03 - Micro Empresa	Parcelamento Lei 10.684/03 - Micro Empresa	13/06/2003
+7114		PARCELAMENTO	Parcelamento Lei 10.684/03 - Empresa Pequeno Porte	Parcelamento Lei 10.684/03 - Empresa Pequeno Porte	13/06/2003
+7122		PARCELAMENTO	Parcelamento Lei 10.684/03 - Demais Pessoas Jurídicas	Parcelamento Lei 10.684/03 - Demais Pessoas Jurídicas	13/06/2003
+7659		PARCELAMENTO	Simples Federal	Parcelamento - Simples Federal	22/11/2002
+8658		PARCELAMENTO	Refis/Simples - Parcelamento Especial (MP 2061/00, artigo 2)	Refis/Simples - Parcelamento Especial (MP 2061/00, artigo 2)	08/11/2000
+8811		PARCELAMENTO	Refis - Depósito Judicial	Refis - Depósito Judicial	16/07/2002
+9100		PARCELAMENTO	Refis - Parcelamento Vinculado Receita Bruta	Refis - Parcelamento Vinculado Receita Bruta	02/02/2000
+9222		PARCELAMENTO	Refis - Parcelamento Alternativo	Refis - Parcelamento Alternativo	02/02/2000
+0176		DIVIDA_ATIVA	Parcelamento Timemania - Clubes de Futebol	R D Ativa - Parcelamento Timemania - Clubes de Futebol	27/09/2007
+0400		DIVIDA_ATIVA	Parcelamento para Ingresso no Simples Nacional	R D Ativa - Parcelamento para Ingresso no Simples Nacional	06/07/2007
+0445		DIVIDA_ATIVA	Funcafé - Leilão	R D Ativa - Funcafé - Leilão	14/02/2008
+0457		DIVIDA_ATIVA	Contribuição Açúcar e Álcool	Receita Dívida Ativa - Contribuição Açúcar e Álcool	—
+0536		DIVIDA_ATIVA	Parcelamento - Instituições de Ensino Superior - Lei nº 10.260/01	R D Ativa - Parcelamento - Instituições de Ensino Superior - Lei nº 10.260/01	20/12/2007
+0685		DIVIDA_ATIVA	Multa do Regime Disciplinar Aplicada a Rede Arrecadadora de Receitas Federais	R D Ativa - Multa do Regime Disciplinar Aplicada a Rede Arrecadadora de Receitas Federais	23/10/2008
+0761		DIVIDA_ATIVA	Regime Especial de Tributação do Patrimônio de Afetação	Receita da Dívida Ativa - Regime Especial de Tributação do Patrimônio de Afetação	31/08/2006
+0810		DIVIDA_ATIVA	PIS	Receita Dívida Ativa - PIS	—
+0836		DIVIDA_ATIVA	Pasep	Receita Dívida Ativa - Pasep	—
+0879		DIVIDA_ATIVA	Multa Isolada - CSIRF (art. 43 da Lei nº 9.430 de 1996)	R D Ativa - Multa Isolada - CSIRF (art. 43 da Lei nº 9.430 de 1996)	15/05/2006
+0883		DIVIDA_ATIVA	Juros Isolados - CSIRF (art. 43 da Lei nº 9.430 de 1996)	R D Ativa - Juros Isolados - CSIRF (art. 43 da Lei nº 9.430 de 1996)	15/05/2006
+0896		DIVIDA_ATIVA	Cofins - Retenção na Fonte	R D Ativa - Cofins - Retenção na Fonte	15/05/2006
+0949		DIVIDA_ATIVA	PIS - Retenção na Fonte	R D Ativa - PIS - Retenção na Fonte	15/05/2006
+0970		DIVIDA_ATIVA	Parcelamento para Ingresso no Simples Nacional - 2009	R D Ativa - Parcelamento para Ingresso no Simples Nacional - 2009	01/01/2009
+0992		DIVIDA_ATIVA	CSLL - Retenção na Fonte	R D Ativa - CSLL - Retenção na Fonte	15/05/2006
+1039		DIVIDA_ATIVA	Recuperação de Recursos - Finor	R D Ativa - Recuperação de Recursos - Finor	25/05/2009
+1045		DIVIDA_ATIVA	Recuperação de Recursos - Finam	R D Ativa - Recuperação de Recursos - Finam	25/05/2009
+1065		DIVIDA_ATIVA	Produtos - Retido por Órgão Público	R D Ativa - Produtos - Retido por Órgão Público	15/05/2006
+1118		DIVIDA_ATIVA	Medicamentos Adquiridos do Distribuidor ou Varejista - Retido por Órgão Público	R D Ativa - Medicamentos Adquiridos do Distribuidor ou Varejista - Retido por Órgão Público	15/05/2006
+1134		DIVIDA_ATIVA	Finsocial	Receita Dívida Ativa - Finsocial	—
+1142		DIVIDA_ATIVA	IOF	Receita Dívida Ativa - IOF	—
+1174		DIVIDA_ATIVA	Pneus e Câmaras-de-Ar de Borracha Adquiridos de Fabricante ou de Importador - Re	R D Ativa - Pneus e Câmaras-de-Ar de Borracha Adquiridos de Fabricante ou de Importador - Retido por Órgão Público	15/05/2006
+1214		DIVIDA_ATIVA	Máquinas, Tratores, Veículos para Transporte de Passageiros, de Mercadorias, de 	R D Ativa - Máquinas, Tratores, Veículos para Transporte de Passageiros, de Mercadorias, de Usos Especiais e Chassis com Motores para Veículos Automóveis - Retido por Órgão Público	15/05/2006
+1230		DIVIDA_ATIVA	Querosene de Aviação Adquirido de Produtor ou Importador - Retido por Órgão Públ	R D Ativa - Querosene de Aviação Adquirido de Produtor ou Importador - Retido por Órgão Público	15/05/2006
+1460		DIVIDA_ATIVA	Álcool Carb Adquir Distribuidor - Retido por Órgão Público	R D Ativa - Álcool Carb Adquir Distribuidor - Retido por Órgão Público	15/05/2006
+1480		DIVIDA_ATIVA	Pagamento/Parcelamento - MP 470/2009 - PGFN	Receita Dívida Ativa - Pagamento/Parcelamento - MP 470/2009 - PGFN	03/11/2009
+1513		DIVIDA_ATIVA	Custas Judiciais	Receita Dívida Ativa - Custas Judiciais	—
+1529		DIVIDA_ATIVA	Fundo de Terras e da Reforma Agrária	R D Ativa - Fundo de Terras e da Reforma Agrária	01/04/2010
+1535		DIVIDA_ATIVA	Funcafé - Dação em Pagamento	R D Ativa - Funcafé - Dação em Pagamento	01/04/2010
+1539		DIVIDA_ATIVA	Gasol/Diesel/Gás Liquefeito Petróleo e Álcool No Varejo - Retido por Órgão Públi	R D Ativa - Gasol/Diesel/Gás Liquefeito Petróleo e Álcool No Varejo - Retido por Órgão Público	15/05/2006
+1570		DIVIDA_ATIVA	Medicamentos Adquiridos do Industrial ou Importador - Retido por Órgão Público	R D Ativa - Medicamentos Adquiridos do Industrial ou Importador - Retido por Órgão Público	15/05/2006
+1582		DIVIDA_ATIVA	Transporte de Passageiros - Retenção em Pagamento por Órgão Público	R D Ativa - Transporte de Passageiros - Retenção em Pagamento por Órgão Público	15/05/2006
+1595		DIVIDA_ATIVA	Transporte Internacional de Passageiros Empresas Nacionais - Retido por Órgão Pú	R D Ativa - Transporte Internacional de Passageiros Empresas Nacionais - Retido por Órgão Público	15/05/2006
+1689		DIVIDA_ATIVA	Bens ou Serviços Adquiridos de Sociedades Cooperativas e Associações Profissiona	R D Ativa - Bens ou Serviços Adquiridos de Sociedades Cooperativas e Associações Profissionais ou Assemelhadas - Retido por Órgão Público	15/05/2006
+1691		DIVIDA_ATIVA	Financeiras - Retenção em Pagamento por Órgão Público	R D Ativa - Financeiras - Retenção em Pagamento por Órgão Público	15/05/2006
+1703		DIVIDA_ATIVA	Serviços - Retenção em Pagamento por Órgão Público	R D Ativa - Serviços - Retenção em Pagamento por Órgão Público	15/05/2006
+1729		DIVIDA_ATIVA	Combustível - Retenção em Pagamento por Órgão Público	R D Ativa - Combustível - Retenção em Pagamento por Órgão Público	15/05/2006
+1731		DIVIDA_ATIVA	Retenção na Fonte de Contribuições sobre Pagamentos dos Estados, DF e Municípios	R D Ativa - Retenção na Fonte de Contribuições sobre Pagamentos dos Estados, DF e Municípios pela Aquisição de Bens e Serviços - CSLL, Cofins e PIS	15/05/2006
+1772		DIVIDA_ATIVA	Retenção na Fonte de Contribuições sobre Pagamentos de Pessoa Jurídica a outra P	R D Ativa - Retenção na Fonte de Contribuições sobre Pagamentos de Pessoa Jurídica a outra Pessoa Jurídica de Direito Privado - CSLL, Cofins e PIS	15/05/2006
+1804		DIVIDA_ATIVA	CSLL	Receita Dívida Ativa - CSLL	—
+1843		DIVIDA_ATIVA	Contribuição do Plano de Seguridade Social do Servidor Público - CPSS - Patronal	R D Ativa - Contribuição do Plano de Seguridade Social do Servidor Público - CPSS - Patronal	05/10/2010
+1894		DIVIDA_ATIVA	Adicional ao Frete para Renovação da Marinha Mercante	Receita Dívida Ativa - Adicional ao Frete para Renovação da Marinha Mercante	—
+1905		DIVIDA_ATIVA	Honorários Advocatícios de Sucumbência	R D Ativa - Honorários Advocatícios de Sucumbência	09/09/2010
+1911		DIVIDA_ATIVA	Contribuição do Plano de Seguridade Social do Servidor Público - CPSS - Não Patr	R D Ativa - Contribuição do Plano de Seguridade Social do Servidor Público - CPSS - Não Patronal	05/10/2010
+2009		DIVIDA_ATIVA	Multa Processual Penal - Tribunal de Justiça do Distrito Federal e Territórios	R D Ativa - Multa Processual Penal - Tribunal de Justiça do Distrito Federal e Territórios	20/01/2011
+2015		DIVIDA_ATIVA	Crédito Rural Securitização	R D Ativa - Crédito Rural Securitização	31/03/2011
+2021		DIVIDA_ATIVA	Crédito Rural - Programa Especial de Saneamento de Ativos - Pesa	R D Ativa - Crédito Rural - Programa Especial de Saneamento de Ativos - Pesa	31/03/2011
+2038		DIVIDA_ATIVA	Crédito Rural - Programa de Desenvolvimento do Cerrado - Prodecer II	R D Ativa - Crédito Rural - Programa de Desenvolvimento do Cerrado - Prodecer II	31/03/2011
+2044		DIVIDA_ATIVA	Crédito Rural - Programa Nacional de Fortalecimento da Agricultura Familiar - Pr	R D Ativa - Crédito Rural - Programa Nacional de Fortalecimento da Agricultura Familiar - Pronaf	31/03/2011
+2067		DIVIDA_ATIVA	Crédito Rural - Programa de Recuperação da Lavoura Cacaueira Baiana	R D Ativa - Crédito Rural - Programa de Recuperação da Lavoura Cacaueira Baiana	31/03/2011
+2129		DIVIDA_ATIVA	Taxa Fisc Telecom	R D Ativa - Taxa Fisc Telecom	—
+2157		DIVIDA_ATIVA	ITR e Receitas Vinculadas - Exercício de 1996 e Anteriores	Receita de Dívida Ativa - ITR e Receitas Vinculadas - Exercício de 1996 e Anteriores	—
+2294		DIVIDA_ATIVA	SPU	Receita Dívida Ativa - SPU	—
+2687		DIVIDA_ATIVA	Multas Previstas na Legislação sobre Defesa de Direitos Difusos	R D Ativa - Multas Previstas na Legislação sobre Defesa de Direitos Difusos	20/12/2005
+2865		DIVIDA_ATIVA	Crédito Rural - Programa de Revitalização de Cooperativas de Produção Agropecuár	R D Ativa - Crédito Rural - Programa de Revitalização de Cooperativas de Produção Agropecuária - Recoop	15/06/2011
+2871		DIVIDA_ATIVA	Multa Polícia Federal - Controle e Fiscalização de Produtos Químicos	R D Ativa - Multa Polícia Federal - Controle e Fiscalização de Produtos Químicos	01/08/2011
+2888		DIVIDA_ATIVA	Multas Diversas - Secretaria do Patrimônio Público	R D Ativa - Multas Diversas - Secretaria do Patrimônio Público	01/08/2011
+2894		DIVIDA_ATIVA	Fundo de Investimentos Setoriais - Fiset - Florestamento e Reflorestamento	R D Ativa - Fundo de Investimentos Setoriais - Fiset - Florestamento e Reflorestamento	01/08/2011
+3134		DIVIDA_ATIVA	IRPJ - Lançado de Ofício - Simples Nacional	R D Ativa - IRPJ - Lançado de Ofício - Simples Nacional	22/03/2012
+3140		DIVIDA_ATIVA	CSLL - Lançado de Ofício - Simples Nacional	R D Ativa - CSLL - Lançado de Ofício - Simples Nacional	22/03/2012
+3157		DIVIDA_ATIVA	Cofins - Lançado de Ofício - Simples Nacional	R D Ativa - Cofins - Lançado de Ofício - Simples Nacional	22/03/2012
+3163		DIVIDA_ATIVA	PIS - Lançado de Ofício - Simples Nacional	R D Ativa - PIS - Lançado de Ofício - Simples Nacional	22/03/2012
+3186		DIVIDA_ATIVA	IPI - Lançado de Ofício - Simples Nacional	R D Ativa - IPI - Lançado de Ofício - Simples Nacional	22/03/2012
+3192		DIVIDA_ATIVA	Contribuição Previdenciária Patronal - Lançado de Ofício - Simples Nacional	R D Ativa - Contribuição Previdenciária Patronal - Lançado de Ofício - Simples Nacional	22/03/2012
+3202		DIVIDA_ATIVA	Contribuição Previdenciária Sobre Receita Bruta	R D Ativa - Contribuição Previdenciária Sobre Receita Bruta	19/07/2012
+3290		DIVIDA_ATIVA	Multa Destinada ao Fundo de Amparo ao Trabalhador - FAT	R D Ativa - Multa Destinada ao Fundo de Amparo ao Trabalhador - FAT	11/10/2012
+3339		DIVIDA_ATIVA	Pagamento Unificado - Incorporações - Programa Minha Casa, Minha Vida - PMCMV	R D Ativa - Pagamento Unificado - Incorporações - Programa Minha Casa, Minha Vida - PMCMV	13/11/2012
+3368		DIVIDA_ATIVA	Pagamento Unificado - Construções - Programa Minha Casa, Minha Vida - PMCMV	R D Ativa - Pagamento Unificado - Construções - Programa Minha Casa, Minha Vida - PMCMV	13/11/2012
+3527		DIVIDA_ATIVA	Imposto Importação	Receita Dívida Ativa - Imposto Importação	—
+3543		DIVIDA_ATIVA	IRPF	Receita Dívida Ativa - IRPF	—
+3551		DIVIDA_ATIVA	IRPJ	Receita Dívida Ativa - IRPJ	—
+3560		DIVIDA_ATIVA	IRRF	Receita Dívida Ativa - IRRF	—
+3578		DIVIDA_ATIVA	IPI	Receita Dívida Ativa - IPI	—
+3585		DIVIDA_ATIVA	Contribuição para o Funttel	R D Ativa - Contribuição para o Funttel	22/03/2013
+3615		DIVIDA_ATIVA	outros Tributos - Principal	Receita Dívida Ativa - outros Tributos - Principal	—
+3623		DIVIDA_ATIVA	Multa CLT	Receita Dívida Ativa - Multa CLT	—
+3640		DIVIDA_ATIVA	outras	Receita Dívida Ativa - outras	—
+4133		DIVIDA_ATIVA	Contribuição Previdenciária Segurados	R D Ativa - Contribuição Previdenciária Segurados	11/12/2013
+4156		DIVIDA_ATIVA	Contribuição Empresa/Empregador	R D Ativa - Contribuição Empresa/Empregador	11/12/2013
+4162		DIVIDA_ATIVA	Contribuição Risco Ambiental/Aposentadoria Especial	R D Ativa - Contribuição Risco Ambiental/Aposentadoria Especial	11/12/2013
+4185		DIVIDA_ATIVA	Contribuição Sujeita a Retenção Previdenciária	R D Ativa - Contribuição Sujeita a Retenção Previdenciária	11/12/2013
+4201		DIVIDA_ATIVA	Contribuição Devida a Outras Entidades e Fundos - Salário Educação	R D Ativa - Contribuição Devida a Outras Entidades e Fundos - Salário Educação	11/12/2013
+4218		DIVIDA_ATIVA	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizag	R D Ativa - Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Rural - Senar	11/12/2013
+4224		DIVIDA_ATIVA	Contribuição Devida a Outras Entidades e Fundos - Instituto Nacional de Coloniza	R D Ativa - Contribuição Devida a Outras Entidades e Fundos - Instituto Nacional de Colonização e Reforma Agrária - Incra	11/12/2013
+4230		DIVIDA_ATIVA	Contribuição Devida a Outras Entidades e Fundos - Fundo Aeroviário	R D Ativa - Contribuição Devida a Outras Entidades e Fundos - Fundo Aeroviário	11/12/2013
+4253		DIVIDA_ATIVA	Contribuição Devida a Outras Entidades e Fundos - Fundo de Desenvolvimento do En	R D Ativa - Contribuição Devida a Outras Entidades e Fundos - Fundo de Desenvolvimento do Ensino Profissional Marítimo - FDEPM	11/12/2013
+4260		DIVIDA_ATIVA	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizag	R D Ativa - Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Transporte - Senat	11/12/2013
+4263		DIVIDA_ATIVA	Ressarcimentos ao Fundo Nacional de Saúde - FNS	Receita Dívida Ativa - Ressarcimentos ao Fundo Nacional de Saúde - FNS	01/12/2004
+4276		DIVIDA_ATIVA	Contribuição Devida a Outras Entidades e Fundos - Serviço Social de Transporte -	R D Ativa - Contribuição Devida a Outras Entidades e Fundos - Serviço Social de Transporte - Sest	11/12/2013
+4282		DIVIDA_ATIVA	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizag	R D Ativa - Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Industrial -Senai	11/12/2013
+4299		DIVIDA_ATIVA	Contribuição Devida a Outras Entidades e Fundos - Serviço Social da Industria - 	R D Ativa - Contribuição Devida a Outras Entidades e Fundos - Serviço Social da Industria - Sesi	11/12/2013
+4309		DIVIDA_ATIVA	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizag	R D Ativa - Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem Comercial - Senac	11/12/2013
+4321		DIVIDA_ATIVA	Contribuição Devida a Outras Entidades e Fundos - Serviço Social do Comercio - S	R D Ativa - Contribuição Devida a Outras Entidades e Fundos - Serviço Social do Comercio - Sesc	11/12/2013
+4338		DIVIDA_ATIVA	Cide - Sebrae/Apex/ABDI	R D Ativa - Cide - Sebrae/Apex/ABDI	11/12/2013
+4344		DIVIDA_ATIVA	Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizag	R D Ativa - Contribuição Devida a Outras Entidades e Fundos - Serviço Nacional de Aprendizagem do Cooperativismo - Sescoop	11/12/2013
+4350		DIVIDA_ATIVA	Multa Isolada Compensação Previdenciária Indevida	R D Ativa - Multa Isolada Compensação Previdenciária Indevida	11/12/2013
+4373		DIVIDA_ATIVA	Multa Regulamentar Descumprimento de Obrigação Acessória Previdenciária	R D Ativa - Multa Regulamentar Descumprimento de Obrigação Acessória Previdenciária	11/12/2013
+4380		DIVIDA_ATIVA	Glosa de Compensação Previdenciária	R D Ativa - Glosa de Compensação Previdenciária	11/12/2013
+4480		DIVIDA_ATIVA	Multa por Infração ao Código Brasileiro de Aeronáutica	Receita Dívida Ativa - Multa por Infração ao Código Brasileiro de Aeronáutica	10/09/2004
+4493		DIVIDA_ATIVA	Cofins	Receita Dívida Ativa - Cofins	01/01/1994
+4533		DIVIDA_ATIVA	Proex	Receita Dívida Ativa - Proex	01/01/1994
+4698		DIVIDA_ATIVA	Regime Especial - Pagamento Unificado - Obras em Creches e Pré-Escolas	R D Ativa - Regime Especial - Pagamento Unificado - Obras em Creches e Pré-Escolas	27/02/2014
+4834		DIVIDA_ATIVA	Multa Isolada	R D Ativa - Multa Isolada	08/10/2014
+5303		DIVIDA_ATIVA	Impostos Extintos	Receita Dívida Ativa - Impostos Extintos	—
+5370		DIVIDA_ATIVA	Crédito Rural - STN	Receita Dívida Ativa - Crédito Rural - STN	27/07/2004
+5382		DIVIDA_ATIVA	outras Multas	Receita Dívida Ativa - outras Multas	01/01/1995
+5395		DIVIDA_ATIVA	Imposto Exportação	Receita Dívida Ativa - Imposto Exportação	01/01/1995
+5422		DIVIDA_ATIVA	IPMF	Receita Dívida Ativa - IPMF	01/01/1995
+5697		DIVIDA_ATIVA	Multa Não Tributária - RFB	Receita Dívida Ativa - Multa Não Tributária - RFB	12/09/2019
+5713		DIVIDA_ATIVA	Multa Não Tributária - Departamento de Polícia Federal - Fiscalização Segurança 	Receita Dívida Ativa - Multa Não Tributária - Departamento de Polícia Federal - Fiscalização Segurança Privada	12/09/2019
+5911		DIVIDA_ATIVA	Avales e Fianças - Instituto do Açúcar e do Álcool	Receita Dívida Ativa - Avales e Fianças - Instituto do Açúcar e do Álcool	01/01/1996
+5978		DIVIDA_ATIVA	CPMF	Receita Dívida Ativa - CPMF	01/01/1997
+6023		DIVIDA_ATIVA	Cide Combustíveis	Receita Dívida Ativa - Cide Combustíveis	19/12/2003
+6082		DIVIDA_ATIVA	Cide Remessas ao Exterior	Receita Dívida Ativa - Cide Remessas ao Exterior	19/12/2003
+6160		DIVIDA_ATIVA	Comaer - Receita Proveniente de Tarifas Cobradas pela Utilização de Informações 	R D Ativa - Comaer - Receita Proveniente de Tarifas Cobradas pela Utilização de Informações Aeronáuticas, Tráfego Aéreo, Meteorologia e Auxílios a Navegação Aérea	10/07/2023
+6183		DIVIDA_ATIVA	Pagamento Unificado - Regime de Tributação Específica do Futebol (TEF)	R D Ativa - Pagamento Unificado - Regime de Tributação Específica do Futebol (TEF)	28/09/2023
+6311		DIVIDA_ATIVA	Amortização Juros Empréstimo ao Fundo de Marinha Mercante	Receita Dívida Ativa - Amortização Juros Empréstimo ao Fundo de Marinha Mercante	01/01/1997
+6485		DIVIDA_ATIVA	Condecine - Pagamento/Crédito/Emprego/Remessa/Entrega de Importâncias ao Exterio	R D Ativa - Condecine - Pagamento/Crédito/Emprego/Remessa/Entrega de Importâncias ao Exterior - Art. 32, § Único, da MP nº 2.228-1/2001	24/12/2024
+6948		DIVIDA_ATIVA	Créditos Contratuais da União - STN	Receita Dívida Ativa - Créditos Contratuais da União - STN	21/05/1998
+6950		DIVIDA_ATIVA	Contrato Comissão Coord Criação Cavalo Nacional (L.7291/84)	Receita Dívida Ativa - Contrato Comissão Coord Criação Cavalo Nacional (L.7291/84)	21/05/1998
+7023		DIVIDA_ATIVA	Órgão Extintos, outras Obrigações Salvo IAA e Finex/Proex	Receita Dívida Ativa - Órgão Extintos, outras Obrigações Salvo IAA e Finex/Proex	27/07/1998
+7064		DIVIDA_ATIVA	Funapol	Receita Dívida Ativa - Funapol	24/08/1998
+7229		DIVIDA_ATIVA	Taxa Fiscalização Mercados Seguro, Capitalização e Previdência Privada	Receita Dívida Ativa - Taxa Fiscalização Mercados Seguro, Capitalização e Previdência Privada	25/06/2003
+7317		DIVIDA_ATIVA	ITR - Parcelamento Lei 10.684/2003	Receita Dívida Ativa - ITR - Parcelamento Lei 10.684/2003	25/06/2003
+7368		DIVIDA_ATIVA	Multa por Violação ao Código de Defesa do Consumidor	Receita da Dívida Ativa - Multa por Violação ao Código de Defesa do Consumidor	31/07/2003
+7376		DIVIDA_ATIVA	Pasep - Regime Especial de Parcelamento - Lei 10.684/2003	Receita de Dívida Ativa - Pasep - Regime Especial de Parcelamento - Lei 10.684/2003	13/06/2003
+7525		DIVIDA_ATIVA	Depósito Judicial Justiça Federal	Receita Dívida Ativa - Depósito Judicial Justiça Federal	26/11/1998
+7616		DIVIDA_ATIVA	Empréstimo Compulsório Principal	Receita Dívida Ativa - Empréstimo Compulsório Principal	—
+7739		DIVIDA_ATIVA	Parcelamento de Arrematação	Receita da Dívida Ativa - Parcelamento de Arrematação	22/11/2002
+7918		DIVIDA_ATIVA	Multas da Agência Nacional do Petróleo	Receita da Dívida Ativa - Multas da Agência Nacional do Petróleo	26/02/1999
+7961		DIVIDA_ATIVA	Depósito Judicial Justiça Estadual	Receita Dívida Ativa - Depósito Judicial Justiça Estadual	19/03/1999
+8062		DIVIDA_ATIVA	Multas Previstas no Código Eleitoral e Leis Conexas	Receita Dívida Ativa - Multas Previstas no Código Eleitoral e Leis Conexas	30/07/1999
+8470		DIVIDA_ATIVA	Multa Criminal/Justica Federal	Receita da Dívida Ativa - Multa Criminal/Justica Federal	26/05/2000
+8822		DIVIDA_ATIVA	Simples	Receita de Dívida Ativa - Simples	11/07/2001
+8876		DIVIDA_ATIVA	INSS Simples	Receita de Dívida Ativa - INSS Simples	11/07/2001
+8891		DIVIDA_ATIVA	ICMS Simples	Receita de Dívida Ativa - ICMS Simples	11/07/2001
+8900		DIVIDA_ATIVA	ITR - Exercícios de 1997 e Posteriores	Receita de Dívida Ativa - ITR - Exercícios de 1997 e Posteriores	16/07/2002
+8903		DIVIDA_ATIVA	ISS Simples	Receita de Dívida Ativa - ISS Simples	11/07/2001
+0041		MULTA	Atraso na Entrega da Dirf Anual-Operações Intra Orçamentárias	Multa por Atraso na Entrega da Dirf Anual-Operações Intra Orçamentárias	02/03/2007
+0054		MULTA	Atraso na Entrega da Dipj-Operações Intraorçamentárias	Multa por Atraso na Entrega da Dipj-Operações Intraorçamentárias	02/03/2007
+0289		MULTA	da CLT	Multa da CLT	—
+0338		MULTA	Isolada Receita Direitos Antidumping e Compensatorios art. 7 Lei 9019/95	Multa Isolada Receita Direitos Antidumping e Compensatorios art. 7 Lei 9019/95	08/01/2007
+0381		MULTA	Omissão/Erro na Dirf Anual	Multa por Omissão/Erro na Dirf Anual	22/11/2006
+0390		MULTA	Falta ou Atraso na Entrega da Declaraçao de Informaçoes sobre Movimentaçao Finan	Multa por Falta ou Atraso na Entrega da Declaraçao de Informaçoes sobre Movimentaçao Financeira - Dimof	06/06/2008
+0439		MULTA	Falta ou Atraso na Entrega da Declaraçao de Transferencia de Titularidade de Aço	Multa por Falta ou Atraso na Entrega da Declaraçao de Transferencia de Titularidade de Açoes Negociadas Fora da Bolsa - DTTA	06/06/2008
+0559		MULTA	Falta ou Atraso na Entrega da Declaraçao de Rendimentos Pagos a Consultores por 	Multa por Falta ou Atraso na Entrega da Declaraçao de Rendimentos Pagos a Consultores por Organismos Internacionais - Derc	06/06/2008
+0565		MULTA	Falta ou Atraso na Entrega da Declaraçao de Beneficios Fiscais - DBF	Multa por Falta ou Atraso na Entrega da Declaraçao de Beneficios Fiscais - DBF	06/06/2008
+0594		MULTA	Falta ou Atraso na Entrega da Declaraçao Anual do Simples Nacional - DASN	Multa por Falta ou Atraso na Entrega da Declaraçao Anual do Simples Nacional - DASN	06/06/2008
+0627		MULTA	Falta ou Atraso na Entrega da Declaraçao sobre a Utilizaçao dos Recursos em Moed	Multa por Falta ou Atraso na Entrega da Declaraçao sobre a Utilizaçao dos Recursos em Moeda Estrangeira Decorrentes do Recebimento de Exportaçoes - Derex	23/10/2008
+0656		MULTA	Falta ou Atraso na Entrega da Decalaraçao de Operaçoes com Cartoes de Credito - 	Multa por Falta ou Atraso na Entrega da Decalaraçao de Operaçoes com Cartoes de Credito - Decred	23/10/2008
+0662		MULTA	Falta ou Atraso na Entrega da Declaraçao sobre a Opçao de Tributaçao de Planos P	Multa por Falta ou Atraso na Entrega da Declaraçao sobre a Opçao de Tributaçao de Planos Previdenciarios - DPREV	23/10/2008
+1107		MULTA	Falta ou Atraso na Entrega da GFIP	Multa por Falta ou Atraso na Entrega da GFIP	04/12/2008
+1345		MULTA	Atraso Entrega DCTF	Multa Atraso Entrega DCTF	—
+1376		MULTA	Falta ou Atraso na Entrega da DIF - Papel Imune	Multa por Falta ou Atraso na Entrega da DIF - Papel Imune	12/08/2009
+1438		MULTA	Falta ou Atraso na Entrega da Escrituração Contábil Digital (ECD)	Multa por Falta ou Atraso na Entrega da Escrituração Contábil Digital (ECD)	13/11/2009
+1506		MULTA	Atraso na Entrega da DASN - SIMEI	Multa por Atraso na Entrega da DASN - SIMEI	30/01/2010
+1512		MULTA	Atraso na Entrega do Controle Fiscal Contábil de Transição - FCONT	Multa por Atraso na Entrega do Controle Fiscal Contábil de Transição - FCONT	01/04/2010
+1558		MULTA	Aduaneira - Remessa Expressa	Multa Aduaneira - Remessa Expressa	01/04/2010
+1607		MULTA	Aterro Irregular - SPU	Multa por Aterro Irregular - SPU	—
+1626		MULTA	Atraso na Entrega da Declaração de Serviços Médicos - Dmed	Multa por Atraso na Entrega da Declaração de Serviços Médicos - Dmed	10/01/2011
+1632		MULTA	Não Recolhimento da Estimativa - IRPJ	Multa por Não Recolhimento da Estimativa - IRPJ	01/06/2010
+1649		MULTA	Não Recolhimento da Estimativa - CSLL	Multa por Não Recolhimento da Estimativa - CSLL	01/06/2010
+1655		MULTA	do Regime Disciplinar Aplicada à Rede Arrecadadora de Receitas Previdenciárias -	Multa do Regime Disciplinar Aplicada à Rede Arrecadadora de Receitas Previdenciárias - Rarp	14/07/2010
+1970		MULTA	§ 6º do Art 7º da Lei nº 12.270/2010	Multa Isolada - § 6º do Art 7º da Lei nº 12.270/2010	10/01/2011
+1992		MULTA	§ 7º do Art 7º da Lei nº 12.270/2010	Multa Isolada - § 7º do Art 7º da Lei nº 12.270/2010	10/01/2011
+2170		MULTA	Atraso na Entrega da Dirf Anual	Multa por Atraso na Entrega da Dirf Anual	—
+2185		MULTA	Aplicada pelo Setor Aduaneiro - Sem Redução	Multa Aplicada pelo Setor Aduaneiro - Sem Redução	—
+2203		MULTA	Omissão/Incorreção/Falta/Atraso na Entrega da Escrituração Fiscal Digital da Con	Multa por Omissão/Incorreção/Falta/Atraso na Entrega da Escrituração Fiscal Digital da Contrib PIS/Pasep, Contrib Financ Seg Social e Contrib Prev Incid Receita - EFD-Contribuições	15/06/2011
+2398		MULTA	Isolada Compensação Previdenciária Indevida	Multa Isolada Compensação Previdenciária Indevida	01/08/2011
+2408		MULTA	Regulamentar Descumprimento de Obrigação Acessória Previdenciária - Lançamento d	Multa Regulamentar Descumprimento de Obrigação Acessória Previdenciária - Lançamento de Ofício	01/08/2011
+2420		MULTA	Isolada Previdenciária - Depósito Judicial	Multa Isolada Previdenciária - Depósito Judicial	01/08/2011
+2654		MULTA	Isolada Previdenciária - Depósito Administrativo	Multa Isolada Previdenciária - Depósito Administrativo	01/08/2011
+2877		MULTA	destinada ao Fundo de Amparo ao Trabalhador - FAT	Multa destinada ao Fundo de Amparo ao Trabalhador - FAT	—
+3148		MULTA	Isolada sobre Créditos em Pedidos de Ressarcimento ou Declaração de Compensação	Multa Isolada sobre Créditos em Pedidos de Ressarcimento ou Declaração de Compensação	17/03/2006
+3248		MULTA	Aduaneira - Remessa Postal	Multa Aduaneira - Remessa Postal	21/09/2012
+3374		MULTA	do Regime Disciplinar Aplicada à Rede Arrecadadora do Simples Nacional - RAS	Multa do Regime Disciplinar Aplicada à Rede Arrecadadora do Simples Nacional - RAS	13/11/2012
+3391		MULTA	de Outras Origens	Multa de Outras Origens	—
+3397		MULTA	Administrativa por Falta de Pagamento de Lote Arrematado em Leilão	Multa Administrativa por Falta de Pagamento de Lote Arrematado em Leilão	27/11/2012
+3482		MULTA	Contribuições Sociais e Imposto de Renda Retidos na Fonte - CSIRF (art. 43 L. 94	Multa Isolada - Contribuições Sociais e Imposto de Renda Retidos na Fonte - CSIRF (art. 43 L. 9430)	25/08/2005
+3488		MULTA	Falta de Retenção na Fonte de Imposto ou Contribuição	Multa Por Falta de Retenção na Fonte de Imposto ou Contribuição	17/01/2013
+3624		MULTA	Atraso na Entrega da Escrituração Contábil Fiscal (ECF)	Multa por Atraso na Entrega da Escrituração Contábil Fiscal (ECF)	11/06/2013
+3630		MULTA	falta ou atraso na entrega da Escrituração Fiscal Digital - EFD-ICMS/IPI	Multa por falta ou atraso na entrega da Escrituração Fiscal Digital - EFD-ICMS/IPI	11/06/2013
+3676		MULTA	atraso no envio de informações de Alvarás e/ou Habite-se de Obras de Construção 	Multa por atraso no envio de informações de Alvarás e/ou Habite-se de Obras de Construção Civil por parte das Prefeituras e GDF via SisobraPref à RFB	26/06/2013
+3682		MULTA	Contribuições Sociais Retidas na Fonte - CSRF (art. 43 L. 9430)	Multa Isolada - Contribuições Sociais Retidas na Fonte - CSRF (art. 43 L. 9430)	25/08/2005
+3738		MULTA	Multas Diversas Aplicadas pela Receita Federal, Exceto Aduaneira	Multas Diversas Aplicadas pela Receita Federal, Exceto Aduaneira	—
+3864		MULTA	Atraso/Erro/Omissão - Siscoserv	Multa por Atraso/Erro/Omissão - Siscoserv	03/07/2014
+4262		MULTA	do Regime Disciplinar Aplicada a Rede Arrecadadora de Receitas Federais	Multa do Regime Disciplinar Aplicada a Rede Arrecadadora de Receitas Federais	—
+4288		MULTA	Nota Fiscal	Multa por Nota Fiscal	—
+4406		MULTA	Atraso na Entrega do PGDAS-D	Multa por Atraso na Entrega do PGDAS-D	27/01/2014
+4840		MULTA	Parcela não Restituída por Infração à Legislação - Dolo ou Má-Fé do Contribuinte	Multa - Parcela não Restituída por Infração à Legislação - Dolo ou Má-Fé do Contribuinte - Pessoa Física	08/08/2014
+5132		MULTA	Falta ou Atraso na Prestação de Informação sobre Veículo/Carga Transportada/Oper	Multa por Falta ou Atraso na Prestação de Informação sobre Veículo/Carga Transportada/Operação Executada	29/05/2017
+5149		MULTA	Aplicada pelo Setor Aduaneiro - Com Redução	Multa Aplicada pelo Setor Aduaneiro - Com Redução	01/01/1994
+5300		MULTA	Atraso Entrega Declaração ITR	Multa Atraso Entrega Declaração ITR	01/01/1995
+5320		MULTA	Atraso Entrega DIRPF	Multa Atraso Entrega DIRPF	—
+5338		MULTA	Atraso Entrega DIPJ	Multa Atraso Entrega DIPJ	—
+5440		MULTA	Atraso na Entrega (Maed) da DCTFWeb	Multa por Atraso na Entrega (Maed) da DCTFWeb	24/08/2016
+5572		MULTA	Distribuição de Prêmio (s/Redução)	Multa Distribuição de Prêmio (s/Redução)	01/01/1995
+5720		MULTA	Omissão/Incorreção/Atraso na Prestação de Informações Relativas a Operações Real	Multa por Omissão/Incorreção/Atraso na Prestação de Informações Relativas a Operações Realizadas com Criptoativos	06/12/2019
+5794		MULTA	Omissão/Incorreção/Atraso na Entrega do Livro Caixa Digital do Produtor Rural (L	Multa por Omissão/Incorreção/Atraso na Entrega do Livro Caixa Digital do Produtor Rural (LCDPR)	21/07/2020
+5804		MULTA	Omissão/Incorreção/Falta/Atraso na Entrega da Escrituração Fiscal Digital de Ret	Multa por Omissão/Incorreção/Falta/Atraso na Entrega da Escrituração Fiscal Digital de Retenções e Outras Informações Fiscais (EFD-Reinf)	31/07/2020
+5937		MULTA	Regulamentar CSLL Suplementar	Multa Regulamentar CSLL Suplementar	01/01/1996
+5940		MULTA	Regulamentar IRPJ Suplementar	Multa Regulamentar IRPJ Suplementar	01/01/1996
+6094		MULTA	CSLL (art. 43 L.9430)	Multa Isolada - CSLL (art. 43 L.9430)	27/04/1997
+6324		MULTA	PIS/Pasep (art. 43 L.9430)	Multa Isolada - PIS/Pasep (art. 43 L.9430)	27/04/1997
+6337		MULTA	Cofins (art. 43 L.9430)	Multa Isolada - Cofins (art. 43 L.9430)	27/04/1997
+6340		MULTA	Imp. Importação (art. 43 L.9430)	Multa Isolada - Imp. Importação (art. 43 L.9430)	27/04/1997
+6352		MULTA	IRPF (art. 43 L.9430)	Multa Isolada - IRPF (art. 43 L.9430)	27/04/1997
+6378		MULTA	IRPJ (art. 43 L.9430)	Multa Isolada - IRPJ (art. 43 L.9430)	27/04/1997
+6380		MULTA	IRRF (art. 43 L.9430)	Multa Isolada - IRRF (art. 43 L.9430)	27/04/1997
+6393		MULTA	IPI Vinculado (art. 43 L.9430)	Multa Isolada - IPI Vinculado (art. 43 L.9430)	27/04/1997
+6405		MULTA	IPI (art. 43 L.9430)	Multa Isolada - IPI (art. 43 L.9430)	27/04/1997
+6418		MULTA	IOF (art. 43 L.9430)	Multa Isolada - IOF (art. 43 L.9430)	27/04/1997
+6630		MULTA	Multas Previstas na Legislação do Registro de Comércio	Multas Previstas na Legislação do Registro de Comércio	—
+6680		MULTA	Omissão/Erro/Atraso - Declaração de Informações sobre Atividades Imobiliárias - 	Multa por Omissão/Erro/Atraso - Declaração de Informações sobre Atividades Imobiliárias - DIMOB	01/12/2004
+6744		MULTA	Atraso na Entrega da Declaração de Operações Imobiliárias - DOI	Multa por Atraso na Entrega da Declaração de Operações Imobiliárias - DOI	19/12/2003
+6808		MULTA	Omissão/Erro/Atraso Dacon	Multa por Omissão/Erro/Atraso Dacon	10/09/2004
+6841		MULTA	falta de comunicação da exclusão do Simples Nacional	Multa por falta de comunicação da exclusão do Simples Nacional	22/01/1998
+6882		MULTA	Falta Placa Simples (C/Red)	Multa Falta Placa Simples (C/Red)	22/01/1998
+6907		MULTA	Empresas Inativas (Parcelamento)	Multa Empresas Inativas (Parcelamento)	13/03/1998
+6939		MULTA	de Ofício - IPI não Lançado com Cobertura de Crédito	Multa de Ofício - IPI não Lançado com Cobertura de Crédito	27/03/2003
+7049		MULTA	ITR (art. 43 L.9430)	Multa Isolada - ITR (art. 43 L.9430)	24/08/1998
+7118		MULTA	Administrativa Decorrente de Auto de Infração Lavrado por Irregularidades Consta	Multa Administrativa Decorrente de Auto de Infração Lavrado por Irregularidades Constatadas pelo AFT - DJE	21/02/2013
+7130		MULTA	Atraso na Entrega da Declaração do Imposto de Renda Pessoa Física - Espólio	Multa por Atraso na Entrega da Declaração do Imposto de Renda Pessoa Física - Espólio	13/06/2003
+7780		MULTA	Isolada Condecine (art.43 da Lei 9.430)	Multa Isolada Condecine (art.43 da Lei 9.430)	22/11/2002
+7880		MULTA	Multas Isoladas Diversas - Depósito Administrativo	Multas Isoladas Diversas - Depósito Administrativo	04/01/1999
+8128		MULTA	Isolada IRPJ - Simples (art.43 L.9430)	Multa Isolada IRPJ - Simples (art.43 L.9430)	30/09/1999
+8130		MULTA	Isolada IPI - Simples (art.43 L.9430)	Multa Isolada IPI - Simples (art.43 L.9430)	30/09/1999
+8143		MULTA	Isolada PIS - Simples (art.43 L.9430)	Multa Isolada PIS - Simples (art.43 L.9430)	30/09/1999
+8156		MULTA	Isolada Cofins- Simples (art.43 L.9430)	Multa Isolada Cofins- Simples (art.43 L.9430)	30/09/1999
+8169		MULTA	Isolada CSLL - Simples (art.43 L.9430)	Multa Isolada CSLL - Simples (art.43 L.9430)	30/09/1999
+8171		MULTA	Isolada INSS Empregador - Simples (art.43 L.9430)	Multa Isolada INSS Empregador - Simples (art.43 L.9430)	30/09/1999
+8197		MULTA	Isolada ICMS - Simples (art.43 L.9430)	Multa Isolada ICMS - Simples (art.43 L.9430)	30/09/1999
+8209		MULTA	Isolada ISS - Simples (art.43 L.9430)	Multa Isolada ISS - Simples (art.43 L.9430)	30/09/1999
+8504		MULTA	Isolada Cide - Combustíveis - (art. 43 Lei 9430/96)	Multa Isolada Cide - Combustíveis - (art. 43 Lei 9430/96)	16/07/2002
+8651		MULTA	Isolada Cide Remessa ao Exterior (art. 43 Lei 9430/96)	Multa Isolada Cide Remessa ao Exterior (art. 43 Lei 9430/96)	16/07/2002
+9136		MULTA	Multa/Juros de Transferência - SPU	Multa/Juros de Transferência - SPU	—
+9207		MULTA	Falta/Atraso no Recolhimento das Contribuições Instituídas pelos art. 1º e 2º da	Multa por Falta/Atraso no Recolhimento das Contribuições Instituídas pelos art. 1º e 2º da LC nº 110/2001, de que trata o Parágrafo 2º do art. 3º da Referida LC	16/07/2002
+9479		MULTA	Atraso na Entrega da Declaração da CPMF - IN 45/2001, art. 7º, II	Multa por Atraso na Entrega da Declaração da CPMF - IN 45/2001, art. 7º, II	31/12/2001
+0312		DEVOLUCAO	de Restituição Indevida - IRPF - Não Tributário	Devolução de Restituição Indevida - IRPF - Não Tributário	02/05/2007
+0880		DEVOLUCAO	de Restituição Indevida - Cofins/Finsocial - Não Tributário	Devolução de Restituição Indevida - Cofins/Finsocial - Não Tributário	08/12/2008
+1496		DEVOLUCAO	de Restituição Indevida - IRPJ - Não Tributário	Devolução de Restituição Indevida - IRPJ - Não Tributário	03/12/2009
+1940		DEVOLUCAO	de Restituições não Creditadas	Devolução de Restituições não Creditadas	28/10/2010
+3399		DEVOLUCAO	de Restituição Indevida - II - Não Tributário	Devolução de Restituição Indevida - II - Não Tributário	18/12/2012
+3407		DEVOLUCAO	de Restituição Indevida - IE - Não Tributário	Devolução de Restituição Indevida - IE - Não Tributário	18/12/2012
+3412		DEVOLUCAO	de Restituição Indevida - ITR - Não Tributário	Devolução de Restituição Indevida - ITR - Não Tributário	18/12/2012
+3413		DEVOLUCAO	de Restituição Indevida - IPI - Não Tributário	Devolução de Restituição Indevida - IPI - Não Tributário	18/12/2012
+3436		DEVOLUCAO	de Restituição Indevida - IOF - Não Tributário	Devolução de Restituição Indevida - IOF - Não Tributário	18/12/2012
+3442		DEVOLUCAO	de Restituição Indevida - CSLL - Não Tributário	Devolução de Restituição Indevida - CSLL - Não Tributário	18/12/2012
+3459		DEVOLUCAO	de Restituição Indevida - CIDE - Não Tributário	Devolução de Restituição Indevida - CIDE - Não Tributário	18/12/2012
+3465		DEVOLUCAO	de Restituição Indevida - PIS/Pasep - Não Tributário	Devolução de Restituição Indevida - PIS/Pasep - Não Tributário	18/12/2012
+3504		DEVOLUCAO	de Restituição Indevida - Contribuição Previdenciária - Não Tributário	Devolução de Restituição Indevida - Contribuição Previdenciária - Não Tributário	21/02/2013
+4634		DEVOLUCAO	Restituições não Pagas IRPF	Devolução Restituições não Pagas IRPF	—
+5103		DEVOLUCAO	de Restituição Indevida - Contribuição para o Plano de Seguridade Social do Serv	Devolução de Restituição Indevida - Contribuição para o Plano de Seguridade Social do Servidor - CPSS - Não Tributário	30/03/2017
+5930		DEVOLUCAO	do Auxílio Emergencial pelos Beneficiários de Outros Rendimentos Tributáveis em 	Devolução do Auxílio Emergencial pelos Beneficiários de Outros Rendimentos Tributáveis em Valor Superior ao Valor da Primeira Faixa da Tabela Progressiva Anual do IRPF	01/03/2021
+8536		CPMF	CPMF - Acão Judicial (art.s 45 e 46 da MP 2.037-21/00)	CPMF - Acão Judicial (art.s 45 e 46 da MP 2.037-21/00)	05/09/2000
+0030		OUTROS	do Domínio Direto - SPU	Alienação do Domínio Direto - SPU	01/04/2010
+0046		OUTROS	Permissão de Uso - SPU	Permissão de Uso - SPU	01/04/2010
+0052		OUTROS	Regularização de depósitos extrajudiciais não tributários - Lei nº 12.099/2009 e	Regularização de depósitos extrajudiciais não tributários - Lei nº 12.099/2009 e Lei nº 14.973/2024	01/12/2009
+0067		OUTROS	em Pagamentos por Órgãos Públicos-Operações Intra Orçamentárias	Produtos-Retenção em Pagamentos por Órgãos Públicos-Operações Intra Orçamentárias	02/03/2007
+0069		OUTROS	Cessão de Uso - SPU	Cessão de Uso - SPU	01/04/2010
+0070		OUTROS	de Passageiros-Retenção em Pagamentos por Órgãos Públicos-Operações Intra Orçame	Transporte de Passageiros-Retenção em Pagamentos por Órgãos Públicos-Operações Intra Orçamentárias	02/03/2007
+0081		OUTROS	Indenização por Posse/Ocupação Ilícita - SPU	Indenização por Posse/Ocupação Ilícita - SPU	01/04/2010
+0082		OUTROS	Financeiras-Retenção em Pagamentos por Órgãos Públicos-Operações Intra Orçamentá	Financeiras-Retenção em Pagamentos por Órgãos Públicos-Operações Intra Orçamentárias	02/03/2007
+0095		OUTROS	Serviços-Retenção em Pagamentos por Órgãos Públicos-Operações Intra Orçamentária	Serviços-Retenção em Pagamentos por Órgãos Públicos-Operações Intra Orçamentárias	16/01/2007
+0110		OUTROS	Adquiridos do Distribuidor ou Varejista-Retido por Órgão Público-Operações Intra	Medicamentos Adquiridos do Distribuidor ou Varejista-Retido por Órgão Público-Operações Intra Orçamentárias	02/03/2007
+0122		OUTROS	Internacional de Passageiros-Empresas Nacionais-Retido por Órgão Público-Operaçõ	Transporte Internacional de Passageiros-Empresas Nacionais-Retido por Órgão Público-Operações Intra Orçamentárias	02/03/2007
+0123		OUTROS	e serviços adquiridos de sociedades cooperativas e associações profissionais ou 	Bens e serviços adquiridos de sociedades cooperativas e associações profissionais ou assemelhadas - Retido por órgão público - Operações Intra-orçamentárias	02/03/2007
+0135		OUTROS	sobre Receita de Loteria de Prognóstico Específico	Contribuição sobre Receita de Loteria de Prognóstico Específico	31/08/2007
+0163		OUTROS	dos Direitos Antidumping e dos Direitos Compensatórios - Depósito Judicial	Receita dos Direitos Antidumping e dos Direitos Compensatórios - Depósito Judicial	13/09/2007
+0174		OUTROS	dos Direitos Antidumping e dos Direitos Compensatórios - Depósito Administrativo	Receita dos Direitos Antidumping e dos Direitos Compensatórios - Depósito Administrativo	13/09/2007
+0216		OUTROS	Depósito Judicial - Outros - Aduaneiros	Depósito Judicial - Outros - Aduaneiros	13/09/2007
+0229		OUTROS	Depósito Administrativo - Outros - Aduaneiros	Depósito Administrativo - Outros - Aduaneiros	13/09/2007
+0231		OUTROS	Ganhos Líquidos em Operações na Bolsa - Lucro Presumido ou Arbitrado	RPJ - Ganhos Líquidos em Operações na Bolsa - Lucro Presumido ou Arbitrado	20/08/2007
+0244		OUTROS	Ouro Ativo Financeiro - Lançamento de Ofício	Ouro Ativo Financeiro - Lançamento de Ofício	20/08/2007
+0300		OUTROS	Direitos Antidumping-Lançamento de Ofício	Receita Direitos Antidumping-Lançamento de Ofício	22/05/2007
+0340		OUTROS	Isolados Receita Direitos Antidumping e Compensatorios art. 7 Lei 9019/95	Juros Isolados Receita Direitos Antidumping e Compensatorios art. 7 Lei 9019/95	08/01/2007
+0394		OUTROS	Valor de Prêmio Prescrito - Lei nº 5.768, de 20 de dezembro de 1971	Valor de Prêmio Prescrito - Lei nº 5.768, de 20 de dezembro de 1971	22/11/2006
+0692		OUTROS	Receitas	Diversas Receitas	—
+0790		OUTROS	sobre a Receita de Sorteios Realizados por Entidades Filantrópicas - Lançamento 	Contribuição sobre a Receita de Sorteios Realizados por Entidades Filantrópicas - Lançamento de Ofício	31/08/2006
+1068		OUTROS	Programa Minha Casa, Minha Vida (PMCMV)/Construção ou Reforma de Creches e Pré-E	Pagamento Unificado - Programa Minha Casa, Minha Vida (PMCMV)/Construção ou Reforma de Creches e Pré-Escolas	29/04/2009
+1074		OUTROS	Regularização Depósitos Tributários - DJE	Regularização Depósitos Tributários - DJE	30/04/2009
+1360		OUTROS	Patronal Previdenciária - Simples Nacional - Lançamento de Ofício	Contribuição Patronal Previdenciária - Simples Nacional - Lançamento de Ofício	12/08/2009
+1364		OUTROS	de Bens Imóveis - Lei nº 8.011/1990 e Lei nº 8.025/1990 - SPU	Alienação de Bens Imóveis - Lei nº 8.011/1990 e Lei nº 8.025/1990 - SPU	—
+1467		OUTROS	Regularização de depósitos judiciais não tributários - Lei nº 12.099/2009 e Lei 	Regularização de depósitos judiciais não tributários - Lei nº 12.099/2009 e Lei nº 14.973/2024	01/12/2009
+1872		OUTROS	Complemento de Contribuição Previdenciária - Recolhimento Mensal	Complemento de Contribuição Previdenciária - Recolhimento Mensal	18/12/2017
+1957		OUTROS	de Natureza Comercial	Direitos de Natureza Comercial	10/01/2011
+1963		OUTROS	de Natureza Comercial - Lançamento de Oficio	Direitos de Natureza Comercial - Lançamento de Oficio	10/01/2011
+2049		OUTROS	Aluguéis - outros	Aluguéis - outros	—
+2057		OUTROS	Arrendamentos	Arrendamentos	—
+2073		OUTROS	Foros	Foros	—
+2080		OUTROS	Depósitos Judiciais e Extrajudiciais Administrados pela PGF-AGU	Depósitos Judiciais e Extrajudiciais Administrados pela PGF-AGU	31/03/2011
+2081		OUTROS	Laudêmios	Laudêmios	—
+2090		OUTROS	de Ocupação de Imóveis - outros	Taxa de Ocupação de Imóveis - outros	—
+2102		OUTROS	Outras Receitas Imobiliárias	Outras Receitas Imobiliárias	—
+2158		OUTROS	Riscos Ambientais/Aposentadoria Especial - Lançamento de Ofício	Contribuição Riscos Ambientais/Aposentadoria Especial - Lançamento de Ofício	01/08/2011
+2193		OUTROS	Sujeita a Retenção Previdenciária - Lançamento de Ofício	Contribuição Sujeita a Retenção Previdenciária - Lançamento de Ofício	01/08/2011
+2330		OUTROS	Imp Importação - Operações Intra Orçamentárias	Imp Importação - Operações Intra Orçamentárias	17/03/2006
+2414		OUTROS	Glosa de Compensação Previdenciária - Lançamento de Ofício	Glosa de Compensação Previdenciária - Lançamento de Ofício	01/08/2011
+2864		OUTROS	Honorários Advocatícios Sucumbência - PGFN	Honorários Advocatícios Sucumbência - PGFN	—
+2933		OUTROS	Regime de Tributação Unificada - RTU - Importação	Regime de Tributação Unificada - RTU - Importação	05/12/2011
+2956		OUTROS	Regime de Tributação Unificada - RTU - Importação - Lançamento de Ofício	Regime de Tributação Unificada - RTU - Importação - Lançamento de Ofício	05/12/2011
+3008		OUTROS	Até 5% - Lavra na Área Pré-Sal - Em Plataforma	Royalties Até 5% - Lavra na Área Pré-Sal - Em Plataforma	18/01/2012
+3014		OUTROS	Excedente 5% - Lavra na Área Pré-Sal - Em Plataforma	Royalties Excedente 5% - Lavra na Área Pré-Sal - Em Plataforma	18/01/2012
+3037		OUTROS	Especial - Lavra na Área Pré-Sal	Participação Especial - Lavra na Área Pré-Sal	18/01/2012
+3072		OUTROS	Regularização de Depósitos - Lei nº 12.099/2009 e Lei nº 14.973/2024	Regularização de Depósitos - Lei nº 12.099/2009 e Lei nº 14.973/2024	28/05/2010
+3292		OUTROS	Ressarcimento por Cópias	Fundaf - Ressarcimento por Cópias	—
+3304		OUTROS	Demais Receitas	Fundaf - Demais Receitas	—
+3351		OUTROS	aos Fundos dos Direitos da Criança e do Adolescente	Doações aos Fundos dos Direitos da Criança e do Adolescente	13/11/2012
+3494		OUTROS	ao Fundo Nacional de Desenvolvimento Científico e Tecnológico - FNDCT	Doação ao Fundo Nacional de Desenvolvimento Científico e Tecnológico - FNDCT	16/01/2013
+3495		OUTROS	Isolados - Contribuições Sociais e Imposto de Renda Retidos na Fonte - CSIRF (ar	Juros Isolados - Contribuições Sociais e Imposto de Renda Retidos na Fonte - CSIRF (art. 43 L. 9430)	25/08/2005
+3618		OUTROS	Compensação Previdenciária Indevida em GFIP	Compensação Previdenciária Indevida em GFIP	26/04/2013
+3647		OUTROS	por recolhimento fora do prazo - Documento de Arrecadação do Empregador Doméstic	Encargos por recolhimento fora do prazo - Documento de Arrecadação do Empregador Doméstico (DAE)	26/06/2013
+3653		OUTROS	por repasse fora do prazo - Instituição Financeira Centralizadora - Documento de	Encargos por repasse fora do prazo - Instituição Financeira Centralizadora - Documento de Arrecadação do Empregador Doméstico (DAE)	26/06/2013
+3690		OUTROS	Decorrente de Bens e Valores Apreendidos - outros	Receita Decorrente de Bens e Valores Apreendidos - outros	—
+3709		OUTROS	Empresa Estrangeira de Navegação ou Empresa Brasileira de Navegação, Operando Em	AFRMM - Empresa Estrangeira de Navegação ou Empresa Brasileira de Navegação, Operando Embarcação Afretada de Registro Estrangeiro	23/12/2014
+3711		OUTROS	Isolados - Contribuições Sociais Retidas na Fonte - CSRF (art. 43 L. 9430)	Juros Isolados - Contribuições Sociais Retidas na Fonte - CSRF (art. 43 L. 9430)	25/08/2005
+3762		OUTROS	Outras Receitas Eventuais	Outras Receitas Eventuais	—
+3767		OUTROS	Adicional ao Frete para Renovação da Marinha Mercante - Lançamento de Ofício	AFRMM - Adicional ao Frete para Renovação da Marinha Mercante - Lançamento de Ofício	19/09/2014
+3773		OUTROS	Taxa de Utilização do Sistema de Controle de Arrecadação do Adicional ao Frete p	TUM - Taxa de Utilização do Sistema de Controle de Arrecadação do Adicional ao Frete para Renovação da Marinha Mercante (MERCANTE)	23/12/2014
+3961		OUTROS	Até 5% - Art. 2º da Lei nº 12.858/2013	Royalties Até 5% - Art. 2º da Lei nº 12.858/2013	21/10/2013
+3978		OUTROS	Excedente a 5% - Art. 2º da Lei nº 12.858/2013	Royalties Excedente a 5% - Art. 2º da Lei nº 12.858/2013	21/10/2013
+3981		OUTROS	Produto Depósitos Abandonados	Produto Depósitos Abandonados	—
+3990		OUTROS	Especial - Art. 2º da Lei nº 12.858/2013	Participação Especial - Art. 2º da Lei nº 12.858/2013	21/10/2013
+4072		OUTROS	Atividade Extraordinária de Fiscalização e Controle Aduaneiro	Fundaf-Atividade Extraordinária de Fiscalização e Controle Aduaneiro	05/12/2006
+4095		OUTROS	Regime Especial de Tributação do Patrimônio de Afetação	Regime Especial de Tributação do Patrimônio de Afetação	06/12/2004
+4300		OUTROS	do Domínio Útil de Bens Imóveis - SPU	Alienação do Domínio Útil de Bens Imóveis - SPU	—
+4327		OUTROS	do Domínio Pleno de Bens Imóveis - SPU	Alienação do Domínio Pleno de Bens Imóveis - SPU	—
+4437		OUTROS	sobre Prognósticos Esportivos - Direitos Prescritos de Entidades Desportivas	Contribuição sobre Prognósticos Esportivos - Direitos Prescritos de Entidades Desportivas	04/02/2005
+4578		OUTROS	por Recolhimento fora do Prazo - Simples Nacional	Encargos por Recolhimento fora do Prazo - Simples Nacional	31/08/2007
+4584		OUTROS	por Repasse fora do Prazo - InstituiÃ§Ã£o Financeira Centralizadora - Simples Na	Encargos por Repasse fora do Prazo - InstituiÃ§Ã£o Financeira Centralizadora - Simples Nacional	31/08/2007
+4677		OUTROS	Restituições - IPI	Restituições - IPI	—
+4805		OUTROS	pela Utilização do Selo de Controle - Lei nº 12.995, de 2014 - Artigo 13 - Incis	Taxa pela Utilização do Selo de Controle - Lei nº 12.995, de 2014 - Artigo 13 - Inciso I	19/09/2014
+4811		OUTROS	pela Utilização dos Equipamentos Contadores de Produção - Lei nº 12.995, de 2014	Taxa pela Utilização dos Equipamentos Contadores de Produção - Lei nº 12.995, de 2014 - Artigo 13 - Inciso II	19/09/2014
+5006		OUTROS	Taxa de Utilização do Sistema de Controle de Arrecadação do Adicional ao Frete p	TUM - Taxa de Utilização do Sistema de Controle de Arrecadação do Adicional ao Frete para Renovação da Marinha Mercante (MERCANTE) - Lançamento de Ofício	23/12/2014
+5058		OUTROS	Regime de Tributação Simplificada - Mercadoria Importada não Identificada - Art.	Regime de Tributação Simplificada - Mercadoria Importada não Identificada - Art. 67 da Lei nº 10.833/2003 - Lançamento de Ofício	22/05/2015
+5135		OUTROS	Tributos Extintos	Tributos Extintos	—
+5155		OUTROS	Depósitos Judiciais - Royalties e/ou Participação Especial - DJE	Depósitos Judiciais - Royalties e/ou Participação Especial - DJE	24/12/2015
+5160		OUTROS	Saldos de Receitas Excluídas e ou Extintas	Saldos de Receitas Excluídas e ou Extintas	—
+5161		OUTROS	de Regularização Tributária Rural (PRR)	Programa de Regularização Tributária Rural (PRR)	15/08/2017
+5184		OUTROS	de Regularização Tributária (PRT) - Demais Débitos	Programa de Regularização Tributária (PRT) - Demais Débitos	26/01/2017
+5190		OUTROS	Especial de Regularização Tributária (PERT) - Demais Débitos	Programa Especial de Regularização Tributária (PERT) - Demais Débitos	21/06/2017
+5246		OUTROS	5% (E/M) L 7990 art. 7 I A III - DJE	Royalties 5% (E/M) L 7990 art. 7 I A III - DJE	28/03/2016
+5252		OUTROS	Até 5% - Lavra na Área Pré-Sal - Em Plataforma - DJE	Royalties Até 5% - Lavra na Área Pré-Sal - Em Plataforma - DJE	28/03/2016
+5269		OUTROS	5% (E-M) (L 7990 art. 7 P 4) - DJE	Royalties 5% (E-M) (L 7990 art. 7 P 4) - DJE	28/03/2016
+5275		OUTROS	Cota Parte Indenização pela Extração de Petróleo, Xisto e Gás (MM) - DJE	Cota Parte Indenização pela Extração de Petróleo, Xisto e Gás (MM) - DJE	28/03/2016
+5281		OUTROS	Até 5% - Art. 2º da Lei nº 12.858/2013 - DJE	Royalties Até 5% - Art. 2º da Lei nº 12.858/2013 - DJE	28/03/2016
+5298		OUTROS	Excedentes a 5% (E/M) Lei nº 9.478/1997, art. 49, I - DJE	Royalties Excedentes a 5% (E/M) Lei nº 9.478/1997, art. 49, I - DJE	28/03/2016
+5308		OUTROS	Excedentes a 5% (MCT) Lei nº 9.478/1997, art. 49, I - DJE	Royalties Excedentes a 5% (MCT) Lei nº 9.478/1997, art. 49, I - DJE	28/03/2016
+5314		OUTROS	Excedente a 5% - Lavra na Área Pré-Sal - Em Plataforma - DJE	Royalties Excedente a 5% - Lavra na Área Pré-Sal - Em Plataforma - DJE	28/03/2016
+5337		OUTROS	Excedentes a 5% (E-M) - Lei nº 9.478/1997, art. 49, II - DJE	Royalties Excedentes a 5% (E-M) - Lei nº 9.478/1997, art. 49, II - DJE	28/03/2016
+5343		OUTROS	Excedentes a 5% (MM/MCT) - Lei nº 9.478/1997, art. 49, II - DJE	Royalties Excedentes a 5% (MM/MCT) - Lei nº 9.478/1997, art. 49, II - DJE	28/03/2016
+5350		OUTROS	Excedente a 5% - Art. 2º da Lei nº 12.858/2013 - DJE	Royalties Excedente a 5% - Art. 2º da Lei nº 12.858/2013 - DJE	28/03/2016
+5366		OUTROS	Especial (E-M) - Lei nº 9.478/1997, art. 50 - DJE	Participação Especial (E-M) - Lei nº 9.478/1997, art. 50 - DJE	28/03/2016
+5372		OUTROS	Especial (MME/MMA) - Lei nº 9.478/1997, art. 50 - DJE	Participação Especial (MME/MMA) - Lei nº 9.478/1997, art. 50 - DJE	28/03/2016
+5405		OUTROS	Especial - Art. 2º da Lei nº 12.858/2013 - DJE	Participação Especial - Art. 2º da Lei nº 12.858/2013 - DJE	28/03/2016
+5411		OUTROS	Regime de Partilha de Produção - Alíquota de 15% - Art. 42 da Lei nº 12.351/2010	Royalties - Regime de Partilha de Produção - Alíquota de 15% - Art. 42 da Lei nº 12.351/2010 - Pré-Sal e Áreas Estratégicas	13/05/2016
+5428		OUTROS	Regime de Partilha de Produção - Alíquota de 15% - Art. 42 da Lei nº 12.351/2010	Royalties - Regime de Partilha de Produção - Alíquota de 15% - Art. 42 da Lei nº 12.351/2010 - Pré-Sal e Áreas Estratégicas - DJE	13/05/2016
+5450		OUTROS	Cópias Xerox - PGFN	Fundaf - Cópias Xerox - PGFN	27/07/2004
+5457		OUTROS	de Bens Apreendidos - Sistema de Leilão Eletrônico	Alienação de Bens Apreendidos - Sistema de Leilão Eletrônico	24/08/2016
+5469		OUTROS	Deslocamento de Servidor para Prestar Serviço em Recinto ou Local Fora da Sede d	Fundaf-Deslocamento de Servidor para Prestar Serviço em Recinto ou Local Fora da Sede da Repartição de Expediente	05/12/2006
+5470		OUTROS	Perdimento de Bens Apreendidos - Depósito Judicial	Perdimento de Bens Apreendidos - Depósito Judicial	14/09/2016
+5525		OUTROS	de Regularização de Débitos Previdenciários dos Estados e dos Municípios (PREM) 	Programa de Regularização de Débitos Previdenciários dos Estados e dos Municípios (PREM) - MP 778/2017	08/06/2017
+5529		OUTROS	Direitos Antidumping	Receita Direitos Antidumping	01/01/1995
+5590		OUTROS	Vistoria Técnica e Auditoria de Sistema de Controle Informatizado-Alfandegamento	Fundaf-Vistoria Técnica e Auditoria de Sistema de Controle Informatizado-Alfandegamento-Habilitação para Despacho Aduaneiro de Local ou Recinto	05/12/2006
+5612		OUTROS	Outros Serviços - MICT	Outros Serviços - MICT	01/01/1995
+5680		OUTROS	Fundo Nacional Antidrogas - DJE	Fundo Nacional Antidrogas - DJE	20/06/2019
+5736		OUTROS	da União em Receita de Loteria Federal	Participação da União em Receita de Loteria Federal	01/02/2020
+5742		OUTROS	da União em Receita de Loteria Esportiva	Participação da União em Receita de Loteria Esportiva	01/02/2020
+5759		OUTROS	da União em Receitas de Loteria de Prognósticos Numéricos	Participação da União em Receitas de Loteria de Prognósticos Numéricos	01/02/2020
+5765		OUTROS	da União em Receita de Loteria Instantânea Exclusiva	Participação da União em Receita de Loteria Instantânea Exclusiva	01/02/2020
+5771		OUTROS	da União em Receitas de Loteria de Prognóstico Específico	Participação da União em Receitas de Loteria de Prognóstico Específico	01/02/2020
+5827		OUTROS	Facultativa em Período de Benefício Emergencial com Suspensão Temporária de Cont	Contribuição Facultativa em Período de Benefício Emergencial com Suspensão Temporária de Contrato ou Redução de Jornada de Trabalho/Salário (Lei nº 14.020/2020)	31/07/2020
+5833		OUTROS	Facultativa em Período de Afastamento/Inatividade sem Remuneração e Atividade Vi	Contribuição Facultativa em Período de Afastamento/Inatividade sem Remuneração e Atividade Vinculada ao RGPS/RPPS - § 5º do Art 11 e § 35 do Art 216 do RPS (Decreto nº 3.048/1999)	31/07/2020
+5862		OUTROS	da União em Receita de Loteria de Apostas de Quota Fixa	Participação da União em Receita de Loteria de Apostas de Quota Fixa	01/01/2023
+5891		OUTROS	Valores Oriundos de Depósito Judicial - Processo com Arquivamento Definitivo na 	Valores Oriundos de Depósito Judicial - Processo com Arquivamento Definitivo na Justiça do Trabalho - Projeto Garimpo (Ato Conjunto CSJT.GP.CGJT nº 1, de 2019, art. 2º, § 6º)	11/11/2020
+5918		OUTROS	Valores Oriundos de Depósito Judicial- Processo com Arquivamento Definitivo na J	Valores Oriundos de Depósito Judicial- Processo com Arquivamento Definitivo na Justiça Trabalho- Projeto Garimpo- Período Pandemia (Recomendação nº 9/GCGJT, de 2020, art. 1º, § 2º)	11/11/2020
+6057		OUTROS	Parte do Adicional ao Frete para Renovação da Marinha Mercante - AFRMM (Fundo da	Quota Parte do Adicional ao Frete para Renovação da Marinha Mercante - AFRMM (Fundo da Marinha Mercante - FMM)	29/07/2021
+6086		OUTROS	Perdimento de Bens, Direitos e Valores Declarados pela Justiça Federal nos Crime	Perdimento de Bens, Direitos e Valores Declarados pela Justiça Federal nos Crimes Previstos na Lei nº 9.613, de 1998 - DJE	15/06/2022
+6090		OUTROS	Processamento de Dados - Fundaf	Serviços Processamento de Dados - Fundaf	—
+6092		OUTROS	Contribuições Previdenciárias - Recolhimento Exclusivo pela Justiça do Trabalho	Contribuições Previdenciárias - Recolhimento Exclusivo pela Justiça do Trabalho	01/04/2023
+6125		OUTROS	Decorrente de Retenção ou Apreensão de Moeda em Espécie	Receita Decorrente de Retenção ou Apreensão de Moeda em Espécie	30/04/2024
+6147		OUTROS	Produtos - Retenção em Pagamentos por Órgão Público	Produtos - Retenção em Pagamentos por Órgão Público	01/01/1997
+6175		OUTROS	de Passageiros - Retenção em Pagamento por Órgão Público	Transporte de Passageiros - Retenção em Pagamento por Órgão Público	01/01/1997
+6177		OUTROS	Regime de Tributação Específica do Futebol (TEF)	Pagamento Unificado- Regime de Tributação Específica do Futebol (TEF)	15/08/2023
+6188		OUTROS	Retenção em Pagamento por Órgão Público	Financeiras - Retenção em Pagamento por Órgão Público	01/01/1997
+6190		OUTROS	Retenção em Pagamento por Órgão Público	Serviços - Retenção em Pagamento por Órgão Público	01/01/1997
+6197		OUTROS	Auditoria de Sistema Informatizado para Habilitação em Regime Aduaneiro Especial	Fundaf-Auditoria de Sistema Informatizado para Habilitação em Regime Aduaneiro Especial	05/12/2006
+6239		OUTROS	Fundo de Investimento - Regra de transição - Pagamento à Alíquota de 15% (Lei nº	Fundo de Investimento - Regra de transição - Pagamento à Alíquota de 15% (Lei nº 14.754/2023, art. 27)	15/12/2023
+6245		OUTROS	Contrato de Cessão de Uso de Imóvel da União - RFB	Contrato de Cessão de Uso de Imóvel da União - RFB	09/09/2024
+6250		OUTROS	de Leilões Mercadorias Apreendidas	Receita de Leilões Mercadorias Apreendidas	—
+6251		OUTROS	Reclamatória Trabalhista - Multa de Mora (Súmula 368 do TST)	Reclamatória Trabalhista - Multa de Mora (Súmula 368 do TST)	09/02/2024
+6342		OUTROS	Valores Oriundos de Depósito Judicial - Processo com Arquivamento Definitivo na 	Valores Oriundos de Depósito Judicial - Processo com Arquivamento Definitivo na Justiça do Trabalho - Projeto Garimpo (Ato Conjunto CSJT.GP.CGJT nº 1, de 2019, art. 2º, § 5º)	17/05/2024
+6488		OUTROS	de Laboratório de Análises - SRF	Serviços de Laboratório de Análises - SRF	—
+6491		OUTROS	Valores Prescritos - Loteria de Apostas de Quota Fixa	Valores Prescritos - Loteria de Apostas de Quota Fixa	26/06/2025
+6524		OUTROS	de Loteria de Apostas de Quota Fixa - Saúde	Receita de Loteria de Apostas de Quota Fixa - Saúde	01/09/2025
+6525		OUTROS	Ressarcimento Receitas de Recintos Alfandegados	Fundaf - Ressarcimento Receitas de Recintos Alfandegados	—
+6542		OUTROS	Imposto Importação - (art. 43 L.9430)	Juros Imposto Importação - (art. 43 L.9430)	20/05/1997
+6555		OUTROS	IRPF - (art. 43 L.9430)	Juros IRPF - (art. 43 L.9430)	20/05/1997
+6570		OUTROS	IRPJ - (art. 43 L.9430)	Juros IRPJ - (art. 43 L.9430)	20/05/1997
+6583		OUTROS	IRRF - (art. 43 L.9430)	Juros IRRF - (art. 43 L.9430)	20/05/1997
+6596		OUTROS	IPI - (art. 43 L.9430)	Juros IPI - (art. 43 L.9430)	20/05/1997
+6608		OUTROS	IPI - Vinculado (art. 43 L.9430)	Juros IPI - Vinculado (art. 43 L.9430)	20/05/1997
+6610		OUTROS	IOF - (art. 43 L.9430)	Juros IOF - (art. 43 L.9430)	20/05/1997
+6621		OUTROS	de Registro do Comércio	Serviços de Registro do Comércio	—
+6623		OUTROS	Cofins (art. 43 L.9430)	Juros Cofins (art. 43 L.9430)	20/05/1997
+6636		OUTROS	PIS/Pasep - (art. 43 L.9430)	Juros PIS/Pasep - (art. 43 L.9430)	20/05/1997
+6649		OUTROS	CSLL - (art. 43 L.9430)	Juros CSLL - (art. 43 L.9430)	20/05/1997
+7034		OUTROS	Legal do Decreto-Lei nº 1.025/69 - PGFN (ajuizado)	Encargo Legal do Decreto-Lei nº 1.025/69 - PGFN (ajuizado)	—
+7036		OUTROS	ITR - (art. 43 L.9430)	Juros ITR - (art. 43 L.9430)	24/08/1998
+7254		OUTROS	5% (E/M) L 7990 art. 7 I A III	Royalties 5% (E/M) L 7990 art. 7 I A III	19/10/1998
+7267		OUTROS	5% (E-M) (L 7990 art. 7 P 4)	Royalties 5% (E-M) (L 7990 art. 7 P 4)	19/10/1998
+7282		OUTROS	Excedentes A 5% (E/M) Lei 9.478, art. 49, I	Royalties Excedentes A 5% (E/M) Lei 9.478, art. 49, I	19/10/1998
+7295		OUTROS	Excedentes a 5% (MCT) Lei 9.478, art. 49 , I	Royalties Excedentes a 5% (MCT) Lei 9.478, art. 49 , I	19/10/1998
+7310		OUTROS	Excedentes a 5% (E-M) Lei 9.478, art. 49,II	Royalties Excedentes a 5% (E-M) Lei 9.478, art. 49,II	19/10/1998
+7322		OUTROS	Excedentes a 5% (MM/MCT) Lei 9.478, art. 49, II	Royalties Excedentes a 5% (MM/MCT) Lei 9.478, art. 49, II	19/10/1998
+7335		OUTROS	Especial (E-M) (L 9478 art. 50)	Participação Especial (E-M) (L 9478 art. 50)	19/10/1998
+7348		OUTROS	Especial (MME/MMA) Lei 9.478, art. 50	Participação Especial (MME/MMA) Lei 9.478, art. 50	19/10/1998
+7500		OUTROS	Contribuição do Empregador - Simples	INSS - Contribuição do Empregador - Simples	01/01/1997
+7702		OUTROS	Simples	ICMS - Simples	10/07/1997
+7809		OUTROS	Simples	ISS - Simples	06/08/1997
+7811		OUTROS	Utilização Siscomex (art. 3 L 9716/98)	Taxa Utilização Siscomex (art. 3 L 9716/98)	26/11/1998
+7878		OUTROS	Condecine - Lançamento de Ofício	Condecine - Lançamento de Ofício	22/11/2002
+7940		OUTROS	Isolados Condecine (art.43 da Lei 9.430)	Juros Isolados Condecine (art.43 da Lei 9.430)	22/11/2002
+8047		OUTROS	Depósito Judicial - outros	Depósito Judicial - outros	18/06/1999
+8050		OUTROS	Depósito Administrativo - outros	Depósito Administrativo - outros	18/06/1999
+8211		OUTROS	Isolado IRPJ - Simples (art.43 L.9430)	Juros Isolado IRPJ - Simples (art.43 L.9430)	30/09/1999
+8224		OUTROS	Isolado IPI - Simples (art.43 L.9430)	Juros Isolado IPI - Simples (art.43 L.9430)	30/09/1999
+8237		OUTROS	Isolado PIS - Simples (art.43 L.9430)	Juros Isolado PIS - Simples (art.43 L.9430)	30/09/1999
+8240		OUTROS	Isolado Cofins- Simples (art.43 L.9430)	Juros Isolado Cofins- Simples (art.43 L.9430)	30/09/1999
+8252		OUTROS	Isolado CSLL - Simples (art.43 L.9430)	Juros Isolado CSLL - Simples (art.43 L.9430)	30/09/1999
+8256		OUTROS	Cota Parte Indenização pela Extração de Petróleo, Xisto e Gás (MM)	Cota Parte Indenização pela Extração de Petróleo, Xisto e Gás (MM)	—
+8265		OUTROS	Isolado INSS Empregador - Simples (art.43 L.9430)	Juros Isolado INSS Empregador - Simples (art.43 L.9430)	30/09/1999
+8278		OUTROS	Isolado ICMS - Simples (art.43 L.9430)	Juros Isolado ICMS - Simples (art.43 L.9430)	30/09/1999
+8293		OUTROS	Isolado ISS - Simples (art.43 L.9430)	Juros Isolado ISS - Simples (art.43 L.9430)	30/09/1999
+8619		OUTROS	Isolados Cide Combustíveis (art. 43 Lei 9430/96)	Juros Isolados Cide Combustíveis (art. 43 Lei 9430/96)	16/07/2002
+8660		OUTROS	Isolados Cide Remessa ao Exterior (art. 43 Lei 9430/96)	Juros Isolados Cide Remessa ao Exterior (art. 43 Lei 9430/96)	16/07/2002
+8739		OUTROS	Gasol/Diesel/Gás Liquefeito Petróleo e Álcool Varejo-Ret Órgão Público	Gasol/Diesel/Gás Liquefeito Petróleo e Álcool Varejo-Ret Órgão Público	16/03/2001
+8767		OUTROS	Adquiridos do Distribuidor ou Varejista - Retido por Órgão Público	Medicamentos Adquiridos do Distribuidor ou Varejista - Retido por Órgão Público	16/03/2001
+8850		OUTROS	Internacional de Passageiros Empresas Nacionais-Retido Órgão Público	Transporte Internacional de Passageiros Empresas Nacionais-Retido Órgão Público	16/03/2001
+8863		OUTROS	ou Serviços Adquiridos de Sociedades Cooperativas e Associações Profissionais ou	Bens ou Serviços Adquiridos de Sociedades Cooperativas e Associações Profissionais ou Assemelhadas - Retido por Órgão Público	19/12/2002
+9013		OUTROS	Condecine - Pagamento, Crédito, Emprego, Entrega e Remessa para o Exterior - MP 	Condecine - Pagamento, Crédito, Emprego, Entrega e Remessa para o Exterior - MP 2228/01, art. 33, § 2º	15/10/2001
+9060		OUTROS	de Aviação Adquirido de Produtor ou Importador - Retido por Órgão Público	Querosene de Aviação Adquirido de Produtor ou Importador - Retido por Órgão Público	19/12/2002
+9090		OUTROS	aos Fundos Controlados pelos Conselhos Municipais, Estaduais e Nacional do Idoso	Doações aos Fundos Controlados pelos Conselhos Municipais, Estaduais e Nacional do Idoso	17/02/2020
+9139		OUTROS	Valores Prescritos - Loterias	Valores Prescritos - Loterias	03/10/2002
+9141		OUTROS	sobre a Receita de Loteria Instantânea	Contribuição sobre a Receita de Loteria Instantânea	03/10/2002
+9154		OUTROS	sobre a Receita de Loterias de Números	Contribuição sobre a Receita de Loterias de Números	03/10/2002
+9167		OUTROS	sobre a Receita de Concursos Especiais de Loterias Esportivas	Contribuição sobre a Receita de Concursos Especiais de Loterias Esportivas	03/10/2002
+9170		OUTROS	sobre a Receita de Loterias Esportivas	Contribuição sobre a Receita de Loterias Esportivas	03/10/2002
+9182		OUTROS	sobre a Receita da Loteria Federal	Contribuição sobre a Receita da Loteria Federal	03/10/2002
+9197		OUTROS	sobre a Receita de Loteria de Apostas de Quota Fixa	Contribuição sobre a Receita de Loteria de Apostas de Quota Fixa	01/01/2023
+9972		OUTROS	Decorrente de Aportes Periódicos para Compensação ao Regime Geral de Previdência	Receita Decorrente de Aportes Periódicos para Compensação ao Regime Geral de Previdência Social	31/12/2012
+1099	01	CP_SIEF	CP-Segurados (Empregado, Avulso, Doméstico)	CP Segurados - Contribuição Segurados Empregado/Avulso/Doméstico	—
+1082	01	CP_SIEF	CP-Segurados (Contribuinte Individual)	CP Segurados - Contribuição Segurados Contribuinte Individual	—
+1138	01	CP_SIEF	CP-Patronal (Empregador sobre folha)	CP Patronal - Contribuição Empresa/Empregador sobre Folha	—
+1646	01	CP_SIEF	CP-Patronal (Empregador - desoneração)	CP Patronal - Contribuição Empresa/Empregador - Desoneração	—
+1200	01	CP_SIEF	CP-Terceiros (SAT/RAT)	CP Terceiros - Seguro Acidente de Trabalho/RAT	—
+1170	01	CP_SIEF	CP-Terceiros (Outras Entidades - SESC/SENAI etc)	CP Terceiros - Outras Entidades e Fundos (SESC, SENAI, SENAC, etc.)	—
+1176	01	CP_SIEF	CP-Terceiros (Salário-Educação)	CP Terceiros - Salário-Educação	—
+1225	01	CP_SIEF	CP-Terceiros (INCRA)	CP Terceiros - INCRA	—
+1225	21	CP_SIEF	CP-Terceiros (SENAR)	CP Terceiros - SENAR	—
+0561	07	IRRF_SIEF	IRRF-Trabalho Assalariado (ext. 07 - SIEF)	IRRF - Rendimento do Trabalho Assalariado (extensão 07 - débito DCTFWeb)	—
+4406	01	MAED_SIEF	MAED - PGDAS-D (Multa Atraso Entrega)	MAED - Multa por Atraso na Entrega do PGDAS-D	27/01/2014
+5440	01	MAED_SIEF	MAED - DCTFWeb (Multa Atraso Entrega)	MAED - Multa por Atraso na Entrega da DCTFWeb	24/08/2016
+2203	01	MAED_SIEF	MAED - EFD-Contribuicoes (Multa Atraso Entrega)	MAED - Multa por Atraso na Entrega da EFD-Contribuicoes	15/06/2011
+1506	01	MAED_SIEF	MAED - DASN-SIMEI (Multa Atraso Entrega)	MAED - Multa por Atraso na Entrega da DASN-SIMEI	30/01/2010

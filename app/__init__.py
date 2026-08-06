@@ -137,7 +137,10 @@ def create_app() -> Flask:
                 # DESVIO INTENCIONAL (11o): tela de restauracao de dados.
                 or path == '/restaurar'
                 # DESVIO INTENCIONAL (13o): administracao de usuarios e acessos.
-                or path == '/usuarios'):
+                or path == '/usuarios'
+                # Telas server-side de filtros e relatorios.
+                or path == '/filtros'
+                or path == '/relatorios'):
             return None
         if '.' in path.split('/')[-1]:
             return None
@@ -181,6 +184,14 @@ def create_app() -> Flask:
     # limitadas por usuario. Exclusiva de administrador. Pedido do Jean em 03/08/2026.
     from app.routes.usuarios import usuarios_bp
     app.register_blueprint(usuarios_bp)
+
+    # Tela /filtros — filtrar empresas por tipo de pendência/débito.
+    from app.routes.filtros import filtros_bp
+    app.register_blueprint(filtros_bp)
+
+    # Tela /relatorios — navegar e visualizar PDFs armazenados.
+    from app.routes.relatorios_tela import relatorios_tela_bp
+    app.register_blueprint(relatorios_tela_bp)
 
     from app.scheduler import iniciar as iniciar_agendador
     iniciar_agendador(app)

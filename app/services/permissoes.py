@@ -75,8 +75,18 @@ ROTINAS: Dict[str, Dict[str, Any]] = {
     },
     'restaurar': {
         'nome': 'Restaurar dados',
-        'prefixos': ['/restaurar', '/api/restaurar'],
+        'prefixos': ['/restaurar', '/api/restaurar', '/api/reprocessar-completo'],
         'admin': True,   # troca o banco inteiro
+    },
+    'filtros': {
+        'nome': 'Filtros',
+        'prefixos': ['/filtros'],
+        'admin': False,
+    },
+    'relatorios': {
+        'nome': 'Relatórios / PDFs',
+        'prefixos': ['/relatorios'],
+        'admin': False,
     },
 }
 
@@ -122,6 +132,8 @@ ICONES = {
     'configuracoes': 'M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1L14.5 3h-5l-.3 2.6a7 7 0 00-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.3 2.4h5l.3-2.4a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6c.1-.3.1-.7.1-1z',
     'procuracoes':   'M9 12l2 2 4-4M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z',
     'agendamento':   'M8 2v4M16 2v4M3 10h18M5 6h14v15H5zM12 14v3',
+    'filtros':       'M3 4h18M7 9h10M10 14h4',
+    'relatorios':    'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8',
     'restaurar':     'M21 12a9 9 0 11-3-6.7M21 3v6h-6',
     '__admin__':     'M17 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9.5 6.5a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0zM22 20v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8',
     'sair':          'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
@@ -138,6 +150,10 @@ MENU: List = [
          'spa': 'Pagamentos de Tributos'},
         {'chave': 'dctfweb', 'rotulo': 'DCTFWeb Lote', 'spa': 'DCTFWeb Lote'},
         {'chave': 'das',     'rotulo': 'DAS Lote',     'spa': 'DAS Lote'},
+    ]),
+    ('Consultas', [
+        {'chave': 'filtros',     'rotulo': 'Filtros',            'url': '/filtros'},
+        {'chave': 'relatorios',  'rotulo': 'Relatórios / PDFs', 'url': '/relatorios'},
     ]),
     ('Administração', [
         {'chave': 'procuracoes', 'rotulo': 'Procurações',       'url': '/procuracoes'},

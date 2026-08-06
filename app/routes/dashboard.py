@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from sqlalchemy import func
 
 from app.extensions import db
@@ -67,12 +67,102 @@ def summary():
     })
 
 
+@dashboard_bp.get('/filtros-disponiveis')
+def filtros_disponiveis():
+    """Retorna tipos distintos de pendência e débito existentes no banco."""
+    latest_reports = latest_reports_query().all()
+    latest_report_ids = [r.id for r in latest_reports]
+
+    if not latest_report_ids:
+        return jsonify({'tipos_pendencia': [], 'tipos_debito': [], 'receitas_debito': []})
+
+    tipos_pendencia = (
+        db.session.query(PendenciaRelatorio.tipo)
+        .filter(PendenciaRelatorio.relatorio_id.in_(latest_report_ids))
+        .distinct()
+        .order_by(PendenciaRelatorio.tipo)
+        .all()
+    )
+
+    tipos_debito = (
+        db.session.query(DebitoRelatorio.tipo)
+        .filter(DebitoRelatorio.relatorio_id.in_(latest_report_ids))
+        .distinct()
+        .order_by(DebitoRelatorio.tipo)
+        .all()
+    )
+
+    # Receitas distintas (código-extensão + descrição abreviada)
+    receitas_debito = (
+        db.session.query(DebitoRelatorio.receita)
+        .filter(DebitoRelatorio.relatorio_id.in_(latest_report_ids))
+        .distinct()
+        .order_by(DebitoRelatorio.receita)
+        .all()
+    )
+
+    return jsonify({
+        'tipos_pendencia': [t[0] for t in tipos_pendencia],
+        'tipos_debito': [t[0] for t in tipos_debito],
+        'receitas_debito': [r[0] for r in receitas_debito],
+    })
+
+
 @dashboard_bp.get('/companies')
 def companies_dashboard():
+    # Filtros opcionais via query params
+    pendencia_tipo = request.args.get('pendencia_tipo', '').strip()
+    debito_tipo = request.args.get('debito_tipo', '').strip()
+    debito_receita = request.args.get('debito_receita', '').strip()
+
     latest_reports = latest_reports_query().all()
+
+    # Se há filtros, identificar quais report_ids passam
+    filtro_ativo = bool(pendencia_tipo or debito_tipo or debito_receita)
+    report_ids_filtrados = None
+
+    if filtro_ativo:
+        latest_report_ids = [r.id for r in latest_reports]
+        ids_pendencia = set(latest_report_ids)
+        ids_debito = set(latest_report_ids)
+
+        if pendencia_tipo:
+            ids_pendencia = set(
+                row[0] for row in
+                db.session.query(PendenciaRelatorio.relatorio_id)
+                .filter(
+                    PendenciaRelatorio.relatorio_id.in_(latest_report_ids),
+                    PendenciaRelatorio.tipo == pendencia_tipo,
+                ).all()
+            )
+
+        if debito_tipo:
+            ids_debito = set(
+                row[0] for row in
+                db.session.query(DebitoRelatorio.relatorio_id)
+                .filter(
+                    DebitoRelatorio.relatorio_id.in_(latest_report_ids),
+                    DebitoRelatorio.tipo == debito_tipo,
+                ).all()
+            )
+        elif debito_receita:
+            ids_debito = set(
+                row[0] for row in
+                db.session.query(DebitoRelatorio.relatorio_id)
+                .filter(
+                    DebitoRelatorio.relatorio_id.in_(latest_report_ids),
+                    DebitoRelatorio.receita.contains(debito_receita),
+                ).all()
+            )
+
+        report_ids_filtrados = ids_pendencia & ids_debito
+
     items = []
 
     for relatorio in latest_reports:
+        if filtro_ativo and relatorio.id not in report_ids_filtrados:
+            continue
+
         total_pendencias = len(relatorio.pendencias)
         total_debitos = len(relatorio.debitos)
         valor_total_debitos = float(
@@ -105,34 +195,36 @@ def companies_dashboard():
             'current_protocol': relatorio.company.current_protocol,
         })
 
-    companies_without_reports = (
-        Company.query
-        .filter(~Company.relatorios.any())
-        .order_by(Company.razao_social.asc())
-        .all()
-    )
+    # Empresas sem relatório só aparecem quando não há filtro ativo
+    if not filtro_ativo:
+        companies_without_reports = (
+            Company.query
+            .filter(~Company.relatorios.any())
+            .order_by(Company.razao_social.asc())
+            .all()
+        )
 
-    for company in companies_without_reports:
-        items.append({
-            'id': company.id,
-            'razao_social': company.razao_social,
-            'cnpj': company.cnpj,
-            'situacao': 'Sem relatório',
-            'data_hora': None,
-            'report_id': None,
-            'simples_nacional_inclusao': None,
-            'simples_nacional_exclusao': None,
-            'simei_inclusao': None,
-            'simei_exclusao': None,
-            'total_pendencias': 0,
-            'total_debitos': 0,
-            'valor_total_debitos': 0,
-            'processing_status': company.processing_status,
-            'processing_step': company.processing_step,
-            'processing_progress': company.processing_progress,
-            'processing_message': company.processing_message,
-            'current_protocol': company.current_protocol,
-        })
+        for company in companies_without_reports:
+            items.append({
+                'id': company.id,
+                'razao_social': company.razao_social,
+                'cnpj': company.cnpj,
+                'situacao': 'Sem relatório',
+                'data_hora': None,
+                'report_id': None,
+                'simples_nacional_inclusao': None,
+                'simples_nacional_exclusao': None,
+                'simei_inclusao': None,
+                'simei_exclusao': None,
+                'total_pendencias': 0,
+                'total_debitos': 0,
+                'valor_total_debitos': 0,
+                'processing_status': company.processing_status,
+                'processing_step': company.processing_step,
+                'processing_progress': company.processing_progress,
+                'processing_message': company.processing_message,
+                'current_protocol': company.current_protocol,
+            })
 
     items.sort(key=lambda x: x['razao_social'].lower())
     return jsonify(items)

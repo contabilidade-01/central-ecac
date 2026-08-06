@@ -266,6 +266,21 @@ class PDFParser:
         return pendencias
 
     def _extract_debitos(self, text):
+        """Extrai débitos do relatório de forma genérica.
+
+        DESVIO INTENCIONAL do exe (refatoração 06/08/2026):
+        O exe (e a versão anterior) usava 14+ regex fixas, uma para cada código de
+        receita. Quando surgia um código novo (ex: 4406-01 PGDAS-D, 2203-01
+        EFD-Contribuições, 1506-01 DASN-SIMEI), o sistema simplesmente não via.
+
+        Agora usa 2 padrões genéricos por formato de data:
+          - DATA_LONGA (DD/MM/YYYY DD/MM/YYYY): IRRF, MAED, e qualquer novo código
+          - COMPETÊNCIA (MM/YYYY DD/MM/YYYY): CP-Segurados, CP-Patronal, CP-Terceiros
+        + 2 padrões especiais para SIMPLES NAC. e MEI (que não têm código-extensão).
+
+        A classificação por tipo (MAED, INSS, IRRF, SN, MEI) é feita pelo conteúdo
+        do campo receita, não pela chave do dicionário.
+        """
         debitos = {}
 
         _VALORES = (r'\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)'
@@ -273,29 +288,63 @@ class PDFParser:
         _DATA_LONGA = r'\s+(\d{2}/\d{2}/\d{4})\s+(\d{2}/\d{2}/\d{4})'
         _COMPETENCIA = r'\s+(\d{2}/\d{4})\s+(\d{2}/\d{2}/\d{4})'
 
-        patterns = {
-            'debitosIRRF': r'(0561-07 - IRRF.*?)' + _DATA_LONGA + _VALORES,
-            'debitosMAED': r'(5440-01 - MAED - DCTFWEB.*?)' + _DATA_LONGA + _VALORES,
-            'debitosINSS': r'(1099-01 - CP-SEGUR.*?)' + _COMPETENCIA + _VALORES,
-            'debitosINSS1082': r'(1082-01 - CP-SEGUR.*?)' + _COMPETENCIA + _VALORES,
-            'debitosINSS1138': r'(1138-01 - CP-PATRONAL*?)' + _COMPETENCIA + _VALORES,
-            'debitosINSS1646': r'(1646-01 - CP-PATRONAL*?)' + _COMPETENCIA + _VALORES,
-            'debitosINSS1200': r'(1200-01 - CP-TERCEIROS*?)' + _COMPETENCIA + _VALORES,
-            'debitosINSS1170': r'(1170-01 - CP-TERCEIROS*?)' + _COMPETENCIA + _VALORES,
-            'debitosINSS1176': r'(1176-01 - CP-TERCEIROS*?)' + _COMPETENCIA + _VALORES,
-            'debitosINSS1225': r'(1225-01 - CP-TERCEIROS*?)' + _COMPETENCIA + _VALORES,
-            'debitosINSS122521': r'(1225-21 - CP-TERCEIROS*?)' + _COMPETENCIA + _VALORES,
-            'debitosSN': r'(SIMPLES NAC\.\s*\n\s*MEI|SIMPLES NAC\.)\s*'
-                         r'(\d{2}/\d{4})\s+(\d{2}/\d{2}/\d{4})' + _VALORES,
-            'debitosMEI': r'(MEI)' + _COMPETENCIA + _VALORES,
-        }
+        # Padrão genérico: qualquer código XXXX-YY seguido de descrição
+        # Formato data longa (IRRF, MAED, e futuros)
+        pattern_data_longa = (r'(\d{4}-\d{2}\s*-\s*[A-Z][^\n]{2,40}?)'
+                              + _DATA_LONGA + _VALORES)
 
-        for key, pattern in patterns.items():
-            items = [self._create_debito_dict(m) for m in re.finditer(pattern, text)]
-            if items:
-                debitos[key] = items
+        # Formato competência curta (CP-Segurados, CP-Patronal, CP-Terceiros)
+        pattern_competencia = (r'(\d{4}-\d{2}\s*-\s*CP[^\n]{2,40}?)'
+                               + _COMPETENCIA + _VALORES)
+
+        # Padrões especiais: SIMPLES NAC. e MEI (sem código-extensão)
+        pattern_sn = (r'(SIMPLES NAC\.\s*\n\s*MEI|SIMPLES NAC\.)\s*'
+                      r'(\d{2}/\d{4})\s+(\d{2}/\d{2}/\d{4})' + _VALORES)
+        pattern_mei = r'(MEI)' + _COMPETENCIA + _VALORES
+
+        # 1) Capturar débitos com código-extensão e data longa
+        for m in re.finditer(pattern_data_longa, text):
+            item = self._create_debito_dict(m)
+            tipo = self._classificar_debito(item['receita'])
+            debitos.setdefault(tipo, []).append(item)
+
+        # 2) Capturar débitos com código-extensão e competência curta
+        for m in re.finditer(pattern_competencia, text):
+            item = self._create_debito_dict(m)
+            tipo = self._classificar_debito(item['receita'])
+            debitos.setdefault(tipo, []).append(item)
+
+        # 3) SIMPLES NAC.
+        for m in re.finditer(pattern_sn, text):
+            item = self._create_debito_dict(m)
+            debitos.setdefault('debitosSN', []).append(item)
+
+        # 4) MEI
+        for m in re.finditer(pattern_mei, text):
+            item = self._create_debito_dict(m)
+            debitos.setdefault('debitosMEI', []).append(item)
 
         return debitos
+
+    @staticmethod
+    def _classificar_debito(receita: str) -> str:
+        """Classifica um débito pelo conteúdo do campo receita.
+
+        Retorna a chave do dicionário de débitos (ex: 'debitosMAED', 'debitosINSS').
+        Códigos futuros que não se enquadrem caem em 'debitosOutros'.
+        """
+        receita_upper = receita.upper()
+        if 'MAED' in receita_upper:
+            return 'debitosMAED'
+        if 'CP-SEGUR' in receita_upper:
+            return 'debitosINSS'
+        if 'CP-PATRONAL' in receita_upper:
+            return 'debitosINSS'
+        if 'CP-TERCEIROS' in receita_upper:
+            return 'debitosINSS'
+        if 'IRRF' in receita_upper:
+            return 'debitosIRRF'
+        return 'debitosOutros'
 
     def _create_debito_dict(self, match):
         return {

@@ -28,7 +28,7 @@ from flask import Blueprint, Response, current_app, jsonify, request
 from app.extensions import db
 from app.models import Company
 from app.services.api_usage_service import ApiUsageService
-from app.services.serpro_das_service import SerproDasService
+from app.services.serpro_das_service import SerproApiError, SerproDasService
 
 
 das_bp = Blueprint("das", __name__)
@@ -53,6 +53,13 @@ def _safe_filename_part(value) -> str:
 
 def _erro(mensagem: str, codigo: int = 400):
     return jsonify({"success": False, "message": mensagem}), codigo
+
+
+def _falha_emissao(exc: Exception):
+    if isinstance(exc, SerproApiError):
+        codigo = 400 if 400 <= exc.status_code < 500 else 502
+        return _erro(str(exc), codigo)
+    return _erro(str(exc), 500)
 
 
 def _pdf_response(pdf_bytes: bytes, filename: str) -> Response:
@@ -307,7 +314,7 @@ def emitir_das_simples():
             return _erro("PDF não retornado pela SERPRO", 500)
         return _pdf_response(pdf_bytes, f"DAS_{contribuinte_numero}_{periodo_apuracao}.pdf")
     except Exception as e:
-        return _erro(str(e), 500)
+        return _falha_emissao(e)
 
 
 @das_bp.route("/mei/emitir", methods=["POST"])
@@ -332,7 +339,7 @@ def emitir_das_mei():
             return _erro("PDF não retornado pela SERPRO", 500)
         return _pdf_response(pdf_bytes, f"DAS_MEI_{contribuinte_numero}_{periodo_apuracao}.pdf")
     except Exception as e:
-        return _erro(str(e), 500)
+        return _falha_emissao(e)
 
 
 @das_bp.get("/emitir")
@@ -405,7 +412,7 @@ def emitir_darf_dctfweb():
             filename = f"DARF_DCTFWEB_{contribuinte_numero}_{sufixo}.pdf"
         return _pdf_response(pdf_bytes, filename)
     except Exception as e:
-        return _erro(str(e), 500)
+        return _falha_emissao(e)
 
 
 @das_bp.route("/dctfweb/emitir-lote", methods=["POST"])

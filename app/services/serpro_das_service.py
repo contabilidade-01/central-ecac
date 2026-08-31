@@ -16,8 +16,10 @@ import base64
 import json
 import logging
 import re
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -29,6 +31,36 @@ from app.services.serpro_procurador_service import SerproProcuradorService
 
 
 logger = logging.getLogger(__name__)
+
+
+class SerproApiError(Exception):
+    """Falha da SERPRO com mensagem legível para a tela."""
+
+    def __init__(self, message: str, status_code: int = 400):
+        super().__init__(message)
+        self.status_code = status_code
+
+
+def _mensagem_serpro(response_text: str, status_code: int) -> str:
+    try:
+        body = json.loads(response_text or '')
+    except Exception:
+        body = None
+    if isinstance(body, dict):
+        textos = []
+        for item in body.get('mensagens') or []:
+            if isinstance(item, dict) and item.get('texto'):
+                textos.append(str(item['texto']))
+            elif isinstance(item, str) and item.strip():
+                textos.append(item.strip())
+        if textos:
+            return ' '.join(textos)
+        # Gateway WSO2 (ex.: endpoint SUSPENDED) não usa "mensagens"
+        for chave in ('description', 'message'):
+            extra = body.get(chave)
+            if extra and str(extra) not in ('Runtime Error', 'Status report'):
+                return str(extra)
+    return f'Erro ao emitir na SERPRO. Status: {status_code}.'
 
 
 class SerproDasService:
@@ -56,6 +88,37 @@ class SerproDasService:
     def _only_digits(value: Any) -> str:
         """Extrai apenas digitos de uma string."""
         return ''.join(ch for ch in str(value or '') if ch.isdigit())
+
+    @staticmethod
+    def _hoje_brasil() -> date:
+        return datetime.now(ZoneInfo('America/Sao_Paulo')).date()
+
+    @staticmethod
+    def _data_consolidacao_aceita(value: Any) -> str:
+        """GERARDAS12: dataConsolidacao é opcional e TEM de ser data futura (AAAAMMDD).
+
+        Doc: https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-sn/pgdasd/servicos/gerar_das/
+        MSG_ISN_002 recusa hoje e datas passadas. Quem preencheu hoje (pagar agora)
+        é avançado para o dia seguinte — a API não aceita o dia corrente.
+        Campo vazio: não envia o parâmetro (DAS no vencimento original).
+        """
+        digits = SerproDasService._only_digits(value or '')
+        if not digits:
+            return ''
+        if len(digits) != 8:
+            return ''
+        try:
+            consolidacao = date(int(digits[:4]), int(digits[4:6]), int(digits[6:8]))
+        except ValueError:
+            return ''
+        hoje = SerproDasService._hoje_brasil()
+        if consolidacao <= hoje:
+            consolidacao = hoje + timedelta(days=1)
+            logger.info(
+                'dataConsolidacao ajustada para %s (SERPRO exige data futura).',
+                consolidacao.isoformat(),
+            )
+        return consolidacao.strftime('%Y%m%d')
 
     @staticmethod
     def _tipo_pessoa(numero: str) -> int:
@@ -221,13 +284,10 @@ class SerproDasService:
         Bytecode linhas 714-781.
         """
         periodo_apuracao = self._only_digits(periodo_apuracao or '')
-        data_consolidacao = self._only_digits(data_consolidacao or '')
+        data_consolidacao = self._data_consolidacao_aceita(data_consolidacao)
 
         if len(periodo_apuracao) != 6:
             raise ValueError('Período de apuração inválido. Use o formato AAAAMM, exemplo: 202405')
-
-        if data_consolidacao and len(data_consolidacao) != 8:
-            raise ValueError('Data de consolidação inválida. Use o formato AAAAMMDD, exemplo: 20240531')
 
         dados: Dict[str, Any] = {'periodoApuracao': periodo_apuracao}
         if data_consolidacao:
@@ -307,8 +367,10 @@ class SerproDasService:
         if response.status_code != 200:
             logger.error('Erro ao emitir DAS SERPRO. Status=%s Body=%s',
                         response.status_code, response_text[:3000])
-            raise Exception(f'Erro ao emitir DAS na SERPRO. Status: {response.status_code}. '
-                          f'Resposta: {response_text[:1000]}')
+            raise SerproApiError(
+                _mensagem_serpro(response_text, response.status_code),
+                status_code=response.status_code,
+            )
 
         # Parse JSON
         try:

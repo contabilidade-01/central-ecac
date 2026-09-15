@@ -600,3 +600,31 @@ def test_recusa_de_preenchimento_nao_repete_pedido_identico_nem_trava_procuracao
     db.session.commit()
     fake = FakeSerpro(r_calculo())
     assert svc.calcular(contexto(svc), cliente(fake))['ok'] is True and len(fake.chamadas) == 1
+
+
+# ------------------- "Houve um problema na transmissão" (caso real 15/09/2026, 17:55)
+def test_problema_na_transmissao_obriga_consulta_antes_de_repetir(svc):
+    r = svc.calcular(contexto(svc), cliente(FakeSerpro(r_calculo())))
+    h = r['estado']['hash_calculo']
+    falha = r_msg('Erro-SNENTREGAR', 'SN-Entregar: Houve um problema na transmissão. Tente novamente mais tarde.')
+    fake = FakeSerpro(r_consulta(), falha)
+    r = svc.transmitir(contexto(svc), hash_confirmado=h, cliente=cliente(fake))
+    assert r['ok'] is False and r['serpro']['sistemico'] is True
+    assert r['estado']['situacao'] == 'calculada' and r['estado']['consultado_em'] is None
+    assert any('consulta antes' in a for a in r['avisos'])
+
+    # nova tentativa: consulta primeiro (mesmo com consulta recente antes da falha) e só então transmite
+    fake = FakeSerpro(r_consulta(), r_transmissao())
+    r = svc.transmitir(contexto(svc), hash_confirmado=h, cliente=cliente(fake))
+    assert r['ok'] is True and fake.servicos() == ['CONSDECLARACAO13', 'TRANSDECLARACAO11']
+
+
+def test_problema_na_transmissao_mas_declaracao_entrou_nao_retransmite(svc):
+    r = svc.calcular(contexto(svc), cliente(FakeSerpro(r_calculo())))
+    h = r['estado']['hash_calculo']
+    falha = r_msg('Erro-SNENTREGAR', 'SN-Entregar: Houve um problema na transmissão. Tente novamente mais tarde.')
+    svc.transmitir(contexto(svc), hash_confirmado=h, cliente=cliente(FakeSerpro(r_consulta(), falha)))
+    fake = FakeSerpro(r_consulta(['00000000202608001']))
+    r = svc.transmitir(contexto(svc), hash_confirmado=h, cliente=cliente(fake))
+    assert r['ok'] is False and fake.servicos() == ['CONSDECLARACAO13']
+    assert r['estado']['situacao'] == 'transmitida'

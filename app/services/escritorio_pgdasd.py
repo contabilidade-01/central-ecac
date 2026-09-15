@@ -689,6 +689,14 @@ def transmitir(ctx: Contexto, retificar: bool = False, hash_confirmado: Optional
                 decl.hash_dados = None          # a Receita calculou diferente: exige novo cálculo
                 decl.calculado_em = None
                 decl.situacao = 'rascunho' if decl.situacao != 'transmitida' else decl.situacao
+            elif not res.preenchimento:
+                # Falha genérica/instabilidade ("Houve um problema na transmissão..."): a doc diz
+                # que erro não grava nada, mas por segurança a PRÓXIMA tentativa consulta antes
+                # (evita transmitir em cima de uma declaração que tenha entrado).
+                decl.consultado_em = None
+                pf['avisos'].append('A Receita informou problema na transmissão. Aguarde alguns minutos; '
+                                    'ao clicar Enviar de novo o Central consulta antes se a declaração '
+                                    'entrou (+ custo de 1 consulta) e só transmite se não houver.')
             _erro(ctx, res.texto or 'A SERPRO não confirmou a transmissão (sem idDeclaracao).')
         db.session.commit()
         return {'ok': bool(res.ok and corpo.get('idDeclaracao')), 'etapa': 'transmissao',

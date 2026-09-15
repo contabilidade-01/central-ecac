@@ -66,7 +66,7 @@ CT-e e inutilizações **não entram na receita** (só aviso no cabeçalho).
 | Ler XML NFe `/escritorio/xml/nfe` | **Funcional** (leitura no browser) |
 | NCM × CST `/escritorio/ncm` | **Funcional** (admin edita; **88** regras na carga inicial — Jean deve revisar; autopeças faltando) |
 | Lançamentos `/escritorio/simples/lancamentos` | **Funcional** sobre a memória |
-| Transmitir `/escritorio/simples/transmitir` | **Código + 34 testes OK** (perfil comércio): Pré-visualizar, Calcular, Enviar, Retificar, Consultar, Gerar DAS, buscar declaração/recibo, lote, ZIP — `/escritorio/api/pgdasd/*`. **1º caso real SERPRO ainda não validado** |
+| Transmitir `/escritorio/simples/transmitir` | **Código + 36 testes OK** (perfil comércio): Pré-visualizar, Calcular, Enviar, Retificar, Consultar, Gerar DAS, buscar declaração/recibo, lote, ZIP — `/escritorio/api/pgdasd/*`. **1º caso real SERPRO ainda não validado** |
 | Empresas `/escritorio/empresas` | **Funcional** — ticar empresas do cadastro (`escritorio_empresas`); também checkbox **Escritório** nos cards de `/?aba=configuracoes`. Filtros (razão/CNPJ, Incluídas/Fora, Ativas/Inativas — lembrados no navegador) + **Marcar todos / Desmarcar todos** das visíveis, com confirmação (`tests/test_escritorio_empresas_lote.py`) |
 | Upload PGDAS-D `/escritorio/simples/rbt12` | **Funcional** — PDF+OCR (`pgdas_leitor.js` v16) → `POST /escritorio/api/pgdas/importar` |
 | Caminhos / ÚTEIS / NFS-e | UI sem mock de empresa; ações ainda “Ação pendente” |
@@ -252,6 +252,12 @@ da SERPRO antes de repetir.
 (`EntradaIncorreta` ou "Campo 'x' inválido") nos últimos 7 dias **não é reenviado** — o cliente
 devolve o motivo sem chamar a SERPRO. Esse tipo de erro também não conta para a trava de
 procuração. Mudou o lançamento → hash novo → pode enviar.
+
+**Caso real 15/09/2026 17:55 (Rafael 08/2026):** Calcular OK com `qualificacoesTributarias`; o Enviar
+voltou `SN-Entregar: Houve um problema na transmissão. Tente novamente mais tarde.` (HTTP normal,
+cobrado). Tratamento: texto de instabilidade conta como **sistêmico** (lote para) e a declaração
+perde a "consulta recente" → o próximo Enviar faz CONSDECLARACAO13 antes e só transmite se a Receita
+não tiver declaração do PA. Situação continua `calculada` (a doc diz que erro não grava nada).
 
 ### Pendências / limitações conhecidas
 

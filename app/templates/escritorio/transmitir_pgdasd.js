@@ -315,7 +315,9 @@
     } else {
       var incerto = r.serpro && r.serpro.incerto;
       mostrarAlerta(incerto ? 'warning' : 'error', incerto ? 'Resultado incerto' : NOMES[op] + ' não concluído',
-        texto + (incerto ? '\nNão repita: clique em Consultar para saber se foi recebido.' : ''));
+        texto + (incerto ? '\nNão repita: clique em Consultar para saber se foi recebido.' : '') +
+        ((r.avisos || []).length ? '\n\n' + r.avisos.join('\n') : ''));
+      (r.avisos || []).forEach(function (a) { log('⚠ ' + a); });
     }
   }
 

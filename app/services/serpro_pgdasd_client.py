@@ -158,7 +158,11 @@ class Resultado:
             return True
         if self.http_status and (self.http_status >= 500 or self.http_status in (401, 403, 429)):
             return True
-        return any(self.tem_codigo(c) for c in CODIGOS_SISTEMICOS)
+        if any(self.tem_codigo(c) for c in CODIGOS_SISTEMICOS):
+            return True
+        # Instabilidade do lado da Receita/SERPRO devolvida com HTTP normal
+        # (ex.: "SN-Entregar: Houve um problema na transmissão. Tente novamente mais tarde.")
+        return bool(_RE_INSTABILIDADE.search(self.texto or ''))
 
     @property
     def texto(self) -> str:
@@ -177,6 +181,8 @@ class Resultado:
         }
 
 
+_RE_INSTABILIDADE = re.compile(
+    r'tente novamente mais tarde|problema na transmiss|servi[cç]o indispon|temporariamente indispon', re.I)
 _RE_CAMPO_INVALIDO = re.compile(r"campo\s+'[^']+'\s+inv[aá]lid|inv[aá]lid[oa]s?\b.*campo", re.I)
 
 

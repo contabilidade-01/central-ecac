@@ -602,6 +602,21 @@ def test_recusa_de_preenchimento_nao_repete_pedido_identico_nem_trava_procuracao
     assert svc.calcular(contexto(svc), cliente(fake))['ok'] is True and len(fake.chamadas) == 1
 
 
+def test_recusa_meses_anteriores_pode_repetir_mesmo_json(svc):
+    """SERPRO usa EntradaIncorreta também quando faltam 06/07 — situação muda sem mudar o JSON."""
+    recusa = r_msg('EntradaIncorreta',
+                   'SN-Entregar: É necessário transmitir as seguintes declarações: 06/2026 e 07/2026.',
+                   400)
+    fake = FakeSerpro(recusa)
+    r = svc.calcular(contexto(svc), cliente(fake))
+    assert r['ok'] is False and len(fake.chamadas) == 1
+
+    # mesmos dados: deve chamar de novo (06/07 podem já ter sido transmitidos)
+    fake = FakeSerpro(r_calculo())
+    r = svc.calcular(contexto(svc), cliente(fake))
+    assert r['ok'] is True and len(fake.chamadas) == 1 and 'já foi recusado' not in (r.get('serpro') or {}).get('mensagem', '')
+
+
 # ------------------- "Houve um problema na transmissão" (caso real 15/09/2026, 17:55)
 def test_problema_na_transmissao_obriga_consulta_antes_de_repetir(svc):
     r = svc.calcular(contexto(svc), cliente(FakeSerpro(r_calculo())))

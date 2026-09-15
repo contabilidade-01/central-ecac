@@ -248,10 +248,11 @@ Ids: 1 Imunidade, 3 Lançamento de ofício, 8 ST, 9 Monofásica, 10 Antecipaçã
 **Próximo Calcular valida.** Se voltar erro de campo, conferir a tabela de domínio no apicenter
 da SERPRO antes de repetir.
 
-**Proteção nova:** pedido IDÊNTICO (mesmo hash) já recusado por erro de preenchimento
-(`EntradaIncorreta` ou "Campo 'x' inválido") nos últimos 7 dias **não é reenviado** — o cliente
-devolve o motivo sem chamar a SERPRO. Esse tipo de erro também não conta para a trava de
-procuração. Mudou o lançamento → hash novo → pode enviar.
+**Proteção:** pedido IDÊNTICO já recusado por **"Campo 'x' inválido"** nos últimos 7 dias
+**não é reenviado** (mesmo JSON = mesmo erro). Outras recusas (ex.: “é necessário transmitir
+06/2026 e 07/2026”) **podem** ser repetidas — a situação na Receita muda sem alterar o JSON.
+`EntradaIncorreta` sozinho **não** bloqueia repetição (a SERPRO usa esse código também para
+pendência de meses anteriores). Mudou o lançamento → hash novo → pode enviar.
 
 **Caso real 15/09/2026 17:55 (Rafael 08/2026):** Calcular OK com `qualificacoesTributarias`; o Enviar
 voltou `SN-Entregar: Houve um problema na transmissão. Tente novamente mais tarde.` (HTTP normal,

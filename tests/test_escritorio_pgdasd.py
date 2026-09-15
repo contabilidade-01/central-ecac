@@ -768,3 +768,30 @@ def test_rota_datas_inicio(http, svc):
     r = http.post('/escritorio/api/pgdasd/datas-inicio',
                   json={'cnpj': CNPJ, 'competencia': COMP, 'inicio_atividade': '2026-08', 'inicio_simples': '2026-01'})
     assert r.status_code == 400
+
+
+# ------------------------- empresa sem NF na competência (abriu 05/06/2026, 16/09/2026)
+def test_incluir_empresa_sem_nf_cria_lancamento_zerado_e_declara_sem_movimento(http, svc):
+    from app.escritorio_models import EscritorioLancamento
+    _datas('2026-06', '2026-06')
+    r = http.get('/escritorio/simples/transmitir?competencia=2026-06')
+    assert 'Incluir empresa sem NF (1)' in r.get_data(as_text=True)
+
+    empresa_id = contexto(svc).company.id
+    r = http.post('/escritorio/api/lancamentos/incluir',
+                  json={'company_id': empresa_id, 'competencia': '2026-06', 'sem_movimento_conferido': True})
+    assert r.status_code == 200 and r.json['ok']
+    lanc = EscritorioLancamento.query.filter_by(cnpj=CNPJ, competencia='2026-06').one()
+    assert lanc.ok is True and lanc.total_receita == 0
+
+    r = http.post('/escritorio/api/lancamentos/incluir', json={'company_id': empresa_id, 'competencia': '2026-06'})
+    assert r.status_code == 409                                   # não duplica
+    r = http.post('/escritorio/api/lancamentos/incluir', json={'company_id': empresa_id, 'competencia': '2099-01'})
+    assert r.status_code == 400                                   # competência futura
+
+    ctx = svc.carregar(CNPJ, '2026-06', 'teste')
+    dados, bloqueios, avisos = svc.montar_declaracao(ctx)
+    assert bloqueios == [] and ctx.rba['exigidos'] == []           # abriu no próprio PA: nada anterior
+    assert dados['declaracao']['receitaPaCompetenciaInterno'] == 0
+    assert dados['declaracao']['estabelecimentos'] == [{'cnpjCompleto': CNPJ}]
+    assert any('SEM MOVIMENTO' in a for a in avisos)

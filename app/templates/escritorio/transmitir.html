@@ -91,6 +91,7 @@ body.light .confirma-lista.bloq{color:#b91c1c} body.light .confirma-lista.aviso{
       </form>
     </div>
     <div class="toolbar-right">
+      {% if sem_lancamento %}<button type="button" class="btn-sec" id="btnIncluirEmpresa" title="Empresa sem NF na competência: declaração sem movimento ou receita digitada em Lançamentos">➕ Incluir empresa sem NF ({{ sem_lancamento|length }})</button>{% endif %}
       <button type="button" class="btn-sec" onclick="document.querySelectorAll('.chkEmpresa:not([disabled])').forEach(c=>c.checked=true)">Selecionar todos</button>
       <button type="button" class="btn-sec" onclick="document.querySelectorAll('.chkEmpresa').forEach(c=>c.checked=false)">Limpar seleção</button>
       <button type="button" class="btn-smart js-lote" data-lote="calcular" title="TRANSDECLARACAO11 sem transmitir: devolve os valores devidos">🧮 Calcular selecionadas</button>
@@ -190,6 +191,49 @@ body.light .confirma-lista.bloq{color:#b91c1c} body.light .confirma-lista.aviso{
   </div>
 </div>
 
+{% if sem_lancamento %}
+<div class="confirma-overlay" id="incluirOverlay" role="dialog" aria-modal="true" aria-labelledby="incluirTitulo">
+  <div class="confirma-box">
+    <h3 id="incluirTitulo">Incluir empresa sem NF em {{ competencia }}</h3>
+    <div class="sub">Cria um lançamento zerado. Não chama a SERPRO.</div>
+    <label class="confirma-extra">Empresa
+      <select id="incluirEmpresa">
+        {% for e in sem_lancamento %}<option value="{{ e.id }}">{{ e.razao }} — {{ e.cnpj }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="confirma-check"><input type="checkbox" id="incluirSemMovimento"> Sem movimento em {{ competencia }} (receita zero) — já marcar como conferido (OK)</label>
+    <p class="custo-nota">Teve receita sem NF lida? Deixe desmarcado, digite os valores em Lançamentos e marque OK lá.</p>
+    <div class="confirma-botoes">
+      <button type="button" class="btn-sec" id="incluirCancelar">Cancelar</button>
+      <button type="button" class="btn-primario" id="incluirOk">Incluir</button>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var ov = document.getElementById('incluirOverlay');
+  document.getElementById('btnIncluirEmpresa').addEventListener('click', function () { ov.classList.add('show'); });
+  document.getElementById('incluirCancelar').addEventListener('click', function () { ov.classList.remove('show'); });
+  document.getElementById('incluirOk').addEventListener('click', async function () {
+    var b = this; b.disabled = true;
+    var semMov = document.getElementById('incluirSemMovimento').checked;
+    try {
+      var r = await fetch({{ url_incluir|tojson }}, {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_id: parseInt(document.getElementById('incluirEmpresa').value, 10),
+          competencia: {{ competencia|tojson }}, sem_movimento_conferido: semMov })
+      });
+      var j = {}; try { j = await r.json(); } catch (e) {}
+      if (!r.ok || !j.ok) throw new Error(j.mensagem || ('HTTP ' + r.status));
+      if (semMov) { window.location.reload(); } else { window.location.href = j.url_lancamentos; }
+    } catch (e) {
+      b.disabled = false; ov.classList.remove('show');
+      mostrarAlerta('error', 'Não foi possível incluir', e.message);
+    }
+  });
+})();
+</script>
+{% endif %}
 <div class="confirma-overlay" id="confirmaOverlay" role="dialog" aria-modal="true" aria-labelledby="confirmaTitulo">
   <div class="confirma-box">
     <h3 id="confirmaTitulo">Confirmar</h3>

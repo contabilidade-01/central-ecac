@@ -500,7 +500,56 @@ def transmitir():
         cfg=_config_sistema(),
         custos={k: float(v) for k, v in CUSTO_ESTIMADO.items()},
         api_pgdasd=url_for('escritorio.api_pgdasd_estado').rsplit('/', 1)[0],
+        sem_lancamento=_empresas_sem_lancamento(competencia, cnpjs),
+        url_incluir=url_for('escritorio.api_lancamento_incluir'),
     )
+
+
+def _empresas_sem_lancamento(competencia: str, cnpjs_com_lancamento) -> list:
+    """Empresas ticadas e ativas do Escritório sem lançamento na competência (ex.: mês sem NF)."""
+    from app.models import Company
+    ids = _ids_empresas_escritorio()
+    q = Company.query.filter(Company.ativo.is_(True), Company.id.in_(ids or [-1]))
+    ja = set(cnpjs_com_lancamento or [])
+    return [{'id': c.id, 'razao': c.razao_social, 'cnpj': _fmt_cnpj(c.cnpj)}
+            for c in q.order_by(Company.razao_social.asc()).all() if c.cnpj not in ja]
+
+
+@escritorio_bp.post('/api/lancamentos/incluir')
+def api_lancamento_incluir():
+    """Cria lançamento ZERADO (perfil comércio) para empresa sem NF na competência.
+
+    Serve para declaração sem movimento ou para digitar a receita em Lançamentos.
+    Não chama a SERPRO. Body: {company_id, competencia, sem_movimento_conferido}.
+    """
+    from app.escritorio_models import EscritorioLancamento
+    from app.models import Company
+    corpo = request.get_json(silent=True) or {}
+    competencia = str(corpo.get('competencia') or '')
+    if not re.fullmatch(r'\d{4}-(0[1-9]|1[0-2])', competencia):
+        return jsonify({'ok': False, 'mensagem': 'Competência inválida (AAAA-MM).'}), 400
+    atual = date.today().strftime('%Y-%m')
+    if competencia >= atual:
+        return jsonify({'ok': False, 'mensagem': 'Só competências já encerradas.'}), 400
+    try:
+        company_id = int(corpo.get('company_id') or 0)
+    except (TypeError, ValueError):
+        company_id = 0
+    if company_id not in (_ids_empresas_escritorio() or []):
+        return jsonify({'ok': False, 'mensagem': 'Empresa fora do Escritório ou não liberada para o seu usuário.'}), 403
+    empresa = db.session.get(Company, company_id)
+    if empresa is None or not empresa.ativo:
+        return jsonify({'ok': False, 'mensagem': 'Empresa não encontrada ou inativa.'}), 404
+    if EscritorioLancamento.query.filter_by(cnpj=empresa.cnpj, competencia=competencia).first():
+        return jsonify({'ok': False, 'mensagem': 'A empresa já tem lançamento nessa competência.'}), 409
+    lanc = EscritorioLancamento(company_id=empresa.id, cnpj=empresa.cnpj, competencia=competencia,
+                                perfil='comercio', origem='manual',
+                                ok=bool(corpo.get('sem_movimento_conferido')),
+                                atualizado_por=_nome_usuario() or None)
+    db.session.add(lanc)
+    db.session.commit()
+    return jsonify({'ok': True, 'id': lanc.id,
+                    'url_lancamentos': url_for('escritorio.lancamentos', competencia=competencia)})
 
 
 @escritorio_bp.get('/simples/rbt12')

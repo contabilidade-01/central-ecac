@@ -66,7 +66,7 @@ CT-e e inutilizações **não entram na receita** (só aviso no cabeçalho).
 | Ler XML NFe `/escritorio/xml/nfe` | **Funcional** (leitura no browser) |
 | NCM × CST `/escritorio/ncm` | **Funcional** (admin edita; **88** regras na carga inicial — Jean deve revisar; autopeças faltando) |
 | Lançamentos `/escritorio/simples/lancamentos` | **Funcional** sobre a memória |
-| Transmitir `/escritorio/simples/transmitir` | **Código + 47 testes OK** (perfil comércio): Pré-visualizar, Calcular, Enviar, Retificar, Consultar, Gerar DAS, buscar declaração/recibo, lote, ZIP — `/escritorio/api/pgdasd/*`. **1º caso real SERPRO ainda não validado** |
+| Transmitir `/escritorio/simples/transmitir` | **Código + 48 testes OK** (perfil comércio): Pré-visualizar, Calcular, Enviar, Retificar, Consultar, Gerar DAS, buscar declaração/recibo, lote, ZIP — `/escritorio/api/pgdasd/*`. **1º caso real SERPRO ainda não validado** |
 | Empresas `/escritorio/empresas` | **Funcional** — ticar empresas do cadastro (`escritorio_empresas`); também checkbox **Escritório** nos cards de `/?aba=configuracoes`. Filtros (razão/CNPJ, Incluídas/Fora, Ativas/Inativas — lembrados no navegador) + **Marcar todos / Desmarcar todos** das visíveis, com confirmação (`tests/test_escritorio_empresas_lote.py`) |
 | Upload PGDAS-D `/escritorio/simples/rbt12` | **Funcional** — PDF+OCR (`pgdas_leitor.js` v16) → `POST /escritorio/api/pgdas/importar` |
 | Caminhos / ÚTEIS / NFS-e | UI sem mock de empresa; ações ainda “Ação pendente” |
@@ -286,6 +286,15 @@ botão "Salvar datas (grátis)" (`POST /escritorio/api/pgdasd/datas-inicio`).
 esses PAs constarem como transmitidos no Central (Transmitir, Consultar ou Lançamentos transmitido) ou o
 usuário marcar "já transmiti fora do Central" (`confirmar_pendencias`). Aviso preventivo lista PAs desde o
 início no Simples ainda não confirmados. (Substitui o "repetir sempre" do PR #2 por "repetir quando resolvido".)
+
+### Empresa sem NF na competência (16/09/2026)
+
+A lista do Transmitir vem de `escritorio_lancamentos` (criados pelo Ler XML). Mês sem NF (ex.: empresa
+aberta em 05/06/2026) não aparecia. Botão **➕ Incluir empresa sem NF (n)** no Transmitir →
+`POST /escritorio/api/lancamentos/incluir {company_id, competencia, sem_movimento_conferido}`: cria
+lançamento **zerado** (comércio, `origem='manual'`) para empresa ticada/ativa, competência encerrada, sem
+duplicar. Marcado "sem movimento" → já vai com OK e a declaração sai com receita 0 e
+`estabelecimentos=[{cnpjCompleto}]`. Desmarcado → abre Lançamentos para digitar a receita e marcar OK.
 
 ### Pendências / limitações conhecidas
 

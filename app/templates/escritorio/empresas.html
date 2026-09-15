@@ -1,0 +1,104 @@
+{% extends 'escritorio/_base.html' %}
+{% block titulo %}Empresas • Cadastro e gestão{% endblock %}
+{% block css %}{% include 'escritorio/_modulo.css' %}
+html{zoom:90%}
+.chip-cfg{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.35);color:#a5b4fc;text-decoration:none}
+body.light .chip-cfg{color:#4338ca}
+.aviso{padding:12px 14px;border-radius:14px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.45}
+.aviso a{color:var(--g3);font-weight:800}
+.switch-emp{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:var(--text);cursor:pointer}
+.switch-emp input{width:18px;height:18px;accent-color:#7c3aed}
+.badge-off{opacity:.55}
+table.lista{min-width:780px}
+{% endblock %}
+{% block corpo %}
+<header class="topo">
+  <div class="topbar">
+    <div class="brand-wrap">
+      <div class="brand-badge"><i class="fa-solid fa-building"></i></div>
+      <div class="brand-text">
+        <h1>Empresas • Cadastro e gestão</h1>
+        <p>Ticar para incluir no Escritório{% if cfg and cfg.office_name %} · {{ cfg.office_name }}{% endif %}</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      {% if cfg %}<a class="chip-cfg" href="{{ cfg.url_configuracoes }}" target="_top"><i class="fa-solid fa-gear"></i> Configurações (cadastrar)</a>{% endif %}
+      <button type="button" id="themeToggle" title="Alternar tema">🌙</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="metrics-grid auto" style="margin-bottom:14px">
+    <div class="metric-card"><div class="metric-label">No cadastro</div><div class="metric-value">{{ m.total }}</div><div class="metric-sub">Visíveis para você</div></div>
+    <div class="metric-card"><div class="metric-label">No Escritório</div><div class="metric-value">{{ m.incluidos }}</div><div class="metric-sub">Ticadas</div></div>
+    <div class="metric-card"><div class="metric-label">Ativas</div><div class="metric-value">{{ m.ativos }}</div><div class="metric-sub">Flag ativo no cadastro</div></div>
+  </div>
+
+  <div class="aviso">
+    Cadastro (razão, CNPJ, ativo) fica em <a href="{{ cfg.url_configuracoes if cfg else '/?aba=configuracoes' }}" target="_top">Configurações</a>.
+    Aqui — ou na mesma aba Configurações — você <b>tica</b> quais entram no Escritório (Lançamentos, Transmitir, Caminhos…).
+  </div>
+
+  {% if not empresas %}
+  <div class="vazio" style="padding:28px;text-align:center;border:1px dashed var(--card-border);border-radius:16px;color:var(--muted)">
+    Nenhuma empresa no cadastro. <a href="/?aba=configuracoes" target="_top">Cadastrar em Configurações</a>
+  </div>
+  {% else %}
+  <div class="card" style="padding:0;overflow:auto">
+    <table class="lista">
+      <thead><tr><th>Escritório</th><th>Razão</th><th>CNPJ</th><th>Cadastro</th></tr></thead>
+      <tbody>
+      {% for e in empresas %}
+        <tr class="{{ '' if e.incluso else 'badge-off' }}" data-id="{{ e.id }}" data-ativo="{{ 1 if e.ativo else 0 }}">
+          <td>
+            <label class="switch-emp">
+              <input type="checkbox" class="js-incluso" {{ 'checked' if e.incluso }} {{ '' if e.ativo else 'disabled' }}
+                     title="{{ 'Incluir no Escritório' if e.ativo else 'Ative a empresa em Configurações antes' }}">
+              <span>{{ 'Incluída' if e.incluso else 'Fora' }}</span>
+            </label>
+          </td>
+          <td><strong>{{ e.razao_social }}</strong></td>
+          <td>{{ fmt_cnpj(e.cnpj) }}</td>
+          <td>{% if e.ativo %}<span class="badge badge-ok">ativa</span>{% else %}<span class="badge badge-pend">inativa</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+<div class="toast" id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0f172a;color:#fff;border:1px solid rgba(148,163,184,.3);border-radius:12px;padding:10px 16px;font-weight:700;font-size:13px;display:none;z-index:20050"></div>
+<script>
+(function () {
+  var URL = {{ url_toggle|tojson }};
+  var toast = document.getElementById('toast'), t;
+  function aviso(msg) {
+    toast.textContent = msg; toast.style.display = 'block';
+    clearTimeout(t); t = setTimeout(function () { toast.style.display = 'none'; }, 2200);
+  }
+  document.querySelectorAll('.js-incluso').forEach(function (chk) {
+    chk.addEventListener('change', function () {
+      var tr = chk.closest('tr');
+      var id = parseInt(tr.dataset.id, 10);
+      var incluso = !!chk.checked;
+      chk.disabled = true;
+      fetch(URL, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_id: id, incluso: incluso })
+      }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.ok, j: j }; }); })
+        .then(function (x) {
+          if (!x.ok) { chk.checked = !incluso; aviso(x.j.mensagem || 'Não foi possível salvar.'); return; }
+          tr.classList.toggle('badge-off', !incluso);
+          var span = chk.parentElement.querySelector('span');
+          if (span) span.textContent = incluso ? 'Incluída' : 'Fora';
+          aviso(incluso ? 'Incluída no Escritório.' : 'Removida do Escritório.');
+        })
+        .catch(function () { chk.checked = !incluso; aviso('Falha de rede.'); })
+        .finally(function () { chk.disabled = tr.dataset.ativo !== '1'; });
+    });
+  });
+})();
+</script>
+{% endblock %}

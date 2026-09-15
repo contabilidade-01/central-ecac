@@ -351,6 +351,7 @@ def empresas():
         fmt_cnpj=_fmt_cnpj,
         cfg=_config_sistema(),
         url_toggle=url_for('escritorio.api_empresas_toggle'),
+        url_toggle_lote=url_for('escritorio.api_empresas_toggle_lote'),
     )
 
 
@@ -383,6 +384,30 @@ def api_empresas_toggle():
     except LookupError as exc:
         return jsonify({'ok': False, 'mensagem': str(exc)}), 404
     return jsonify({'ok': True, 'empresa': item})
+
+
+@escritorio_bp.post('/api/empresas/toggle-lote')
+def api_empresas_toggle_lote():
+    """Marcar/desmarcar várias empresas. Body: {company_ids: [..], incluso}."""
+    from app.services import escritorio_empresas as emp
+    corpo = request.get_json(silent=True) or {}
+    ids = []
+    for valor in corpo.get('company_ids') or []:
+        try:
+            ids.append(int(valor))
+        except (TypeError, ValueError):
+            continue
+    if not ids:
+        return jsonify({'ok': False, 'mensagem': 'Nenhuma empresa selecionada.'}), 400
+    if len(ids) > 2000:
+        return jsonify({'ok': False, 'mensagem': 'Limite de 2000 empresas por vez.'}), 400
+    liberadas = _ids_empresas_usuario()
+    if liberadas is not None:
+        fora = [i for i in ids if i not in liberadas]
+        if fora:
+            return jsonify({'ok': False, 'mensagem': 'Há empresas não liberadas para o seu usuário.'}), 403
+    resultado = emp.definir_lote(ids, bool(corpo.get('incluso')), _nome_usuario())
+    return jsonify({'ok': True, **resultado})
 
 
 @escritorio_bp.get('/simples/lancamentos')

@@ -10,6 +10,19 @@ body.light .chip-cfg{color:#4338ca}
 .switch-emp input{width:18px;height:18px;accent-color:#7c3aed}
 .badge-off{opacity:.55}
 table.lista{min-width:780px}
+.filtros-emp{padding:14px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.filtros-emp .grupo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.filtros-emp input,.filtros-emp select{height:40px;border-radius:12px;border:1px solid var(--card-border);background:var(--panel-2);color:var(--text);padding:0 12px;font-family:inherit;font-size:13px}
+.filtros-emp input[type=search]{width:260px;max-width:100%}
+.contador-emp{font-size:12px;font-weight:700;color:var(--muted)}
+.btn-sec[data-busy="1"],.btn-primario[data-busy="1"]{opacity:.55;pointer-events:none}
+th.col-chk{width:44px}
+.confirma-ov{position:fixed;inset:0;background:rgba(2,6,23,.55);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:20060;padding:16px}
+.confirma-ov.show{display:flex}
+.confirma-cx{width:100%;max-width:440px;border-radius:20px;padding:22px;background:var(--panel);border:1px solid var(--card-border);box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.confirma-cx h3{margin:0 0 8px;font-size:17px;color:var(--title)}
+.confirma-cx p{margin:0 0 16px;font-size:13px;color:var(--muted);line-height:1.5;white-space:pre-line}
+.confirma-cx .botoes{display:flex;justify-content:flex-end;gap:10px}
 {% endblock %}
 {% block corpo %}
 <header class="topo">
@@ -31,7 +44,7 @@ table.lista{min-width:780px}
 <div class="container">
   <div class="metrics-grid auto" style="margin-bottom:14px">
     <div class="metric-card"><div class="metric-label">No cadastro</div><div class="metric-value">{{ m.total }}</div><div class="metric-sub">Visíveis para você</div></div>
-    <div class="metric-card"><div class="metric-label">No Escritório</div><div class="metric-value">{{ m.incluidos }}</div><div class="metric-sub">Ticadas</div></div>
+    <div class="metric-card"><div class="metric-label">No Escritório</div><div class="metric-value" id="mIncluidos">{{ m.incluidos }}</div><div class="metric-sub">Ticadas</div></div>
     <div class="metric-card"><div class="metric-label">Ativas</div><div class="metric-value">{{ m.ativos }}</div><div class="metric-sub">Flag ativo no cadastro</div></div>
   </div>
 
@@ -45,12 +58,34 @@ table.lista{min-width:780px}
     Nenhuma empresa no cadastro. <a href="/?aba=configuracoes" target="_top">Cadastrar em Configurações</a>
   </div>
   {% else %}
+  <div class="card filtros-emp">
+    <div class="grupo">
+      <input type="search" id="fBusca" placeholder="Filtrar por razão ou CNPJ" aria-label="Filtrar por razão ou CNPJ" autocomplete="off">
+      <select id="fEscritorio" aria-label="Situação no Escritório">
+        <option value="">Escritório: todas</option>
+        <option value="1">Incluídas</option>
+        <option value="0">Fora</option>
+      </select>
+      <select id="fCadastro" aria-label="Situação no cadastro">
+        <option value="">Cadastro: todas</option>
+        <option value="1">Ativas</option>
+        <option value="0">Inativas</option>
+      </select>
+      <button type="button" class="btn-sec" id="btnLimparFiltros">Limpar filtros</button>
+      <span class="contador-emp" id="contador"></span>
+    </div>
+    <div class="grupo">
+      <button type="button" class="btn-primario" id="btnMarcarTodos" title="Inclui no Escritório todas as empresas ATIVAS visíveis com os filtros">Marcar todos</button>
+      <button type="button" class="btn-sec" id="btnDesmarcarTodos" title="Tira do Escritório todas as empresas visíveis com os filtros">Desmarcar todos</button>
+    </div>
+  </div>
   <div class="card" style="padding:0;overflow:auto">
     <table class="lista">
       <thead><tr><th>Escritório</th><th>Razão</th><th>CNPJ</th><th>Cadastro</th></tr></thead>
       <tbody>
       {% for e in empresas %}
-        <tr class="{{ '' if e.incluso else 'badge-off' }}" data-id="{{ e.id }}" data-ativo="{{ 1 if e.ativo else 0 }}">
+        <tr class="{{ '' if e.incluso else 'badge-off' }}" data-id="{{ e.id }}" data-ativo="{{ 1 if e.ativo else 0 }}"
+            data-incluso="{{ 1 if e.incluso else 0 }}" data-busca="{{ (e.razao_social ~ ' ' ~ e.cnpj ~ ' ' ~ fmt_cnpj(e.cnpj))|lower }}">
           <td>
             <label class="switch-emp">
               <input type="checkbox" class="js-incluso" {{ 'checked' if e.incluso }} {{ '' if e.ativo else 'disabled' }}
@@ -63,20 +98,145 @@ table.lista{min-width:780px}
           <td>{% if e.ativo %}<span class="badge badge-ok">ativa</span>{% else %}<span class="badge badge-pend">inativa</span>{% endif %}</td>
         </tr>
       {% endfor %}
+      <tr id="semResultado" hidden><td colspan="4" style="text-align:center;color:var(--muted);padding:18px">Nenhuma empresa com esses filtros.</td></tr>
       </tbody>
     </table>
   </div>
   {% endif %}
 </div>
+<div class="confirma-ov" id="confirmaOv" role="dialog" aria-modal="true" aria-labelledby="confirmaTit">
+  <div class="confirma-cx">
+    <h3 id="confirmaTit">Confirmar</h3>
+    <p id="confirmaMsg"></p>
+    <div class="botoes">
+      <button type="button" class="btn-sec" id="confirmaNao">Cancelar</button>
+      <button type="button" class="btn-primario" id="confirmaSim">Confirmar</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0f172a;color:#fff;border:1px solid rgba(148,163,184,.3);border-radius:12px;padding:10px 16px;font-weight:700;font-size:13px;display:none;z-index:20050"></div>
 <script>
 (function () {
   var URL = {{ url_toggle|tojson }};
+  var URL_LOTE = {{ url_toggle_lote|tojson }};
   var toast = document.getElementById('toast'), t;
+  var linhas = Array.prototype.slice.call(document.querySelectorAll('tbody tr[data-id]'));
+  var $ = function (id) { return document.getElementById(id); };
+  var CHAVE = 'escritorio_empresas_filtros';
+
   function aviso(msg) {
     toast.textContent = msg; toast.style.display = 'block';
-    clearTimeout(t); t = setTimeout(function () { toast.style.display = 'none'; }, 2200);
+    clearTimeout(t); t = setTimeout(function () { toast.style.display = 'none'; }, 2600);
   }
+  function soDigitos(v) { return String(v || '').replace(/\D/g, ''); }
+
+  function aplicarEstado(tr, incluso) {
+    tr.dataset.incluso = incluso ? '1' : '0';
+    tr.classList.toggle('badge-off', !incluso);
+    var chk = tr.querySelector('.js-incluso');
+    if (chk) chk.checked = incluso;
+    var span = tr.querySelector('.switch-emp span');
+    if (span) span.textContent = incluso ? 'Incluída' : 'Fora';
+  }
+  function atualizarMetrica() {
+    var m = $('mIncluidos');
+    if (m) m.textContent = linhas.filter(function (tr) { return tr.dataset.incluso === '1'; }).length;
+  }
+
+  // ------------------------------------------------------------------ filtros
+  function visiveis() { return linhas.filter(function (tr) { return !tr.hidden; }); }
+  function filtrar() {
+    if (!$('fBusca')) return;
+    var q = $('fBusca').value.trim().toLowerCase();
+    var qd = soDigitos(q);
+    var esc = $('fEscritorio').value, cad = $('fCadastro').value;
+    var n = 0;
+    linhas.forEach(function (tr) {
+      var texto = tr.dataset.busca || '';
+      var casa = !q || texto.indexOf(q) >= 0 || (qd.length >= 2 && soDigitos(texto).indexOf(qd) >= 0);
+      var mostra = casa && (!esc || tr.dataset.incluso === esc) && (!cad || tr.dataset.ativo === cad);
+      tr.hidden = !mostra;
+      if (mostra) n++;
+    });
+    $('semResultado').hidden = n > 0;
+    $('contador').textContent = n === linhas.length ? linhas.length + ' empresa(s)' : n + ' de ' + linhas.length + ' empresa(s)';
+    try { localStorage.setItem(CHAVE, JSON.stringify({ q: $('fBusca').value, esc: esc, cad: cad })); } catch (e) {}
+  }
+  if ($('fBusca')) {
+    try {
+      var salvo = JSON.parse(localStorage.getItem(CHAVE) || '{}');
+      $('fBusca').value = salvo.q || ''; $('fEscritorio').value = salvo.esc || ''; $('fCadastro').value = salvo.cad || '';
+    } catch (e) {}
+    ['fBusca', 'fEscritorio', 'fCadastro'].forEach(function (id) {
+      $(id).addEventListener('input', filtrar); $(id).addEventListener('change', filtrar);
+    });
+    $('btnLimparFiltros').addEventListener('click', function () {
+      $('fBusca').value = ''; $('fEscritorio').value = ''; $('fCadastro').value = ''; filtrar(); $('fBusca').focus();
+    });
+    filtrar();
+  }
+
+  // ------------------------------------------------------------ confirmação
+  function confirmar(titulo, msg, botao) {
+    return new Promise(function (resolve) {
+      var ov = $('confirmaOv');
+      $('confirmaTit').textContent = titulo; $('confirmaMsg').textContent = msg; $('confirmaSim').textContent = botao;
+      function fim(v) { ov.classList.remove('show'); document.removeEventListener('keydown', tecla); resolve(v); }
+      function tecla(e) { if (e.key === 'Escape') fim(false); }
+      $('confirmaSim').onclick = function () { fim(true); };
+      $('confirmaNao').onclick = function () { fim(false); };
+      document.addEventListener('keydown', tecla);
+      ov.classList.add('show'); $('confirmaSim').focus();
+    });
+  }
+
+  // -------------------------------------------------------- marcar em lote
+  function setBusy(on) {
+    ['btnMarcarTodos', 'btnDesmarcarTodos'].forEach(function (id) {
+      var b = $(id); if (!b) return;
+      if (on) b.setAttribute('data-busy', '1'); else b.removeAttribute('data-busy');
+    });
+  }
+  async function lote(incluso) {
+    var alvo = visiveis().filter(function (tr) {
+      return incluso ? (tr.dataset.ativo === '1' && tr.dataset.incluso !== '1') : tr.dataset.incluso === '1';
+    });
+    var inativas = incluso ? visiveis().filter(function (tr) { return tr.dataset.ativo !== '1'; }).length : 0;
+    if (!alvo.length) {
+      aviso(incluso ? 'Todas as empresas ativas visíveis já estão incluídas.' : 'Nenhuma empresa visível está incluída.');
+      return;
+    }
+    var filtrado = visiveis().length !== linhas.length;
+    var msg = (incluso ? 'Incluir ' : 'Tirar ') + alvo.length + ' empresa(s) ' + (incluso ? 'no' : 'do') + ' Escritório' +
+      (filtrado ? ' (só as visíveis com os filtros atuais).' : '.') +
+      (inativas ? '\n' + inativas + ' inativa(s) no cadastro não serão marcadas.' : '');
+    if (!await confirmar(incluso ? 'Marcar todos' : 'Desmarcar todos', msg, incluso ? 'Marcar' : 'Desmarcar')) return;
+    setBusy(true);
+    try {
+      var ids = alvo.map(function (tr) { return parseInt(tr.dataset.id, 10); });
+      var r = await fetch(URL_LOTE, {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_ids: ids, incluso: incluso })
+      });
+      var j = {}; try { j = await r.json(); } catch (e) {}
+      if (!r.ok || !j.ok) { aviso(j.mensagem || ('Não foi possível salvar (HTTP ' + r.status + ').')); return; }
+      var pulados = {};
+      (j.pulados_inativos || []).concat(j.nao_encontrados || []).forEach(function (id) { pulados[id] = true; });
+      alvo.forEach(function (tr) { if (!pulados[parseInt(tr.dataset.id, 10)]) aplicarEstado(tr, incluso); });
+      atualizarMetrica(); filtrar();
+      aviso((incluso ? 'Incluídas: ' : 'Removidas: ') + (alvo.length - Object.keys(pulados).length) + ' empresa(s).');
+    } catch (e) {
+      aviso('Falha de rede.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  if ($('btnMarcarTodos')) {
+    $('btnMarcarTodos').addEventListener('click', function () { lote(true); });
+    $('btnDesmarcarTodos').addEventListener('click', function () { lote(false); });
+  }
+
+  // ------------------------------------------------------ checkbox individual
   document.querySelectorAll('.js-incluso').forEach(function (chk) {
     chk.addEventListener('change', function () {
       var tr = chk.closest('tr');
@@ -90,9 +250,7 @@ table.lista{min-width:780px}
       }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.ok, j: j }; }); })
         .then(function (x) {
           if (!x.ok) { chk.checked = !incluso; aviso(x.j.mensagem || 'Não foi possível salvar.'); return; }
-          tr.classList.toggle('badge-off', !incluso);
-          var span = chk.parentElement.querySelector('span');
-          if (span) span.textContent = incluso ? 'Incluída' : 'Fora';
+          aplicarEstado(tr, incluso); atualizarMetrica(); filtrar();
           aviso(incluso ? 'Incluída no Escritório.' : 'Removida do Escritório.');
         })
         .catch(function () { chk.checked = !incluso; aviso('Falha de rede.'); })

@@ -67,7 +67,7 @@ CT-e e inutilizações **não entram na receita** (só aviso no cabeçalho).
 | NCM × CST `/escritorio/ncm` | **Funcional** (admin edita; **88** regras na carga inicial — Jean deve revisar; autopeças faltando) |
 | Lançamentos `/escritorio/simples/lancamentos` | **Funcional** sobre a memória |
 | Transmitir `/escritorio/simples/transmitir` | **Código + 31 testes OK** (perfil comércio): Pré-visualizar, Calcular, Enviar, Retificar, Consultar, Gerar DAS, buscar declaração/recibo, lote, ZIP — `/escritorio/api/pgdasd/*`. **1º caso real SERPRO ainda não validado** |
-| Empresas `/escritorio/empresas` | **Funcional** — ticar empresas do cadastro (`escritorio_empresas`); também checkbox **Escritório** nos cards de `/?aba=configuracoes` |
+| Empresas `/escritorio/empresas` | **Funcional** — ticar empresas do cadastro (`escritorio_empresas`); também checkbox **Escritório** nos cards de `/?aba=configuracoes`. Filtros (razão/CNPJ, Incluídas/Fora, Ativas/Inativas — lembrados no navegador) + **Marcar todos / Desmarcar todos** das visíveis, com confirmação (`tests/test_escritorio_empresas_lote.py`) |
 | Upload PGDAS-D `/escritorio/simples/rbt12` | **Funcional** — PDF+OCR (`pgdas_leitor.js` v16) → `POST /escritorio/api/pgdas/importar` |
 | Caminhos / ÚTEIS / NFS-e | UI sem mock de empresa; ações ainda “Ação pendente” |
 | Configuração Escritório | **Removida** — usa Configurações do sistema (`AppSetting`); template/rota apagados |
@@ -136,6 +136,7 @@ diferença = total + outras_receitas + devolucoes - saldo_sefaz
 | POST | `/escritorio/api/lancamentos/salvar` | Salvar na Memória (do leitor NFe) |
 | POST | `/escritorio/api/lancamentos/linha` | Salvar linha da tela Lançamentos |
 | POST | `/escritorio/api/empresas/toggle` | Ticar/desmarcar empresa no Escritório `{company_id, incluso}` |
+| POST | `/escritorio/api/empresas/toggle-lote` | Marcar/desmarcar várias `{company_ids:[..], incluso}` — um commit; ao incluir pula inativas (`pulados_inativos`) |
 | GET | `/escritorio/api/empresas` | Lista cadastro + flag `incluso` (Configurações injeta checkbox) |
 | POST | `/escritorio/api/pgdas/importar` | Histórico RBT12 (payload do leitor PDF) |
 | GET | `/escritorio/api/pgdas/rbt12?cnpj=&pa=` | Consulta RBT12 / suficiência |

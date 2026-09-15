@@ -12,26 +12,60 @@ body.light .container{box-shadow:0 20px 60px rgba(0,0,0,.08)}
 #themeToggle{padding:6px 12px;font-size:14px;border-radius:8px;margin:0;border:none;cursor:pointer;color:#fff;background:linear-gradient(90deg,var(--brand),var(--brand-2))}
 h1{text-align:center;color:var(--brand-2);font-size:1.6rem;margin:0 0 4px 0;letter-spacing:1px}
 body.light h1{color:#0891b2}
-.versao{text-align:center;color:var(--muted);font-size:.82rem;margin-bottom:20px}
-.dropzone{border:2px dashed var(--brand);border-radius:14px;text-align:center;padding:48px 15px;color:var(--muted);font-size:1rem;cursor:pointer;background:rgba(255,255,255,.02);transition:.3s}
-.dropzone:hover{background:rgba(79,125,240,.08);box-shadow:0 0 25px rgba(79,125,240,.25)}
-.btn-imp{display:block;margin:25px auto 10px auto;background:linear-gradient(90deg,var(--brand),var(--brand-2));color:#fff;border:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:1rem;cursor:pointer;transition:.3s;box-shadow:0 0 15px rgba(0,183,255,.3);font-family:inherit;opacity:.55}
-.aviso{margin-top:14px;padding:12px 14px;border-radius:10px;border:1px solid rgba(148,163,184,.25);background:rgba(148,163,184,.08);color:var(--muted);font-size:.9rem;text-align:center}
+.versao{text-align:center;color:var(--muted);font-size:.82rem;margin-bottom:16px}
+.dropzone{border:2px dashed var(--brand);border-radius:14px;text-align:center;padding:40px 15px;color:var(--muted);font-size:1rem;cursor:pointer;background:rgba(255,255,255,.02);transition:.3s}
+.dropzone:hover,.dropzone.dragover{background:rgba(79,125,240,.08);box-shadow:0 0 25px rgba(79,125,240,.25)}
+#progress{height:6px;border-radius:999px;background:linear-gradient(90deg,var(--brand),var(--brand-2));width:0;margin:12px 0 0;transition:width .2s}
+.btn-imp{display:none;margin:20px auto 10px auto;background:linear-gradient(90deg,var(--brand),var(--brand-2));color:#fff;border:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:1rem;cursor:pointer;transition:.3s;box-shadow:0 0 15px rgba(0,183,255,.3);font-family:inherit}
+.btn-imp:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.aviso{margin-top:14px;padding:12px 14px;border-radius:10px;border:1px solid rgba(148,163,184,.25);background:rgba(148,163,184,.08);color:var(--muted);font-size:.9rem}
+.aviso.ok{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.1);color:#86efac}
+.aviso.err,.aviso .err,span[style*="danger"]{color:#fca5a5}
+.aviso.ok strong,.highlight{color:var(--brand-2);font-weight:800}
+#resultado table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.85rem}
+#resultado th,#resultado td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+#resultado th{color:var(--muted);font-size:.75rem}
+#resultado .highlight{color:var(--brand-2);font-weight:800}
+#resultado .ok,#resultado .warn,#resultado .danger{padding:8px 10px;border-radius:8px;margin:8px 0;font-size:.85rem}
+#resultado .ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3)}
+#resultado .warn{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3)}
+#resultado .danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3)}
 {% endblock %}
 {% block corpo %}
 <div class="container">
-  <div class="tema"><span class="chip-exemplo" style="background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:#86efac">Aguardando importação real</span><button id="themeToggle" type="button">🌙</button></div>
+  <div class="tema">
+    <span class="chip-exemplo" style="background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:#86efac">PDF + OCR → RBT12</span>
+    <button id="themeToggle" type="button">🌙</button>
+  </div>
   <h1>Importar Lançamentos - PGDAS-D</h1>
-  <div class="versao">Leitor de extrato, declaração ou apuração do Simples Nacional</div>
+  <div class="versao">Leitor v16 · Extrato / Declaração / Apuração (texto ou escaneado). Sem RBT12, Calcular DAS / transmitir falha.</div>
 
-  <div class="dropzone" role="button" tabindex="0" data-acao="Selecionar PDF do PGDAS-D">
+  <div class="dropzone" id="dropzone" role="button" tabindex="0">
     Arraste o arquivo PDF aqui ou clique para selecionar<br><br>
     <small>Formatos aceitos: .pdf — Extrato, Declaração ou Apuração do Simples Nacional</small>
   </div>
+  <input type="file" id="fileInput" accept=".pdf,application/pdf" hidden>
+  <div id="progress"></div>
 
   <div id="resultado" class="aviso">
-    Nenhum PDF lido ainda. Quando a importação for ligada, o RBT12 e a folha entram na memória da empresa cadastrada.
+    Nenhum PDF lido ainda. Cadastre a empresa antes de importar. O histórico alimenta a coluna <b>RBT12</b> em Transmitir.
   </div>
-  <button class="btn-imp" type="button" data-acao="Importar lançamentos" disabled>IMPORTAR LANÇAMENTOS</button>
+  <button class="btn-imp" id="btnImportar" type="button" disabled>IMPORTAR LANÇAMENTOS</button>
+  <div id="status" class="aviso" style="display:none"></div>
 </div>
+{% endblock %}
+{% block js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js";
+</script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+window.RBT12_CFG = {
+  urlImportar: {{ url_importar|tojson }}
+};
+</script>
+<script>
+{% include 'escritorio/pgdas_leitor.js' %}
+</script>
 {% endblock %}

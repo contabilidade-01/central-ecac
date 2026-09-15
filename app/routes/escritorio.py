@@ -2,15 +2,20 @@
 
 ⚠️ DESVIO INTENCIONAL (17o) — NÃO existe no exe. Pedido do Jean em 15/09/2026: trazer
 para o Central e-CAC as telas de escritório que ele usa no Integra Contador (painel de
-cards, Configuração, Lançamentos, Transmitir PGDAS-D, Caminhos XML, leitores de NFS-e e
-NF-e, Upload PGDAS-D e Declaração de Faturamento/Envio do DAS).
+cards, Lançamentos, Transmitir PGDAS-D, Caminhos XML, leitores de NFS-e e NF-e,
+Upload PGDAS-D e Declaração de Faturamento/Envio do DAS).
+
+Identidade do escritório / certificado A1 / chaves SERPRO: **não** há tela própria —
+reusa `AppSetting` (menu Configurações do sistema). Card "Configuração • Dados do
+Escritório" está oculto.
 
 Primeira etapa = modelagem visual (dados de exemplo, sem ações, nada chama a SERPRO).
 As funções entram tela a tela, na ordem de prioridade que o Jean definir.
 
 Já funcional: **Ler XML NFe** (`/escritorio/xml/nfe`) + tabela NCM × CST (`/escritorio/ncm`)
 + **Lançamentos** (`/escritorio/simples/lancamentos`) lendo/gravando a memória.
-Transmitir PGDAS-D lista os dados reais; cálculo/envio SERPRO fica para a etapa 2.
+**Transmitir PGDAS-D**: Calcular → Enviar/Retificar → Consultar → Gerar DAS pela SERPRO em
+`/escritorio/api/pgdasd/*` (regras de custo em `services/escritorio_pgdasd.py`).
 
 Organização
 -----------
@@ -109,12 +114,65 @@ def _ids_empresas_usuario():
     return [int(e) for e in (liberadas or [])]
 
 
+def _config_sistema() -> dict:
+    """Credenciais/identidade do escritório = Configurações gerais (`AppSetting`).
+
+    A aba Escritório NÃO tem cadastro próprio de certificado/CNPJ/chave SERPRO.
+    Tudo que for emitir DAS / autenticar na Integra Contador reusa o mesmo registro
+    que DAS Lote, Caixa Postal, etc.
+    """
+    from pathlib import Path
+
+    from app.models import AppSetting
+    from app.services import certificado as cert_svc
+
+    s = AppSetting.query.first()
+    if not s:
+        return {
+            'office_name': '',
+            'contador_cnpj': '',
+            'contador_cnpj_fmt': '',
+            'tem_certificado': False,
+            'tem_serpro': False,
+            'tem_contador': False,
+            'pronto_serpro': False,
+            'procurador_pf': False,
+            'url_configuracoes': '/?aba=configuracoes',
+        }
+
+    cnpj = re.sub(r'\D', '', s.contador_cnpj or '')
+    path_gravado = (s.certificado_path or '').strip()
+    tem_cert = False
+    if path_gravado:
+        try:
+            tem_cert = Path(cert_svc.resolver(path_gravado)).is_file()
+        except Exception:
+            tem_cert = Path(path_gravado).is_file()
+    tem_serpro = bool((s.serpro_consumer_key or '').strip()
+                      and (s.serpro_consumer_secret or '').strip())
+    tem_contador = len(cnpj) in (11, 14)
+    # senha precisa existir para autenticar (não exibimos o valor)
+    tem_senha = bool((s.certificado_password or '').strip())
+    return {
+        'office_name': (s.office_name or '').strip(),
+        'contador_cnpj': cnpj,
+        'contador_cnpj_fmt': _fmt_cnpj(cnpj) if len(cnpj) == 14 else cnpj,
+        'tem_certificado': tem_cert and tem_senha,
+        'tem_serpro': tem_serpro,
+        'tem_contador': tem_contador,
+        'pronto_serpro': tem_cert and tem_senha and tem_serpro and tem_contador,
+        'procurador_pf': bool(s.procurador_pf_habilitado),
+        'url_configuracoes': '/?aba=configuracoes',
+    }
+
+
 # Cards do painel, na mesma ordem e cor do original. `rota` = tela já modelada;
 # sem rota, o card aparece igual mas avisa que a tela ainda não foi modelada.
 CARDS = [
     {'titulo': 'Empresas', 'sub': 'Cadastro e gestão', 'cor': ('#5b21b6', '#7c3aed')},
-    {'titulo': 'Configuração', 'sub': 'Dados do Escritório', 'cor': ('#581c87', '#7e22ce'),
-     'rota': 'configuracao', 'cert': True},
+    # Oculto: Configuração própria do Escritório — usar Configurações do sistema
+    # ({'titulo': 'Configuração', 'sub': 'Dados do Escritório', 'cor': ('#581c87', '#7e22ce'),
+    #  'rota': 'configuracao', 'cert': True}),
     {'titulo': 'Simples Nacional', 'sub': 'Lançamentos', 'cor': ('#064e3b', '#065f46'),
      'rota': 'simples/lancamentos'},
     {'titulo': 'Simples Nacional', 'sub': 'Enviar PGDAS-D', 'cor': ('#064e3b', '#065f46'),
@@ -168,11 +226,13 @@ def _contexto(**extra):
     """Contexto das telas do Escritório — só empresas reais do cadastro + memória."""
     from app.models import Company
     from app.services import escritorio_lancamentos as svc
+    from app.services import escritorio_pgdas as pgdas
 
     competencia = _competencia()
     empresa_ids = _ids_empresas_usuario()
     dados_mem = svc.listar_competencia(competencia, empresa_ids=empresa_ids)
     por_cnpj = {e['cnpj']: e for e in dados_mem['empresas']}
+    rbt12_map = pgdas.rbt12_em_lote(list(por_cnpj.keys()), competencia)
 
     q = Company.query.filter_by(ativo=True).order_by(Company.razao_social.asc())
     if empresa_ids is not None:
@@ -200,7 +260,7 @@ def _contexto(**extra):
             'perfil': (mem['perfis'][0]['perfil'] if mem and mem['perfis'] else 'comercio'),
             'perfil_nome': (mem['perfis'][0]['perfil_nome'] if mem and mem['perfis'] else 'Comércio'),
             'receita': receita,
-            'rbt12': 0.0,
+            'rbt12': rbt12_map.get(c.cnpj, 0.0),
             'das': 0.0,
             'aliq': 0.0,
             'ok': ok,
@@ -223,7 +283,7 @@ def _contexto(**extra):
             'perfil': mem['perfis'][0]['perfil'] if mem['perfis'] else 'comercio',
             'perfil_nome': mem['perfis'][0]['perfil_nome'] if mem['perfis'] else 'Comércio',
             'receita': receita,
-            'rbt12': 0.0,
+            'rbt12': rbt12_map.get(cnpj, 0.0),
             'das': 0.0,
             'aliq': 0.0,
             'ok': bool(mem.get('ok')),
@@ -247,6 +307,7 @@ def _contexto(**extra):
               'p_err': _pct(erros, total), 'p_pend': _pct(pendentes, total)},
         'moeda': _moeda,
         'dados_reais': True,
+        'cfg': _config_sistema(),
     }
     base.update(extra)
     return base
@@ -257,12 +318,12 @@ def _contexto(**extra):
 @escritorio_bp.get('/')
 def painel():
     return render_template('escritorio/painel.html', CSS=CSS, FIM=FIM,
-                           LATERAL=lateral('escritorio'), cards=CARDS)
+                           LATERAL=lateral('escritorio'), cards=CARDS,
+                           cfg=_config_sistema())
 
 
-@escritorio_bp.get('/configuracao')
-def configuracao():
-    return render_template('escritorio/configuracao.html', **_contexto())
+# Oculto — identidade/certificado/chave SERPRO ficam em Configurações do sistema.
+# Template configuracao.html removido (15/09/2026); card em CARDS também comentado.
 
 
 @escritorio_bp.get('/simples/lancamentos')
@@ -278,45 +339,87 @@ def lancamentos():
         moeda=_moeda,
         url_nfe=url_for('escritorio.ler_nfe'),
         url_salvar=url_for('escritorio.api_salvar_linha_lancamento'),
+        cfg=_config_sistema(),
     )
 
 
 @escritorio_bp.get('/simples/transmitir')
 def transmitir():
-    """Lista só quem tem lançamento na competência (memória real). SERPRO = etapa 2."""
+    """Lista quem tem lançamento na competência + situação da declaração/DAS no Central.
+
+    Calcular / Enviar / Retificar / Consultar / Gerar DAS usam `/escritorio/api/pgdasd/*`
+    (pré-voo grátis, confirmação de custo, auditoria). Ver `services/escritorio_pgdasd.py`.
+    """
+    from pathlib import Path
+
+    from app.escritorio_models import EscritorioDeclaracao
     from app.services import escritorio_lancamentos as svc
+    from app.services import escritorio_pgdas as pgdas
+    from app.services.serpro_pgdasd_client import CUSTO_ESTIMADO
     competencia = _competencia()
+    periodo = competencia.replace('-', '')  # AAAAMM para a SERPRO
     dados = svc.listar_competencia(competencia, empresa_ids=_ids_empresas_usuario())
+    cnpjs = [e['cnpj'] for e in dados['empresas']]
+    rbt12_map = pgdas.rbt12_em_lote(cnpjs, competencia)
+    declaracoes = {d.cnpj: d for d in EscritorioDeclaracao.query.filter(
+        EscritorioDeclaracao.pa == periodo, EscritorioDeclaracao.cnpj.in_(cnpjs)).all()} if cnpjs else {}
     empresas = []
     for e in dados['empresas']:
         receita = sum(p['valores'].get('total_receita', 0) for p in e['perfis'])
         tr = int(e.get('transmitido') or 0)
         status = 'manual' if tr == 2 else ('enviado' if tr == 1 else 'pendente')
+        d = declaracoes.get(e['cnpj'])
+        if d is not None and d.situacao == 'incerta':
+            status = 'incerto'
+        elif d is not None and d.situacao != 'transmitida' and d.ultimo_erro and tr == 0:
+            status = 'erro'
+        company_id = e.get('company_id')
+        try:
+            company_id = int(company_id) if company_id not in (None, '') else None
+        except (TypeError, ValueError):
+            company_id = None
+        conf = pgdas.tem_historico_suficiente(e['cnpj'], competencia)
+        das_valor = (d.das_valor_total or d.total_devido or 0) if d is not None else 0
         empresas.append({
-            'id': e.get('company_id') or e['cnpj'],
+            'id': company_id or e['cnpj'],
+            'company_id': company_id,
             'razao': e['razao'],
             'cnpj': e.get('cnpj_fmt') or _fmt_cnpj(e['cnpj']),
             'cnpj_raw': e['cnpj'],
             'receita': receita,
-            'rbt12': 0,
-            'das': 0,
-            'aliq': 0,
+            'rbt12': rbt12_map.get(e['cnpj'], 0),
+            'rbt12_ok': conf['ok'],
+            'das': das_valor,
+            'aliq': round(das_valor / receita * 100, 2) if receita and das_valor else 0,
             'ok': e['ok'],
             'status': status,
+            'situacao': d.situacao if d is not None else 'rascunho',
+            'tem_das': bool(d is not None and d.das_arquivo and Path(d.das_arquivo).is_file()),
+            'tem_declaracao': bool(d is not None and d.arquivo_declaracao and Path(d.arquivo_declaracao).is_file()),
+            'tem_recibo': bool(d is not None and d.arquivo_recibo and Path(d.arquivo_recibo).is_file()),
+            'ultimo_erro': (d.ultimo_erro or '') if d is not None else '',
         })
     return render_template(
         'escritorio/transmitir.html',
         competencia=competencia,
+        periodo_apuracao=periodo,
         empresas=empresas,
         m=dados['metricas'],
         moeda=_moeda,
         dados_reais=True,
+        cfg=_config_sistema(),
+        custos={k: float(v) for k, v in CUSTO_ESTIMADO.items()},
+        api_pgdasd=url_for('escritorio.api_pgdasd_estado').rsplit('/', 1)[0],
     )
 
 
 @escritorio_bp.get('/simples/rbt12')
 def rbt12():
-    return render_template('escritorio/rbt12.html', **_contexto())
+    return render_template(
+        'escritorio/rbt12.html',
+        **_contexto(),
+        url_importar=url_for('escritorio.api_pgdas_importar'),
+    )
 
 
 @escritorio_bp.get('/xml/caminhos')
@@ -463,6 +566,54 @@ def api_salvar_linha_lancamento():
     return jsonify({'ok': True, 'id': lanc_id})
 
 
+@escritorio_bp.post('/api/pgdas/importar')
+def api_pgdas_importar():
+    """Importa histórico do PDF PGDAS-D (mesmo JSON do Integra Contador).
+
+    Grava receitas/folha por mês + meta RBT12 do PA. Empresa precisa estar cadastrada.
+    """
+    from app.models import Company
+    from app.services import escritorio_pgdas as pgdas
+    from app.services import permissoes
+
+    dados = request.get_json(silent=True) or {}
+    cnpj = re.sub(r'\D', '', str(dados.get('cnpj') or ''))
+    if len(cnpj) != 14:
+        return jsonify({'ok': False, 'msg': 'CNPJ inválido ou ausente no PDF/importação.'}), 400
+    company = Company.query.filter_by(cnpj=cnpj).first()
+    if not company:
+        return jsonify({
+            'ok': False,
+            'msg': f'Empresa {cnpj} não cadastrada. Cadastre o CNPJ no sistema antes de importar.',
+        }), 400
+    u = _usuario()
+    if u and not permissoes.pode_empresa(u, company.id):
+        return jsonify({'ok': False, 'msg': 'Empresa não liberada para o seu usuário.'}), 403
+
+    try:
+        resultado = pgdas.importar_payload(dados, usuario=_nome_usuario())
+    except ValueError as exc:
+        return jsonify({'ok': False, 'msg': str(exc)}), 400
+    except Exception as exc:
+        return jsonify({'ok': False, 'msg': f'Falha ao importar: {exc}'}), 500
+    return jsonify(resultado)
+
+
+@escritorio_bp.get('/api/pgdas/rbt12')
+def api_pgdas_rbt12():
+    """Consulta RBT12 de um CNPJ na competência (PA)."""
+    from app.services import escritorio_pgdas as pgdas
+    cnpj = re.sub(r'\D', '', request.args.get('cnpj', ''))
+    pa = request.args.get('pa') or request.args.get('competencia') or _competencia()
+    if len(cnpj) != 14:
+        return jsonify({'ok': False, 'msg': 'CNPJ inválido.'}), 400
+    conf = pgdas.tem_historico_suficiente(cnpj, pa)
+    return jsonify({
+        'ok': True, **conf, 'cnpj': cnpj,
+        'pa': pgdas.normalizar_competencia(pa),
+    })
+
+
 @escritorio_bp.get('/api/ncm')
 def api_ncm_listar():
     from app.services import escritorio_ncm
@@ -520,3 +671,209 @@ def api_ncm_excluir(item_id):
 def faturamento():
     aba = 'faturamento' if request.args.get('aba') == 'faturamento' else 'whatsapp'
     return render_template('escritorio/faturamento.html', **_contexto(aba=aba))
+
+
+# =====================================================================================
+#  PGDAS-D pela SERPRO: Calcular → Transmitir → Gerar DAS (PDF guardado)
+#  Regras de custo em app/services/escritorio_pgdasd.py e serpro_pgdasd_client.py.
+# =====================================================================================
+_OPERACOES_PAGAS = ('calcular', 'transmitir', 'consultar', 'gerar_das')
+
+
+def _pgdasd_erro(exc):
+    return jsonify({'ok': False, 'bloqueios': exc.bloqueios, 'avisos': exc.avisos,
+                    'mensagem': ' '.join(exc.bloqueios), 'custo_estimado': 0.0}), exc.status
+
+
+def _pgdasd_parametros():
+    corpo = request.get_json(silent=True) if request.method == 'POST' else None
+    corpo = corpo if isinstance(corpo, dict) else {}
+    origem = corpo or request.args
+    return corpo, re.sub(r'\D', '', str(origem.get('cnpj', ''))), str(origem.get('competencia', ''))
+
+
+def _pgdasd_contexto():
+    """(ctx, corpo, None) ou (None, None, resposta_de_erro). Checa empresa do usuário."""
+    from app.services import escritorio_pgdasd as svc
+    from app.services import permissoes
+    corpo, cnpj, competencia = _pgdasd_parametros()
+    if len(cnpj) != 14:
+        return None, None, (jsonify({'ok': False, 'mensagem': 'CNPJ inválido.'}), 400)
+    try:
+        ctx = svc.carregar(cnpj, competencia, _nome_usuario())
+    except svc.BloqueioPgdasd as exc:
+        return None, None, _pgdasd_erro(exc)
+    u = _usuario()
+    if u and not permissoes.e_admin(u):
+        if ctx.company is None or not permissoes.pode_empresa(u, ctx.company.id):
+            return None, None, (jsonify({'ok': False,
+                                         'mensagem': 'Empresa não liberada para o seu usuário.'}), 403)
+    return ctx, corpo, None
+
+
+def _pgdasd_executar(operacao):
+    """Executa uma operação paga. Exige `confirmar_custo: true` no corpo — a tela só
+    envia depois que o usuário viu empresa, competência, valores e custo estimado."""
+    from app.services import escritorio_pgdasd as svc
+    ctx, corpo, erro = _pgdasd_contexto()
+    if erro:
+        return erro
+    if corpo.get('confirmar_custo') is not True:
+        return jsonify({'ok': False, 'mensagem': 'Confirmação de custo ausente. Nada foi enviado.'}), 428
+    try:
+        if operacao == 'calcular':
+            r = svc.calcular(ctx)
+        elif operacao == 'transmitir':
+            r = svc.transmitir(ctx, retificar=bool(corpo.get('retificar')),
+                               hash_confirmado=corpo.get('hash_confirmado') or '')
+        elif operacao == 'consultar':
+            r = svc.consultar(ctx)
+        else:
+            r = svc.gerar_das(ctx, data_consolidacao=corpo.get('data_consolidacao') or None,
+                              forcar=bool(corpo.get('forcar')),
+                              confirmar_externa=bool(corpo.get('confirmar_externa')))
+    except svc.BloqueioPgdasd as exc:
+        return _pgdasd_erro(exc)
+    except Exception:
+        from flask import current_app
+        db.session.rollback()
+        current_app.logger.exception('PGDAS-D %s falhou (%s %s)', operacao, ctx.cnpj, ctx.pa)
+        return jsonify({'ok': False, 'mensagem': 'Erro interno. Veja o log do servidor antes de repetir.'}), 500
+    return jsonify(r), 200
+
+
+@escritorio_bp.get('/api/pgdasd/estado')
+def api_pgdasd_estado():
+    """Grátis: situação, valores calculados, arquivos guardados e o que pode ser feito."""
+    from app.services import escritorio_pgdasd as svc
+    ctx, _corpo, erro = _pgdasd_contexto()
+    if erro:
+        return erro
+    pf = svc.preflight(ctx, 'estado')
+    return jsonify({'ok': True, 'estado': svc.estado(ctx), 'configuracao': {
+        'bloqueios': pf['bloqueios'], 'avisos': pf['avisos'], 'info': pf['info']}})
+
+
+@escritorio_bp.post('/api/pgdasd/pre-visualizar')
+def api_pgdasd_pre_visualizar():
+    """Grátis: JSON exato que seria enviado + problemas encontrados."""
+    from app.services import escritorio_pgdasd as svc
+    ctx, _corpo, erro = _pgdasd_contexto()
+    if erro:
+        return erro
+    return jsonify({'ok': True, **svc.pre_visualizar(ctx), 'estado': svc.estado(ctx)})
+
+
+@escritorio_bp.post('/api/pgdasd/calcular')
+def api_pgdasd_calcular():
+    return _pgdasd_executar('calcular')
+
+
+@escritorio_bp.post('/api/pgdasd/transmitir')
+def api_pgdasd_transmitir():
+    return _pgdasd_executar('transmitir')
+
+
+@escritorio_bp.post('/api/pgdasd/consultar')
+def api_pgdasd_consultar():
+    return _pgdasd_executar('consultar')
+
+
+@escritorio_bp.post('/api/pgdasd/gerar-das')
+def api_pgdasd_gerar_das():
+    return _pgdasd_executar('gerar_das')
+
+
+@escritorio_bp.get('/api/pgdasd/arquivo/<tipo>')
+def api_pgdasd_arquivo(tipo):
+    """Grátis: devolve o PDF guardado (DAS, declaração, recibo, MAED). Nunca chama a SERPRO."""
+    from flask import send_file
+    from app.services import escritorio_pgdasd as svc
+    ctx, _corpo, erro = _pgdasd_contexto()
+    if erro:
+        return erro
+    caminho = svc.caminho_arquivo(ctx, tipo)
+    if not caminho:
+        return jsonify({'ok': False, 'mensagem': 'Arquivo não encontrado no Central.'}), 404
+    nome = f'{tipo}_{ctx.cnpj}_{ctx.pa}.pdf'
+    return send_file(caminho, mimetype='application/pdf', as_attachment=request.args.get('download') == '1',
+                     download_name=nome, max_age=0)
+
+
+@escritorio_bp.get('/api/pgdasd/das-zip')
+def api_pgdasd_das_zip():
+    """Grátis: ZIP com os PDFs de DAS JÁ GUARDADOS da competência (sem emitir nada)."""
+    import io
+    import zipfile
+    from pathlib import Path
+    from flask import send_file
+    from app.escritorio_models import EscritorioDeclaracao
+    from app.services import escritorio_pgdasd as svc
+    from app.services import permissoes
+    try:
+        pa = svc.pa_de(request.args.get('competencia', ''))
+    except svc.BloqueioPgdasd as exc:
+        return _pgdasd_erro(exc)
+    cnpjs = {re.sub(r'\D', '', c) for c in request.args.get('cnpjs', '').split(',') if c.strip()}
+    consulta = EscritorioDeclaracao.query.filter(EscritorioDeclaracao.pa == pa,
+                                                 EscritorioDeclaracao.das_arquivo.isnot(None))
+    if cnpjs:
+        consulta = consulta.filter(EscritorioDeclaracao.cnpj.in_(cnpjs))
+    u = _usuario()
+    buffer, total = io.BytesIO(), 0
+    with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for d in consulta.all():
+            if u and not permissoes.e_admin(u) and not (d.company_id and permissoes.pode_empresa(u, d.company_id)):
+                continue
+            ctx_path = Path(d.das_arquivo)
+            if ctx_path.is_file():
+                zf.write(ctx_path, f'DAS_{d.cnpj}_{pa}_{d.das_numero or ""}.pdf')
+                total += 1
+    if not total:
+        return jsonify({'ok': False, 'mensagem': 'Nenhum DAS guardado para a seleção. Gere as guias primeiro.'}), 404
+    buffer.seek(0)
+    return send_file(buffer, mimetype='application/zip', as_attachment=True,
+                     download_name=f'DAS_{pa}_{total}.zip', max_age=0)
+
+
+@escritorio_bp.post('/api/pgdasd/lote/iniciar')
+def api_pgdasd_lote_iniciar():
+    from flask import current_app
+    from app.models import Company
+    from app.services import escritorio_pgdasd as svc
+    from app.services import permissoes
+    corpo = request.get_json(silent=True) or {}
+    if corpo.get('confirmar_custo') is not True:
+        return jsonify({'ok': False, 'mensagem': 'Confirmação de custo ausente. Nada foi enviado.'}), 428
+    acao = str(corpo.get('acao') or '')
+    competencia = str(corpo.get('competencia') or '')
+    itens, vistos = [], set()
+    u = _usuario()
+    for item in corpo.get('itens') or []:
+        cnpj = re.sub(r'\D', '', str((item or {}).get('cnpj', '')))
+        if len(cnpj) != 14 or cnpj in vistos:
+            continue
+        vistos.add(cnpj)
+        if u and not permissoes.e_admin(u):
+            emp = Company.query.filter_by(cnpj=cnpj).first()
+            if not emp or not permissoes.pode_empresa(u, emp.id):
+                return jsonify({'ok': False, 'mensagem': f'Empresa {cnpj} não liberada para o seu usuário.'}), 403
+        itens.append({'cnpj': cnpj, 'competencia': competencia, 'hash': item.get('hash_confirmado')})
+    if not itens:
+        return jsonify({'ok': False, 'mensagem': 'Selecione ao menos uma empresa.'}), 400
+    if len(itens) > 300:
+        return jsonify({'ok': False, 'mensagem': 'Lote limitado a 300 empresas por vez.'}), 400
+    try:
+        lote = svc.iniciar_lote(current_app._get_current_object(), acao, itens, _nome_usuario())
+    except svc.BloqueioPgdasd as exc:
+        return _pgdasd_erro(exc)
+    return jsonify({'ok': True, 'lote': lote})
+
+
+@escritorio_bp.get('/api/pgdasd/lote/<lote_id>')
+def api_pgdasd_lote_status(lote_id):
+    from app.services import escritorio_pgdasd as svc
+    lote = svc.status_lote(lote_id)
+    if not lote:
+        return jsonify({'ok': False, 'mensagem': 'Lote não encontrado (o servidor pode ter reiniciado).'}), 404
+    return jsonify({'ok': True, 'lote': lote})

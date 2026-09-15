@@ -221,6 +221,8 @@ def registrar_seguranca(app) -> None:
         # 2) rotina
         chave = permissoes.rotina_da_rota(caminho)
         if chave and not permissoes.pode_rotina(usuario, chave):
+            # (Ponte Escritório → /api/das/* removida: o Transmitir usa
+            #  /escritorio/api/pgdasd/*, que audita custo e exige declaração.)
             nome = permissoes.ROTINAS[chave]['nome']
             return _negar(f'Seu usuário não tem acesso a "{nome}".')
 

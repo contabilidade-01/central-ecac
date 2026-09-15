@@ -1,6 +1,5 @@
 {% extends 'escritorio/_base.html' %}
 {% block titulo %}Transmitir • Simples Nacional{% endblock %}
-{% block body_attrs %} data-acao-msg="A empresa e a receita já vêm da memória. Calcular/enviar DAS depende da integração SERPRO — na próxima etapa, com as suas diretrizes."{% endblock %}
 {% block css %}{% include 'escritorio/_modulo.css' %}
 html{zoom:85%}
 body{min-height:118vh}
@@ -8,6 +7,35 @@ body{min-height:118vh}
 .vazio a{color:var(--g3);font-weight:800}
 .chip-ok{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#86efac}
 body.light .chip-ok{color:#15803d}
+.chip-warn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);color:#fbbf24}
+body.light .chip-warn{color:#b45309}
+.chip-cfg{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.35);color:#a5b4fc;text-decoration:none}
+body.light .chip-cfg{color:#4338ca}
+.btn-acao[data-busy="1"],.js-lote[data-busy="1"]{opacity:.55;pointer-events:none}
+.badge-incerto{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.4);color:#fbbf24}
+body.light .badge-incerto{color:#b45309}
+.acao-consultar{color:#93c5fd}
+.custo-nota{font-size:12px;color:var(--muted)}
+.confirma-overlay{position:fixed;inset:0;background:rgba(2,6,23,.55);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:9998;padding:16px}
+.confirma-overlay.show{display:flex}
+.confirma-box{width:100%;max-width:560px;max-height:90vh;overflow:auto;border-radius:22px;padding:22px 24px;background:var(--panel);border:1px solid var(--card-border);box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.confirma-box h3{margin:0 0 4px;font-size:18px;color:var(--title)}
+.confirma-box .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
+.confirma-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;margin-bottom:12px}
+.confirma-grid dt{color:var(--muted);font-weight:700}
+.confirma-grid dd{margin:0;color:var(--text);font-weight:700}
+.confirma-tabela{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0 12px}
+.confirma-tabela td{padding:6px 8px;border-bottom:1px solid var(--card-border)}
+.confirma-tabela td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.confirma-lista{margin:0 0 12px;padding-left:18px;font-size:13px;line-height:1.5}
+.confirma-lista.bloq{color:#fca5a5} .confirma-lista.aviso{color:#fcd34d}
+body.light .confirma-lista.bloq{color:#b91c1c} body.light .confirma-lista.aviso{color:#a16207}
+.confirma-custo{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:14px;background:var(--panel-2);font-size:13px;margin-bottom:12px}
+.confirma-custo b{font-size:16px;color:var(--title)}
+.confirma-check{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-bottom:12px}
+.confirma-extra{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);margin-bottom:12px}
+.confirma-extra input{height:38px;border-radius:12px;border:1px solid var(--card-border);background:var(--panel-2);color:var(--text);padding:0 10px;font-family:inherit}
+.confirma-botoes{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 {% endblock %}
 {% block corpo %}
 <header class="topo">
@@ -16,11 +44,17 @@ body.light .chip-ok{color:#15803d}
       <div class="brand-badge"><i class="fa-solid fa-chart-line"></i></div>
       <div class="brand-text">
         <h1>Transmitir • Simples Nacional</h1>
-        <p>PGDAS-D • Automação</p>
+        <p>PGDAS-D • Automação{% if cfg and cfg.office_name %} · {{ cfg.office_name }}{% endif %}</p>
       </div>
     </div>
     <div class="topbar-actions">
       <span class="chip-ok"><i class="fa-solid fa-database"></i> Memória do Central</span>
+      {% if cfg and cfg.pronto_serpro %}
+      <span class="chip-ok"><i class="fa-solid fa-shield-halved"></i> SERPRO (Configurações)</span>
+      {% else %}
+      <span class="chip-warn"><i class="fa-solid fa-triangle-exclamation"></i> SERPRO incompleto</span>
+      {% endif %}
+      {% if cfg %}<a class="chip-cfg" href="{{ cfg.url_configuracoes }}" target="_top"><i class="fa-solid fa-gear"></i> Configurações</a>{% endif %}
       <span class="top-chip">Competência {{ competencia }}</span>
       <button type="button" id="themeToggle" title="Alternar tema">🌙</button>
     </div>
@@ -57,12 +91,12 @@ body.light .chip-ok{color:#15803d}
       </form>
     </div>
     <div class="toolbar-right">
-      <button type="button" class="btn-sec" onclick="document.querySelectorAll('.chkEmpresa').forEach(c=>c.checked=true)">Selecionar todos</button>
+      <button type="button" class="btn-sec" onclick="document.querySelectorAll('.chkEmpresa:not([disabled])').forEach(c=>c.checked=true)">Selecionar todos</button>
       <button type="button" class="btn-sec" onclick="document.querySelectorAll('.chkEmpresa').forEach(c=>c.checked=false)">Limpar seleção</button>
-      <button type="button" class="btn-smart" data-acao="Calcular DAS">🧮 Calcular DAS</button>
-      <button type="button" class="btn-primario" data-acao="Enviar lote">Enviar lote</button>
-      <button type="button" class="btn-sec" data-acao="Emitir DAS lote">Emitir DAS lote</button>
-      <button type="button" class="btn-sec" data-acao="ZIP DAS">ZIP DAS</button>
+      <button type="button" class="btn-smart js-lote" data-lote="calcular" title="TRANSDECLARACAO11 sem transmitir: devolve os valores devidos">🧮 Calcular selecionadas</button>
+      <button type="button" class="btn-primario js-lote" data-lote="transmitir" title="Só transmite quem tem cálculo válido e conferido">Enviar lote</button>
+      <button type="button" class="btn-sec js-lote" data-lote="gerar_das" title="GERARDAS12 — reaproveita PDFs já guardados sem custo">Gerar DAS lote</button>
+      <button type="button" class="btn-sec js-lote" data-lote="zip" title="Baixa os PDFs de DAS já guardados (grátis)">ZIP DAS</button>
     </div>
   </div>
 
@@ -72,7 +106,7 @@ body.light .chip-ok{color:#15803d}
       <input type="text" id="filtroEmpresa" placeholder="Filtrar por Empresa">
       <input type="text" id="filtroCNPJ" placeholder="Filtrar por CNPJ">
       <select id="filtroOK"><option value="">Todas</option><option value="OK">OK</option><option value="NOK">NOK</option></select>
-      <select id="filtroStatus"><option value="">Status Declaração</option><option value="enviado">Enviado</option><option value="manual">Env. Manual</option><option value="pendente">Pendente</option><option value="erro">Erro</option></select>
+      <select id="filtroStatus"><option value="">Status Declaração</option><option value="enviado">Enviado</option><option value="manual">Env. Manual</option><option value="pendente">Pendente</option><option value="incerto">Incerto</option><option value="erro">Erro</option></select>
     </div>
   </div>
 
@@ -99,29 +133,45 @@ body.light .chip-ok{color:#15803d}
         <tbody>
         {% for e in empresas %}
           {% set enviado = e.status in ('enviado', 'manual') %}
-          <tr class="{{ 'transmitido-manual' if e.status == 'manual' else '' }}" data-status="{{ e.status }}" data-ok="{{ 'OK' if e.ok else 'NOK' }}" data-empresa="{{ e.razao|lower }}" data-cnpj="{{ e.cnpj_raw if e.cnpj_raw is defined else e.cnpj }}">
-            <td><input type="checkbox" class="chkEmpresa" value="{{ e.id }}"></td>
-            <td class="col-empresa"><strong>{{ e.razao }}</strong><small>{% if e.id %}ID {{ e.id }} • {% endif %}regime simples</small></td>
+          <tr class="{{ 'transmitido-manual' if e.status == 'manual' else '' }}"
+              data-status="{{ e.status }}"
+              data-ok="{{ 'OK' if e.ok else 'NOK' }}"
+              data-empresa="{{ e.razao|lower }}"
+              data-cnpj="{{ e.cnpj_raw }}"
+              data-company-id="{{ e.company_id or '' }}">
+            <td>
+              {% if e.company_id %}
+              <input type="checkbox" class="chkEmpresa" value="{{ e.company_id }}" data-cnpj="{{ e.cnpj_raw }}">
+              {% else %}
+              <input type="checkbox" class="chkEmpresa" value="" disabled title="Cadastre a empresa no sistema para incluir no lote">
+              {% endif %}
+            </td>
+            <td class="col-empresa"><strong>{{ e.razao }}</strong><small>{% if e.company_id %}ID {{ e.company_id }} • {% else %}sem cadastro • {% endif %}regime simples</small></td>
             <td class="num">{{ e.cnpj }}</td>
             <td class="money">R$ {{ moeda(e.receita) }}</td>
-            <td class="num">{% if e.rbt12 %}R$ {{ moeda(e.rbt12) }}{% else %}—{% endif %}</td>
-            <td>{% if e.das %}<span class="link-das" data-acao="Detalhe do cálculo do DAS">R$ {{ moeda(e.das) }}</span>{% else %}<span title="Cálculo SERPRO na próxima etapa">—</span>{% endif %}</td>
-            <td>{% if e.aliq %}<span class="perc-pill">{{ ('%.2f'|format(e.aliq))|replace('.', ',') }}%</span>{% else %}—{% endif %}</td>
+            <td class="num">{% if e.rbt12 %}R$ {{ moeda(e.rbt12) }}{% else %}<span title="Importe o Extrato PGDAS-D (Upload RBT12) antes de calcular/enviar">—</span>{% endif %}</td>
+            <td class="col-das">{% if e.das %}<span class="money" title="{{ 'Total do DAS emitido' if e.tem_das else 'Total calculado pela Receita' }}">R$ {{ moeda(e.das) }}</span>{% else %}<span title="Use Calcular (valores oficiais da Receita)">—</span>{% endif %}</td>
+            <td class="col-aliq">{% if e.aliq %}<span class="perc-pill">{{ ('%.2f'|format(e.aliq))|replace('.', ',') }}%</span>{% else %}—{% endif %}</td>
             <td>{% if e.ok %}<span class="badge badge-ok up">OK</span>{% else %}<span class="badge" style="opacity:.5;">-</span>{% endif %}</td>
-            <td>
+            <td class="col-status">
               {% if e.status == 'enviado' %}<span class="badge badge-ok">enviado</span>
               {% elif e.status == 'manual' %}<span class="badge badge-manual">Env. Manual</span>
-              {% elif e.status == 'erro' %}<span class="badge badge-erro">erro</span>
+              {% elif e.status == 'incerto' %}<span class="badge badge-incerto" title="A SERPRO não respondeu. Clique em Consultar antes de repetir.">incerto</span>
+              {% elif e.status == 'erro' %}<span class="badge badge-erro" title="{{ e.ultimo_erro }}">erro</span>
               {% else %}<span class="badge badge-pend">pendente</span>{% endif %}
             </td>
             <td><div class="td-acoes">
-              <button type="button" class="btn-acao acao-enviar" title="Enviar declaração automática" data-acao="Enviar declaração" {{ 'disabled' if (not e.ok or enviado) }}><i class="fa-solid fa-paper-plane"></i></button>
-              <button type="button" class="btn-acao acao-retificar" title="Retificar declaração" data-acao="Retificar declaração" {{ '' if enviado else 'disabled' }}><i class="fa-solid fa-rotate-right"></i></button>
-              <button type="button" class="btn-acao acao-calcular" title="Emitir DAS" data-acao="Emitir DAS" {{ '' if enviado else 'disabled' }}><i class="fa-solid fa-file-invoice-dollar"></i></button>
-              <button type="button" class="btn-acao acao-visualizar" title="Visualizar DAS" data-acao="Visualizar DAS" disabled><i class="fa-solid fa-eye"></i></button>
-              <button type="button" class="btn-acao acao-download" title="Baixar DAS" data-acao="Baixar DAS" disabled><i class="fa-solid fa-download"></i></button>
-              <button type="button" class="btn-acao acao-doc" title="Visualizar Declaração" data-acao="Visualizar Declaração" disabled><i class="fa-solid fa-file-lines"></i></button>
-              <button type="button" class="btn-acao acao-doc" title="Visualizar Recibo" data-acao="Visualizar Recibo" disabled><i class="fa-solid fa-receipt"></i></button>
+              {% set sem_cad = not e.company_id %}
+              <button type="button" class="btn-acao acao-pre js-pg" data-op="pre_visualizar" title="Pré-visualizar JSON (grátis — sem chamar a SERPRO)" {{ 'disabled' if sem_cad or not e.ok }}><i class="fa-solid fa-code"></i></button>
+              <button type="button" class="btn-acao js-pg" data-op="calcular" title="Calcular (Receita devolve os valores, sem transmitir)" {{ 'disabled' if sem_cad or not e.ok or enviado }}><i class="fa-solid fa-calculator"></i></button>
+              <button type="button" class="btn-acao acao-enviar js-pg" data-op="transmitir" title="Enviar declaração" {{ 'disabled' if sem_cad or not e.ok or enviado }}><i class="fa-solid fa-paper-plane"></i></button>
+              <button type="button" class="btn-acao acao-retificar js-pg" data-op="retificar" title="Retificar declaração (calcule antes)" {{ 'disabled' if sem_cad or not enviado }}><i class="fa-solid fa-rotate-right"></i></button>
+              <button type="button" class="btn-acao acao-consultar js-pg" data-op="consultar" title="Consultar na Receita se há declaração/DAS do período" {{ 'disabled' if sem_cad }}><i class="fa-solid fa-magnifying-glass"></i></button>
+              <button type="button" class="btn-acao acao-calcular js-pg" data-op="gerar_das" title="Gerar DAS (PDF guardado no Central)" {{ 'disabled' if sem_cad }}><i class="fa-solid fa-file-invoice-dollar"></i></button>
+              <button type="button" class="btn-acao acao-visualizar js-arq" data-arq="das" title="Visualizar DAS" {{ '' if e.tem_das else 'disabled' }}><i class="fa-solid fa-eye"></i></button>
+              <button type="button" class="btn-acao acao-download js-arq" data-arq="das" data-download="1" title="Baixar DAS" {{ '' if e.tem_das else 'disabled' }}><i class="fa-solid fa-download"></i></button>
+              <button type="button" class="btn-acao acao-doc js-arq" data-arq="declaracao" title="Visualizar Declaração" {{ '' if e.tem_declaracao else 'disabled' }}><i class="fa-solid fa-file-lines"></i></button>
+              <button type="button" class="btn-acao acao-doc js-arq" data-arq="recibo" title="Visualizar Recibo" {{ '' if e.tem_recibo else 'disabled' }}><i class="fa-solid fa-receipt"></i></button>
             </div></td>
           </tr>
         {% endfor %}
@@ -133,14 +183,36 @@ body.light .chip-ok{color:#15803d}
 
   <div class="log-card card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap;">
-      <div><strong style="color:var(--title);">Log de Execução</strong><br><small style="color:var(--muted);">Preenchido quando o envio SERPRO estiver ligado.</small></div>
+      <div><strong style="color:var(--title);">Log de Execução</strong><br><small style="color:var(--muted);">Pré-visualizar é grátis. Toda chamada paga pede confirmação e fica registrada (custo estimado: consultar R$ {{ '%.2f'|format(custos.consultar) }} · declarar R$ {{ '%.2f'|format(custos.declarar) }} · emitir R$ {{ '%.2f'|format(custos.emitir) }}). PDFs guardados abrem sem custo.</small></div>
       <button class="btn-sec" type="button" onclick="document.getElementById('logExecucao').textContent=''">🧹 Limpar Log</button>
     </div>
-    <div id="logExecucao" class="log-execucao">Aguardando ações de cálculo/envio…</div>
+    <div id="logExecucao" class="log-execucao">Aguardando ações…</div>
+  </div>
+</div>
+
+<div class="confirma-overlay" id="confirmaOverlay" role="dialog" aria-modal="true" aria-labelledby="confirmaTitulo">
+  <div class="confirma-box">
+    <h3 id="confirmaTitulo">Confirmar</h3>
+    <div class="sub" id="confirmaSub"></div>
+    <div id="confirmaCorpo"></div>
+    <div class="confirma-botoes">
+      <button type="button" class="btn-sec" id="confirmaCancelar">Cancelar</button>
+      <button type="button" class="btn-primario" id="confirmaOk">Confirmar</button>
+    </div>
   </div>
 </div>
 {% endblock %}
 {% block js %}
+<script>
+window.PGDASD = {
+  api: {{ api_pgdasd|tojson }},
+  competencia: {{ competencia|tojson }},
+  custos: {{ custos|tojson }}
+};
+</script>
+<script>
+{% include 'escritorio/transmitir_pgdasd.js' %}
+</script>
 <script>
 (function(){
   const ids = ['filtroEmpresa','filtroCNPJ','filtroOK','filtroStatus'];

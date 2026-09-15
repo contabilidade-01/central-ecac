@@ -136,10 +136,12 @@ input[type="checkbox"]{width:16px;height:16px;accent-color:#4f7df0}
 .btn-acao:hover::after{opacity:1}
 .btn-acao:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
 .btn-acao i{font-size:15px}
+.acao-pre{background:linear-gradient(135deg,#475569,#334155);box-shadow:0 4px 14px rgba(71,85,105,.45)}
 .acao-enviar{background:linear-gradient(135deg,#2563eb,#1d4ed8);box-shadow:0 4px 14px rgba(37,99,235,.5)}
 .acao-retificar{background:linear-gradient(135deg,#7c3aed,#5b21b6);box-shadow:0 4px 14px rgba(124,58,237,.5)}
 .acao-calcular,.acao-visualizar,.acao-download{background:linear-gradient(135deg,#16a34a,#15803d);box-shadow:0 4px 14px rgba(22,163,74,.5)}
 .acao-doc{background:linear-gradient(135deg,#f97316,#ea580c);box-shadow:0 4px 14px rgba(249,115,22,.5)}
+.confirma-json{max-height:280px;overflow:auto;font:12px/1.45 ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-word;padding:10px 12px;border-radius:12px;background:var(--panel-2);border:1px solid var(--card-border);margin:8px 0 12px;color:var(--text)}
 
 /* ------------------------------------------------------------- log */
 .log-card{padding:18px}

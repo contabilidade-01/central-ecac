@@ -1,7 +1,7 @@
 # HANDOFF — Área Escritório (desvio 17)
 
 Documento para o próximo agente (Claude) retomar o trabalho **sem perder contexto**.
-Atualizado em 15/09/2026 (transmissão PGDAS-D + alinhamento HANDOFF × código).
+Atualizado em 15/09/2026 (transmissão PGDAS-D + alinhamento HANDOFF × código + correções de custo SERPRO e estado do git).
 
 ## Objetivo do Jean
 
@@ -66,7 +66,7 @@ CT-e e inutilizações **não entram na receita** (só aviso no cabeçalho).
 | Ler XML NFe `/escritorio/xml/nfe` | **Funcional** (leitura no browser) |
 | NCM × CST `/escritorio/ncm` | **Funcional** (admin edita; **88** regras na carga inicial — Jean deve revisar; autopeças faltando) |
 | Lançamentos `/escritorio/simples/lancamentos` | **Funcional** sobre a memória |
-| Transmitir `/escritorio/simples/transmitir` | **Código + 27 testes OK** (perfil comércio): Pré-visualizar, Calcular, Enviar, Retificar, Consultar, Gerar DAS, lote, ZIP — `/escritorio/api/pgdasd/*`. **1º caso real SERPRO ainda não validado** |
+| Transmitir `/escritorio/simples/transmitir` | **Código + 31 testes OK** (perfil comércio): Pré-visualizar, Calcular, Enviar, Retificar, Consultar, Gerar DAS, buscar declaração/recibo, lote, ZIP — `/escritorio/api/pgdasd/*`. **1º caso real SERPRO ainda não validado** |
 | Empresas `/escritorio/empresas` | **Funcional** — ticar empresas do cadastro (`escritorio_empresas`); também checkbox **Escritório** nos cards de `/?aba=configuracoes` |
 | Upload PGDAS-D `/escritorio/simples/rbt12` | **Funcional** — PDF+OCR (`pgdas_leitor.js` v16) → `POST /escritorio/api/pgdas/importar` |
 | Caminhos / ÚTEIS / NFS-e | UI sem mock de empresa; ações ainda “Ação pendente” |
@@ -144,6 +144,7 @@ diferença = total + outras_receitas + devolucoes - saldo_sefaz
 | POST | `/escritorio/api/pgdasd/calcular` | TRANSDECLARACAO11 `indicadorTransmissao=false` (pago) |
 | POST | `/escritorio/api/pgdasd/transmitir` | `{retificar, hash_confirmado}` — consulta prévia + TRANSDECLARACAO11 com comparação (pago) |
 | POST | `/escritorio/api/pgdasd/consultar` | CONSDECLARACAO13 (pago) — resolve envio incerto |
+| POST | `/escritorio/api/pgdasd/recuperar-documentos` | `{forcar?}` — CONSULTIMADECREC14 (pago): baixa declaração/recibo/MAED da última declaração do PA (ex.: entregue no PGDAS-D web). Bloqueia se os PDFs já estão guardados |
 | POST | `/escritorio/api/pgdasd/gerar-das` | `{data_consolidacao?, forcar?, confirmar_externa?}` — GERARDAS12 (pago; reaproveita PDF) |
 | GET | `/escritorio/api/pgdasd/arquivo/<das\|declaracao\|recibo\|maed_notificacao\|maed_darf>` | **grátis** — PDF guardado |
 | GET | `/escritorio/api/pgdasd/das-zip?competencia=&cnpjs=` | **grátis** — ZIP dos DAS guardados |
@@ -245,18 +246,32 @@ comparar com o PGDAS-D web antes de Enviar.**
 - **Validar 1º caso real** (Rafael 08/2026): Consultar → Pré-visualizar → Calcular → conferir web → Enviar.
 - Só perfil **comércio**; serviços/indústria/Fator R (folha, atividades 10–18 etc.) bloqueiam.
 - Só o CNPJ do lançamento em `estabelecimentos` (filiais não entram) e só regime de **competência**.
-- Procurador PF (`SerproProcuradorService`) não tem `auth_headers`/`build_payload` → bloqueado no pré-voo
-  (e quebra `SerproDasService._get_headers` em DAS Lote se ligado).
-- `/api/das/emitir` (DAS Lote antigo, fora do Escritório) não registra custo e não tem cache de token.
-- `CONSULTIMADECREC14` mapeado, não ligado.
+- Procurador PF: fluxo real (`auth_headers`/`build_payload`) **continua não implementado** (módulo 5).
+  Desde 15/09 ele falha ANTES do envio, com mensagem clara e sem travar procuração (ver correções abaixo).
 - Caminhos / NFS-e / ÚTEIS / cards sem rota → só UI.
 - `SERPRO_CUSTO_DECLARAR=0.40` = chute — confirmar no contrato.
+
+### Correções de 15/09/2026 (tarde — Claude) — custo SERPRO fora do fluxo PGDAS-D
+
+Pedido do Jean: "faça as correções" dos pontos levantados. Tudo coberto por testes
+(`tests/test_escritorio_pgdasd.py`, 31 testes).
+
+| Problema | Correção | Arquivo |
+|---|---|---|
+| Procurador PF ligado estourava `AttributeError` (`auth_headers`, `build_payload`, `invalidate_authorization_token` não existiam) em DAS, Caixa Postal, Pagamentos, Parcelamentos — e o erro contava para a trava de procuração | Métodos criados: falham com `ErroAntesDoEnvio` ("Procurador PF ligado, mas não implementado… desligue") **antes** de qualquer requisição | `services/serpro_procurador_service.py`, `services/serpro_erros.py` (novo) |
+| Erro de configuração local travava a empresa por 24 h | `ProcuracaoService.registrar_erro` guarda o erro mas **não conta** `ErroAntesDoEnvio` | `services/procuracao_service.py` |
+| `SerproDasService` autenticava a cada emissão (lote de N = N autenticações) e só renovava token no caminho procurador | Token A1 em cache (`CACHE_TOKEN`, 20 min, `SERPRO_TOKEN_TTL_S`), chave = consumer key + contador + certificado; em 401/403 invalida e tenta **1** vez. Validações de Configurações viram `ErroAntesDoEnvio` | `services/serpro_das_service.py` (`_get_headers` → `_gerar_headers_a1`), `services/serpro_pgdasd_client.py` (`chave_token`) |
+| `/api/das/emitir`, `/api/das/mei/emitir`, `/api/das/dctfweb/emitir` não registravam custo nem checavam teto/procuração; lotes não checavam antes | Antes da chamada: `ProcuracaoService.pode_gastar` + `LimiteGastoService.pode_gastar` (409 sem custo). Avulsos registram `ApiUsageLog` (emitir). Lotes checam teto para o total e pulam empresa travada | `routes/das_routes.py` |
+| `CONSULTIMADECREC14` mapeado mas não ligado | `recuperar_documentos()` + rota + botões 📄/🧾 da linha: se o PDF não está guardado e a declaração é conhecida, oferecem "Buscar na Receita (pago, R$ 0,24)" | `services/escritorio_pgdasd.py`, `routes/escritorio.py`, `transmitir.html`, `transmitir_pgdasd.js` |
+
+Ainda **sem** proteção de teto/cache: `serpro_service.py` (situação fiscal), `caixa_postal_service.py`,
+`serpro_pagamentos_service.py`, `parcelamentos_serpro_service.py` (autenticam por conta própria).
 
 ### Rodar os testes
 
 ```text
 .venv\Scripts\python.exe -m pip install pytest
-.venv\Scripts\python.exe -m pytest tests/test_escritorio_pgdasd.py -q
+.venv\Scripts\python.exe -m pytest tests/test_escritorio_pgdasd.py -q   # 31 testes, sem rede
 ```
 
 ## Dados locais já gravados nesta sessão (não vão no git)
@@ -267,8 +282,21 @@ comparar com o PGDAS-D web antes de Enviar.**
 
 ## Git
 
-Entrega local ainda **não commitada** na íntegra desta sessão (Escritório + PGDAS-D + RBT12).
-Só commit quando o Jean pedir. Se aparecer `.git/index.lock`, apagar e seguir.
+Repositório: `github.com/contabilidade-01/central-ecac`. **Deploy (EasyPanel) usa `main`.**
+
+| Commit | Conteúdo | Onde |
+|---|---|---|
+| `08d6859` | Área Escritório: NFe, NCM, Lançamentos | `main` |
+| `92e14be` | Transmitir PGDAS-D via SERPRO + RBT12 + pré-visualizar | `main` via PR #1 (`03a6584`) |
+| `37a76d1` | Ticar empresa em Configurações para o Escritório | **só** `cursor/escritorio-pgdasd-serpro` (feito depois do merge do PR #1) |
+| *(este)* | Correções de custo SERPRO (procurador, token, `/api/das`, recuperar documentos) + HANDOFF | commit local na branch + merge local em `main` — **falta push** |
+
+- Commits locais feitos pela sessão Claude (15/09); o **push** tem de sair da máquina do Jean
+  (a VM do Claude não tem credencial do GitHub): `git push origin cursor/escritorio-pgdasd-serpro main`.
+- Arquivos com ` M` no `git status` que só mudam fim de linha (CRLF×LF) **não** são alteração real —
+  conferir com `git diff --ignore-cr-at-eol --stat` antes de commitar.
+- Se aparecer `.git/index.lock` ou `.git/objects/maintenance.lock` sem git rodando, apagar e seguir
+  (há `index.lock.remover*` antigos na pasta `.git` que podem ser apagados).
 
 ## Teste rápido pós-pull
 
@@ -280,4 +308,5 @@ Só commit quando o Jean pedir. Se aparecer `.git/index.lock`, apagar e seguir.
 5. 🔍 Consultar (R$ 0,24) → vê se a Receita já tem declaração
 6. 🧮 Calcular → conferir valores com o PGDAS-D web ANTES de ✈ Enviar
 7. Gerar DAS → PDF guardado; 👁/⬇ abrem sem custo
+8. Declaração/recibo entregues fora do Central: 📄/🧾 "Buscar na Receita" (R$ 0,24) → guardados
 ```

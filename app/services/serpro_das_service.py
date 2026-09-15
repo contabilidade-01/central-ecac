@@ -165,7 +165,15 @@ class SerproDasService:
                 contribuinte_numero=contribuinte_numero
             )
 
-        # Caminho 2: Certificado A1 direto
+        # Caminho 2: Certificado A1 direto.
+        # DESVIO 17 (correções 15/09/2026): token reaproveitado por alguns minutos
+        # (`SERPRO_TOKEN_TTL_S`) — um lote de N empresas não autentica N vezes.
+        from app.services.serpro_pgdasd_client import CACHE_TOKEN, chave_token
+        return CACHE_TOKEN.obter(chave_token(setting), lambda: self._gerar_headers_a1(setting))
+
+    def _gerar_headers_a1(self, setting: AppSetting) -> Dict[str, str]:
+        """Autentica com o certificado A1 (sem cache). Validações falham antes do envio."""
+        from app.services.serpro_erros import ErroAntesDoEnvio
         certificado_path = (setting.certificado_path or '').strip()
         certificado_password = (setting.certificado_password or '').strip()
         consumer_key = (setting.serpro_consumer_key or '').strip()
@@ -174,13 +182,13 @@ class SerproDasService:
 
         # Validacoes
         if not certificado_path:
-            raise ValueError('Certificado não configurado em Configurações')
+            raise ErroAntesDoEnvio('Certificado não configurado em Configurações')
         if not certificado_password:
-            raise ValueError('Senha do certificado não configurada em Configurações')
+            raise ErroAntesDoEnvio('Senha do certificado não configurada em Configurações')
         if not (consumer_key and consumer_secret):
-            raise ValueError('Consumer key/secret da SERPRO não configurados em Configurações')
+            raise ErroAntesDoEnvio('Consumer key/secret da SERPRO não configurados em Configurações')
         if not contador_cnpj:
-            raise ValueError('CNPJ/CPF do contador não configurado em Configurações')
+            raise ErroAntesDoEnvio('CNPJ/CPF do contador não configurado em Configurações')
 
         # DESVIO 3o: resolve o caminho — o gravado pode ser de outra máquina.
         certificate_content = certificado.carregar(certificado_path)
@@ -350,9 +358,14 @@ class SerproDasService:
             timeout=self.timeout,
         )
 
-        # Retry se procurador e 401/403
-        if SerproProcuradorService.enabled(setting) and response.status_code in (401, 403):
-            SerproProcuradorService(setting).invalidate_authorization_token()
+        # Retry UMA vez em 401/403: token vencido/recusado no gateway (o pedido não
+        # chegou ao sistema da Receita). DESVIO 17: vale também para o A1, porque o
+        # token agora fica em cache.
+        if response.status_code in (401, 403):
+            from app.services.serpro_pgdasd_client import CACHE_TOKEN
+            CACHE_TOKEN.invalidar()
+            if SerproProcuradorService.enabled(setting):
+                SerproProcuradorService(setting).invalidate_authorization_token()
             headers = self._get_headers(setting, contribuinte_numero=contribuinte_numero)
             response = serpro_post(
                 self.EMITIR_URL,

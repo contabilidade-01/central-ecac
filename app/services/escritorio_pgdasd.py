@@ -403,6 +403,14 @@ def preflight(ctx: Contexto, operacao: str, custo: float = 0.0, **opcoes) -> Dic
             bloqueios.append('Não há declaração transmitida conhecida para este período. Transmita pelo '
                              'Central ou clique em Consultar. Sem declaração a SERPRO recusa o DAS '
                              '(MSG_ISN_005) — e a chamada é cobrada.')
+    if operacao == 'recuperar':
+        if decl.situacao == 'incerta':
+            bloqueios.append('Envio INCERTO: clique em Consultar primeiro.')
+        elif not (decl.situacao == 'transmitida' or ctx.declaracoes_na_receita()):
+            bloqueios.append('Não há declaração conhecida para este período. Clique em Consultar primeiro.')
+        elif not opcoes.get('forcar') and decl.arquivo_declaracao and decl.arquivo_recibo \
+                and Path(decl.arquivo_declaracao).is_file() and Path(decl.arquivo_recibo).is_file():
+            bloqueios.append('Declaração e recibo já estão guardados no Central (abrem sem custo).')
     return {'bloqueios': bloqueios, 'avisos': avisos, 'info': info}
 
 
@@ -754,6 +762,73 @@ def gerar_das(ctx: Contexto, data_consolidacao: Optional[str] = None, forcar: bo
         _destravar(ctx)
 
 
+def _pdf_de(bloco: Any, *chaves: str) -> Optional[str]:
+    """Primeiro base64 encontrado no bloco (dict) pelas chaves, ou o próprio texto."""
+    if isinstance(bloco, str):
+        return bloco
+    if isinstance(bloco, dict):
+        for chave in chaves:
+            if isinstance(bloco.get(chave), str) and bloco.get(chave):
+                return bloco[chave]
+    return None
+
+
+def recuperar_documentos(ctx: Contexto, forcar: bool = False,
+                         cliente: Optional[SerproPgdasdClient] = None) -> Dict[str, Any]:
+    """CONSULTIMADECREC14 (1× consultar): baixa declaração + recibo (+ MAED) da ÚLTIMA
+    declaração do PA — útil quando ela foi entregue fora do Central. Não repete se os
+    PDFs já estão guardados (a não ser com `forcar`)."""
+    custo = float(custo_de('CONSULTIMADECREC14'))
+    pf = preflight(ctx, 'recuperar', custo, forcar=forcar)
+    _exigir(pf)
+    _travar(ctx, 'recuperar')
+    try:
+        res = _novo_cliente(cliente).chamar('CONSULTIMADECREC14', ctx.cnpj, {'periodoApuracao': ctx.pa},
+                                            operacao='recuperar', company=ctx.company, pa=ctx.pa,
+                                            usuario=ctx.usuario)
+        decl = ctx.decl
+        corpo = res.dados if isinstance(res.dados, dict) else {}
+        numero = str(corpo.get('numeroDeclaracao') or '')
+        salvos = []
+        if res.ok and numero:
+            if decl.id_declaracao and decl.id_declaracao != numero:
+                # Há declaração mais nova (retificada fora do Central): documentos antigos não valem.
+                decl.arquivo_maed_notificacao = decl.arquivo_maed_darf = None
+            decl.id_declaracao = numero
+            if decl.situacao != 'transmitida':
+                decl.situacao = 'transmitida'
+                decl.transmitido_em = decl.transmitido_em or datetime.utcnow()
+            maed = corpo.get('maed') or {}
+            for campo, nome, conteudo in (
+                ('arquivo_declaracao', f'declaracao_{numero}.pdf', _pdf_de(corpo.get('declaracao'), 'pdf')),
+                ('arquivo_recibo', f'recibo_{numero}.pdf', _pdf_de(corpo.get('recibo'), 'pdf')),
+                ('arquivo_maed_notificacao', f'maed_notificacao_{numero}.pdf',
+                 _pdf_de(maed, 'pdfNotificacao', 'notificacao')),
+                ('arquivo_maed_darf', f'maed_darf_{numero}.pdf', _pdf_de(maed, 'pdfDarf', 'darf')),
+            ):
+                caminho = salvar_pdf_b64(ctx.cnpj, ctx.pa, nome, conteudo)
+                if caminho:
+                    setattr(decl, campo, caminho)
+                    salvos.append(campo.replace('arquivo_', ''))
+            for lanc in ctx.lancamentos:
+                if int(lanc.transmitido or 0) == 0:
+                    lanc.transmitido = 2
+            decl.ultimo_erro = None
+            ok = bool(salvos)
+            mensagem = (f'Documentos da declaração {numero} guardados: {", ".join(salvos)}.' if salvos
+                        else 'A SERPRO respondeu, mas sem PDF válido.')
+        else:
+            ok = False
+            mensagem = res.texto or 'A SERPRO não devolveu a declaração do período.'
+        if not ok:
+            _erro(ctx, mensagem)
+        db.session.commit()
+        return {'ok': ok, 'serpro': res.resumo(), 'mensagem': mensagem, 'avisos': pf['avisos'],
+                'estado': estado(ctx)}
+    finally:
+        _destravar(ctx)
+
+
 # --------------------------------------------------------------------- estado
 def estado(ctx: Contexto) -> Dict[str, Any]:
     d = ctx.decl
@@ -786,6 +861,8 @@ def estado(ctx: Contexto) -> Dict[str, Any]:
             'transmitir': calculo_valido and d.situacao in ('calculada', 'rascunho', 'erro') and not na_receita,
             'retificar': calculo_valido and (d.situacao == 'transmitida' or bool(na_receita)),
             'gerar_das': d.situacao == 'transmitida' or bool(na_receita),
+            'recuperar': (d.situacao == 'transmitida' or bool(na_receita))
+                         and not (tem_pdf(d.arquivo_declaracao) and tem_pdf(d.arquivo_recibo)),
         },
         'custos': {k: float(v) for k, v in CUSTO_ESTIMADO.items()},
         'lancamento_transmitido': max((int(l.transmitido or 0) for l in ctx.lancamentos), default=0),

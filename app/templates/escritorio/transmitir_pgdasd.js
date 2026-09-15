@@ -18,7 +18,7 @@
     incerta: 'INCERTA (sem resposta da SERPRO)', erro: 'Erro' };
   var NOMES = { pre_visualizar: 'Pré-visualizar declaração', calcular: 'Calcular declaração',
     transmitir: 'Enviar declaração', retificar: 'Retificar declaração',
-    consultar: 'Consultar na Receita', gerar_das: 'Gerar DAS' };
+    consultar: 'Consultar na Receita', gerar_das: 'Gerar DAS', recuperar: 'Buscar declaração e recibo' };
 
   function $(s, el) { return (el || document).querySelector(s); }
   function esc(t) {
@@ -77,7 +77,7 @@
 
   async function postar(op, corpo) {
     var rota = { calcular: 'calcular', transmitir: 'transmitir', retificar: 'transmitir', consultar: 'consultar',
-      gerar_das: 'gerar-das' }[op];
+      gerar_das: 'gerar-das', recuperar: 'recuperar-documentos' }[op];
     var resp = await fetch(API + '/' + rota, {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(corpo)
@@ -134,7 +134,7 @@
   }
 
   function custoOp(op, est) {
-    if (op === 'consultar') return CUSTOS.consultar || 0;
+    if (op === 'consultar' || op === 'recuperar') return CUSTOS.consultar || 0;
     if (op === 'gerar_das') return CUSTOS.emitir || 0;
     var c = CUSTOS.declarar || 0;
     var consultaRecente = est.consultado_em && (Date.now() - Date.parse(est.consultado_em + 'Z') < 12 * 3600 * 1000);
@@ -167,8 +167,15 @@
     hab('[data-op="transmitir"]', ok && !enviado && sit !== 'incerta');
     hab('[data-op="retificar"]', enviado);
     hab('[data-arq="das"]', est.das && est.das.tem_pdf);
-    hab('[data-arq="declaracao"]', est.arquivos && est.arquivos.declaracao);
-    hab('[data-arq="recibo"]', est.arquivos && est.arquivos.recibo);
+    ['declaracao', 'recibo'].forEach(function (tipo) {
+      var tem = !!(est.arquivos && est.arquivos[tipo]);
+      tr.querySelectorAll('[data-arq="' + tipo + '"]').forEach(function (b) {
+        b.dataset.tem = tem ? '1' : '0';
+        b.disabled = !(tem || enviado);
+        b.title = tem ? (tipo === 'recibo' ? 'Visualizar Recibo' : 'Visualizar Declaração')
+          : 'Buscar ' + (tipo === 'recibo' ? 'recibo' : 'declaração') + ' na Receita (pago)';
+      });
+    });
   }
 
   function registrarResultado(info, op, r) {
@@ -253,6 +260,9 @@
         extraCorpo = { retificar: op === 'retificar', hash_confirmado: est.hash_calculo };
       } else if (op === 'calcular') {
         html += '<p class="custo-nota">A Receita devolve os valores devidos SEM transmitir. Confira com a apuração antes de enviar.</p>';
+      } else if (op === 'recuperar') {
+        html += '<p class="custo-nota">Baixa da Receita a declaração e o recibo da ÚLTIMA declaração do período ' +
+          '(ex.: entregue no PGDAS-D web) e guarda no Central. Depois abrem sem custo.</p>';
       } else if (op === 'consultar') {
         html += '<p class="custo-nota">Mostra se já existe declaração/DAS do período (inclusive feitos no PGDAS-D web).</p>';
       } else if (op === 'gerar_das') {
@@ -298,6 +308,7 @@
       if (op === 'calcular' && r.estado) det = 'Total devido: ' + moeda(r.estado.total_devido) + '. Confira e clique em Enviar.';
       if (op === 'transmitir' || op === 'retificar') det = 'Declaração ' + ((r.estado || {}).id_declaracao || '') + ' transmitida. Recibo guardado.';
       if (op === 'gerar_das') det = 'DAS guardado no Central.';
+      if (op === 'recuperar') det = r.mensagem || 'Documentos guardados.';
       if (op === 'consultar' && r.estado) det = (r.estado.consulta.declaracoes || []).length ? 'Há declaração na Receita para o período.' : 'A Receita não tem declaração deste período.';
       mostrarAlerta('success', NOMES[op], det || texto);
       if (op === 'gerar_das') abrirArquivo(info, 'das', false);
@@ -386,6 +397,7 @@
     var b = e.target.closest('.js-pg');
     if (b && !b.disabled) { e.preventDefault(); executar(b.closest('tr'), b.getAttribute('data-op')); return; }
     var a = e.target.closest('.js-arq');
+    if (a && !a.disabled && a.dataset.tem === '0') { e.preventDefault(); executar(a.closest('tr'), 'recuperar'); return; }
     if (a && !a.disabled) { e.preventDefault(); abrirArquivo(linhaInfo(a.closest('tr')), a.getAttribute('data-arq'), a.getAttribute('data-download') === '1'); return; }
     var l = e.target.closest('.js-lote');
     if (l) { e.preventDefault(); lote(l.getAttribute('data-lote')); }

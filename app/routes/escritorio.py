@@ -736,9 +736,6 @@ def faturamento():
 #  PGDAS-D pela SERPRO: Calcular → Transmitir → Gerar DAS (PDF guardado)
 #  Regras de custo em app/services/escritorio_pgdasd.py e serpro_pgdasd_client.py.
 # =====================================================================================
-_OPERACOES_PAGAS = ('calcular', 'transmitir', 'consultar', 'gerar_das')
-
-
 def _pgdasd_erro(exc):
     return jsonify({'ok': False, 'bloqueios': exc.bloqueios, 'avisos': exc.avisos,
                     'mensagem': ' '.join(exc.bloqueios), 'custo_estimado': 0.0}), exc.status
@@ -787,6 +784,8 @@ def _pgdasd_executar(operacao):
                                hash_confirmado=corpo.get('hash_confirmado') or '')
         elif operacao == 'consultar':
             r = svc.consultar(ctx)
+        elif operacao == 'recuperar':
+            r = svc.recuperar_documentos(ctx, forcar=bool(corpo.get('forcar')))
         else:
             r = svc.gerar_das(ctx, data_consolidacao=corpo.get('data_consolidacao') or None,
                               forcar=bool(corpo.get('forcar')),
@@ -836,6 +835,12 @@ def api_pgdasd_transmitir():
 @escritorio_bp.post('/api/pgdasd/consultar')
 def api_pgdasd_consultar():
     return _pgdasd_executar('consultar')
+
+
+@escritorio_bp.post('/api/pgdasd/recuperar-documentos')
+def api_pgdasd_recuperar_documentos():
+    """CONSULTIMADECREC14 — declaração/recibo da última declaração do PA (pago)."""
+    return _pgdasd_executar('recuperar')
 
 
 @escritorio_bp.post('/api/pgdasd/gerar-das')

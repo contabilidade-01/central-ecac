@@ -121,6 +121,37 @@ def _empresas_do_lote(payload: dict) -> list:
     )
 
 
+# DESVIO 17 (correções 15/09/2026) — proteção de custo nas emissões avulsas/lote:
+# teto mensal e trava de procuração checados ANTES da chamada paga, e custo da
+# emissão avulsa registrado (antes só o lote registrava).
+def _empresa_por_cnpj(cnpj: str):
+    return Company.query.filter_by(cnpj=cnpj).first() if cnpj else None
+
+
+def _bloqueio_custo(company, quantidade: int = 1) -> str | None:
+    """Mensagem de bloqueio (nada é enviado) ou None."""
+    from app.services.limite_gasto_service import LimiteGastoService
+    from app.services.procuracao_service import ProcuracaoService
+    if company is not None:
+        pode, motivo = ProcuracaoService.pode_gastar(company)
+        if not pode:
+            return f"Chamadas pagas travadas para {company.razao_social}: {motivo}. Veja Procurações."
+    custo = float(ApiUsageService._get_emitir_cost(1)) * max(quantidade, 1)
+    pode, motivo = LimiteGastoService.pode_gastar(custo)
+    if not pode:
+        return f"Teto de gasto: {motivo}."
+    return None
+
+
+def _registrar_emissao(endpoint: str, company) -> None:
+    try:
+        ApiUsageService.register_usage(route_type="emitir", endpoint=endpoint,
+                                       company_id=getattr(company, "id", None))
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Falha ao registrar custo da emissão %s", endpoint)
+
+
 def _set_das_batch_job(job_id: str, **kwargs) -> None:
     with DAS_BATCH_LOCK:
         if job_id not in DAS_BATCH_JOBS:
@@ -202,6 +233,9 @@ def _run_das_lote_job(app, job_id: str, payload: dict) -> None:
                     try:
                         if not cnpj_limpo:
                             raise ValueError("Empresa sem CNPJ informado.")
+                        bloqueio = _bloqueio_custo(company)
+                        if bloqueio:
+                            raise ValueError(f"Pulada (sem custo): {bloqueio}")
 
                         pdf_bytes = service.emitir_pdf(
                             contribuinte_numero=cnpj_limpo,
@@ -275,6 +309,12 @@ def _run_das_lote_job(app, job_id: str, payload: dict) -> None:
 
 
 def _iniciar_job_das(payload: dict):
+    quantidade = len(_empresas_do_lote(payload))
+    if not quantidade:
+        return _erro("Selecione ao menos uma empresa.")
+    bloqueio = _bloqueio_custo(None, quantidade)
+    if bloqueio:
+        return _erro(bloqueio, 409)
     job_id = str(uuid.uuid4())[:8]
     _set_das_batch_job(job_id, status="queued", message="Iniciando processamento.")
     thread = threading.Thread(
@@ -302,6 +342,10 @@ def emitir_das_simples():
             return _erro("CNPJ da empresa não informado.")
         if len(periodo_apuracao) != 6:
             return _erro("Informe a competência no formato AAAAMM.")
+        company = _empresa_por_cnpj(contribuinte_numero)
+        bloqueio = _bloqueio_custo(company)
+        if bloqueio:
+            return _erro(bloqueio, 409)
 
         service = SerproDasService()
         pdf_bytes = service.emitir_pdf(
@@ -312,6 +356,7 @@ def emitir_das_simples():
         )
         if not pdf_bytes:
             return _erro("PDF não retornado pela SERPRO", 500)
+        _registrar_emissao("PGDASD/GERARDAS12", company)
         return _pdf_response(pdf_bytes, f"DAS_{contribuinte_numero}_{periodo_apuracao}.pdf")
     except Exception as e:
         return _falha_emissao(e)
@@ -329,6 +374,11 @@ def emitir_das_mei():
         if len(periodo_apuracao) != 6:
             return _erro("Informe a competência no formato AAAAMM.")
 
+        company = _empresa_por_cnpj(contribuinte_numero)
+        bloqueio = _bloqueio_custo(company)
+        if bloqueio:
+            return _erro(bloqueio, 409)
+
         service = SerproDasService()
         pdf_bytes = service.emitir_pdf(
             contribuinte_numero=contribuinte_numero,
@@ -337,6 +387,7 @@ def emitir_das_mei():
         )
         if not pdf_bytes:
             return _erro("PDF não retornado pela SERPRO", 500)
+        _registrar_emissao("PGMEI/GERARDASPDF21", company)
         return _pdf_response(pdf_bytes, f"DAS_MEI_{contribuinte_numero}_{periodo_apuracao}.pdf")
     except Exception as e:
         return _falha_emissao(e)
@@ -393,6 +444,10 @@ def emitir_darf_dctfweb():
 
         if not contribuinte_numero:
             return _erro("CNPJ da empresa não informado.")
+        company = _empresa_por_cnpj(contribuinte_numero)
+        bloqueio = _bloqueio_custo(company)
+        if bloqueio:
+            return _erro(bloqueio, 409)
 
         service = SerproDasService()
         pdf_bytes = service.emitir_pdf_dctfweb(
@@ -403,6 +458,7 @@ def emitir_darf_dctfweb():
         )
         if not pdf_bytes:
             return _erro("PDF não retornado pela SERPRO", 500)
+        _registrar_emissao("DCTFWEB/GERARGUIA31", company)
 
         if str(categoria) == "GERAL_13o_SALARIO":
             sufixo = _only_digits(ano_pa or competencia or "")[:4]
@@ -427,6 +483,9 @@ def emitir_darf_dctfweb_lote():
         companies = _empresas_do_lote(payload)
         if not companies:
             return _erro("Selecione ao menos uma empresa.")
+        bloqueio = _bloqueio_custo(None, len(companies))
+        if bloqueio:
+            return _erro(bloqueio, 409)
 
         service = SerproDasService()
         zip_buffer = io.BytesIO()
@@ -439,6 +498,8 @@ def emitir_darf_dctfweb_lote():
                 try:
                     if not cnpj_limpo:
                         raise ValueError("Empresa sem CNPJ informado.")
+                    if _bloqueio_custo(company):
+                        raise ValueError("Pulada (sem custo): chamadas pagas travadas.")
                     pdf_bytes = service.emitir_pdf_dctfweb(
                         contribuinte_numero=cnpj_limpo,
                         categoria=categoria,

@@ -123,6 +123,27 @@ class SerproProcuradorService:
         """
         return bool(setting and setting.procurador_pf_habilitado)
 
+    # ------------------------------------------------------------------
+    # Contrato usado por serpro_service, caixa_postal, pagamentos, parcelamentos
+    # e serpro_das_service. DESVIO 17 (correções 15/09/2026): antes estes métodos
+    # NÃO existiam e ligar o Procurador PF estourava AttributeError no meio da
+    # rotina (e contava como erro de procuração). Agora falham ANTES do envio,
+    # com mensagem clara e custo zero, até o módulo 5 ser convertido.
+    # ------------------------------------------------------------------
+    def auth_headers(self, *args, **kwargs) -> Dict[str, str]:
+        from app.services.serpro_erros import PROCURADOR_NAO_IMPLEMENTADO, ErroAntesDoEnvio
+        raise ErroAntesDoEnvio(PROCURADOR_NAO_IMPLEMENTADO)
+
+    def build_payload(self, *args, **kwargs) -> Dict[str, Any]:
+        from app.services.serpro_erros import PROCURADOR_NAO_IMPLEMENTADO, ErroAntesDoEnvio
+        raise ErroAntesDoEnvio(PROCURADOR_NAO_IMPLEMENTADO)
+
+    def invalidate_authorization_token(self) -> None:
+        """Nada a invalidar enquanto o fluxo de procurador não existe."""
+        with self._procurador_token_lock:
+            self._procurador_token = None
+            self._procurador_token_expires_at = 0.0
+
     def __init__(self, api_key: Optional[str] = None):
         """
         Args:

@@ -1,0 +1,194 @@
+{% extends 'escritorio/_base.html' %}
+{% block titulo %}Enviar DAS • Declaração de Faturamento{% endblock %}
+{% block css %}{% include 'escritorio/_modulo.css' %}
+html{zoom:85%}
+body{min-height:118vh}
+.das-message-card{padding:16px 18px;margin-bottom:16px}
+.message-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.message-head strong{color:var(--title);font-size:15px}
+.message-head small{color:var(--muted)}
+.message-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.das-template-text{width:100%;min-height:86px;resize:vertical;border-radius:14px;border:1px solid var(--card-border);background:var(--panel-2);color:var(--text);padding:12px;outline:none;font-family:inherit;font-size:13px;line-height:1.45}
+.das-options{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;color:var(--muted);font-size:12px}
+.check-option{display:inline-flex;align-items:center;gap:8px;font-weight:800;color:var(--text)}
+.check-option input{accent-color:#22c55e}
+table.lista{min-width:1100px}
+table.lista thead th{padding:13px 10px;letter-spacing:.5px}
+.input-whats{width:150px}
+.acoes{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
+.socio-box{display:flex;flex-direction:column;gap:4px;min-width:210px;margin-right:4px}
+.socio-check{display:inline-flex;align-items:center;gap:8px;color:var(--text);font-size:12px;font-weight:800}
+.socio-check input{accent-color:#2563eb}
+.socio-help{font-size:11px;color:var(--muted);line-height:1.25;max-width:220px}
+.badge{text-transform:uppercase;font-weight:900}
+{% endblock %}
+{% block corpo %}
+{% set mes = competencia[5:] %}{% set ano = competencia[:4] %}
+<header class="topo">
+  <div class="topbar largo">
+    <div class="brand-wrap">
+      <div class="brand-badge"><i class="fa-brands fa-whatsapp"></i></div>
+      <div class="brand-text">
+        <h1>Enviar DAS • Declaração de Faturamento</h1>
+        <p>Envio do DAS pelo WhatsApp Web • Declaração com últimos 12 meses</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <a class="tab-link {{ 'active' if aba == 'whatsapp' }}" href="?aba=whatsapp&amp;competencia={{ competencia }}">Enviar DAS</a>
+      <a class="tab-link {{ 'active' if aba == 'faturamento' }}" href="?aba=faturamento&amp;competencia={{ competencia }}">Declaração de Faturamento</a>
+      <a class="tab-link" href="#" data-acao="Dashboard do Cliente">Dashboard do Cliente</a>
+      <span class="chip-exemplo" style="height:40px;background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:#86efac">Empresas do cadastro</span>
+      <span class="top-chip">Competência {{ competencia }}</span>
+      <button type="button" id="themeToggle" title="Alternar tema">☀️</button>
+    </div>
+  </div>
+</header>
+
+<div class="container largo">
+  <div class="metrics-grid auto">
+    <div class="metric-card"><div class="metric-label">Empresas</div><div class="metric-value">{{ m.total }}</div><div class="metric-sub">Listadas no cadastro</div></div>
+    <div class="metric-card"><div class="metric-label">WhatsApp</div><div class="metric-value">0</div><div class="metric-sub">Números cadastrados</div></div>
+    <div class="metric-card"><div class="metric-label">Envios DAS</div><div class="metric-value">0</div><div class="metric-sub">DAS enviados na competência</div></div>
+    <div class="metric-card"><div class="metric-label">Faturamentos</div><div class="metric-value">0</div><div class="metric-sub">Declarações geradas</div></div>
+    <div class="metric-card"><div class="metric-label">Envios Fat.</div><div class="metric-value">0</div><div class="metric-sub">WhatsApp da declaração</div></div>
+  </div>
+
+  <div class="toolbar card">
+    <div class="toolbar-left">
+      <form method="get" data-livre style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input type="hidden" name="aba" value="{{ aba }}">
+        <input type="month" name="competencia" id="competencia" value="{{ competencia }}">
+        <button class="btn btn-sec" type="submit"><i class="fa-solid fa-rotate"></i> Trocar</button>
+      </form>
+    </div>
+    <div class="toolbar-right">
+      {% if aba == 'faturamento' %}
+      <span class="top-chip" title="Na linha de cada empresa existem dois botões: gerar sem assinatura ou gerar assinado."><i class="fa-solid fa-certificate"></i>&nbsp; Opção de assinatura por empresa</span>
+      {% endif %}
+    </div>
+  </div>
+
+{% if aba == 'whatsapp' %}
+  <div class="das-message-card card">
+    <div class="message-head">
+      <div>
+        <strong>Texto de envio do DAS</strong><br>
+        <small>Use as variáveis <b>{empresa}</b>, <b>{competencia}</b>, <b>{data}</b>, <b>{link_das}</b> e <b>{link_lucros}</b>. Se <b>{link_das}</b> não estiver no texto, o link do DAS continua sendo acrescentado automaticamente ao final.</small>
+      </div>
+      <div class="message-actions">
+        <button class="btn btn-blue btn-small" type="button" data-acao="Salvar texto"><i class="fa-solid fa-floppy-disk"></i> Salvar texto</button>
+        <button class="btn btn-orange btn-small" type="button" data-acao="Apagar datas de envio"><i class="fa-solid fa-calendar-xmark"></i> Apagar datas de envio</button>
+      </div>
+    </div>
+    <textarea id="textoDasEnvio" class="das-template-text" aria-label="Texto de envio do DAS">Olá! Segue o DAS da competência {competencia} da empresa {empresa}:</textarea>
+    <div class="das-options">
+      <label class="check-option"><input type="checkbox" id="somenteTextoDas"> <span>Não acrescentar automaticamente o link do DAS ao final</span></label>
+      <span>Exemplo: Olá! Segue o DAS <b>{link_das}</b> e o formulário de lucros <b>{link_lucros}</b> da empresa <b>{empresa}</b>.</span>
+      <span>Obs.: pelo WhatsApp Web direto, o PDF só pode ir como link; anexo automático exige API oficial do WhatsApp.</span>
+    </div>
+  </div>
+
+  <div class="filters card">
+    <div class="filters-grid">
+      <input type="text" id="filtroEmpresa" placeholder="Filtrar por Razão Social">
+      <input type="text" id="filtroCnpj" placeholder="Filtrar por CNPJ">
+      <input type="text" id="filtroWhats" placeholder="Filtrar por WhatsApp">
+      <input type="date" id="filtroData" title="Filtrar por data de envio">
+    </div>
+  </div>
+
+  <div class="table-card card">
+    <div class="table-top">
+      <div><strong>Envio do DAS pelo WhatsApp</strong><br>
+        <small>Lista as empresas da competência, mostra o DAS gerado, permite editar WhatsApp/data e abre o WhatsApp Web direto com o link do DAS.</small></div>
+    </div>
+    <div class="table-wrap">
+      <table class="lista" id="tabela">
+        <thead><tr><th>RAZÃO SOCIAL</th><th>CNPJ</th><th>MÊS/ANO</th><th>VALOR DAS</th><th>DAS</th><th>DATA ENVIO</th><th>WHATSAPP</th><th>STATUS</th><th>AÇÕES</th></tr></thead>
+        <tbody>
+        {% for e in empresas %}
+          {% set tem_das = e.das and e.das > 0 %}
+          {% set enviado = e.status == 'enviado' %}
+          <tr data-empresa="{{ e.razao|lower }}" data-cnpj="{{ e.cnpj }}">
+            <td class="col-empresa"><strong>{{ e.razao }}</strong><small>ID {{ e.id }}{% if e.tem_lancamento %} • com lançamento{% endif %}</small></td>
+            <td class="num">{{ e.cnpj_fmt }}</td>
+            <td>{{ mes }}/{{ ano }}</td>
+            <td class="money">{% if tem_das %}R$ {{ moeda(e.das) }}{% else %}—{% endif %}</td>
+            <td>{% if tem_das %}<span class="badge badge-info">DAS GERADO</span>{% else %}<span class="badge badge-pend">SEM DAS</span>{% endif %}</td>
+            <td><input type="date" aria-label="Data de envio" value=""></td>
+            <td><input class="input-whats" type="text" aria-label="WhatsApp" placeholder="11999999999" value=""></td>
+            <td>{% if enviado %}<span class="badge badge-ok">ENVIADO</span>{% else %}<span class="badge badge-pend">PENDENTE</span>{% endif %}</td>
+            <td><div class="acoes">
+              <button class="btn btn-green btn-small" type="button" data-acao="Enviar DAS pelo WhatsApp" disabled><i class="fa-brands fa-whatsapp"></i> Enviar DAS</button>
+            </div></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">Nenhuma empresa cadastrada no Central.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="filters card">
+    <div class="filters-grid">
+      <input type="text" id="filtroEmpresa" placeholder="Filtrar por Razão Social">
+      <input type="text" id="filtroCnpj" placeholder="Filtrar por CNPJ">
+      <select id="filtroGerado"><option value="">Todos</option><option value="gerado">Gerados</option><option value="pendente">Não gerados</option></select>
+      <input type="date" id="filtroData" title="Filtrar por data de envio">
+    </div>
+  </div>
+
+  <div class="table-card card">
+    <div class="table-top">
+      <div><strong>Declaração de Faturamento</strong><br><small>Gera o modelo com os últimos 12 meses até a competência selecionada.</small></div>
+    </div>
+    <div class="table-wrap">
+      <table class="lista" id="tabela">
+        <thead><tr><th>RAZÃO SOCIAL</th><th>CNPJ</th><th>COMPETÊNCIA FINAL</th><th>GERADO</th><th>TOTAL 12M</th><th>DATA ENVIO</th><th>WHATSAPP</th><th>AÇÕES</th></tr></thead>
+        <tbody>
+        {% for e in empresas %}
+          <tr data-empresa="{{ e.razao|lower }}" data-cnpj="{{ e.cnpj }}" data-gerado="pendente">
+            <td class="col-empresa"><strong>{{ e.razao }}</strong><small>ID {{ e.id }}</small></td>
+            <td class="num">{{ e.cnpj_fmt }}</td>
+            <td>{{ mes }}/{{ ano }}</td>
+            <td><span class="badge badge-pend">PENDENTE</span></td>
+            <td class="money">{% if e.rbt12 %}R$ {{ moeda(e.rbt12) }}{% else %}—{% endif %}</td>
+            <td><input type="date" aria-label="Data de envio" value=""></td>
+            <td><input class="input-whats" type="text" aria-label="WhatsApp" placeholder="11999999999" value=""></td>
+            <td><div class="acoes">
+              <div class="socio-box">
+                <label class="socio-check"><input type="checkbox" data-acao="Usar 1º sócio na assinatura"> <span>Usar 1º sócio</span></label>
+                <div class="socio-help">Assinatura quando a geração estiver ligada</div>
+              </div>
+              <button class="btn btn-blue btn-small" type="button" data-acao="Gerar sem assinar"><i class="fa-solid fa-file-circle-plus"></i> Gerar sem assinar</button>
+              <button class="btn btn-orange btn-small" type="button" data-acao="Gerar assinado com certificado A1"><i class="fa-solid fa-certificate"></i> Gerar assinado</button>
+            </div></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Nenhuma empresa cadastrada no Central.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+</div>
+{% endblock %}
+{% block js %}
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  function filtrar(){
+    const emp = ($('filtroEmpresa').value || '').trim().toLowerCase();
+    const cnpj = ($('filtroCnpj').value || '').replace(/\D/g,'');
+    const ger = $('filtroGerado') ? $('filtroGerado').value : '';
+    document.querySelectorAll('#tabela tbody tr').forEach(tr => {
+      const mostra = (!emp || tr.dataset.empresa.includes(emp)) && (!cnpj || tr.dataset.cnpj.includes(cnpj)) && (!ger || tr.dataset.gerado === ger);
+      tr.style.display = mostra ? '' : 'none';
+    });
+  }
+  ['filtroEmpresa','filtroCnpj','filtroGerado'].forEach(id => { const el = $(id); if (el) { el.addEventListener('input', filtrar); el.addEventListener('change', filtrar); } });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends 'escritorio/_base.html' %}
+{% block titulo %}Caminhos XML{% endblock %}
+{% block css %}
+html{zoom:.80}
+body{min-height:125vh}
+body{background:radial-gradient(1000px 600px at 10% -10%, rgba(99,102,241,.25), transparent 60%),
+  radial-gradient(900px 600px at 110% 10%, rgba(34,211,238,.25), transparent 60%), var(--bg);color:var(--ink)}
+.wrap{padding:28px}
+h1{margin:0;font-size:26px;font-weight:900;color:var(--ink)}
+.btn{border:0;border-radius:14px;padding:10px 18px;font-weight:800;cursor:pointer;transition:.2s ease;font-family:inherit}
+.btn.primary{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff}
+.btn.dark{background:#020617;color:#fff}
+.btn:hover{transform:translateY(-1px)}
+.glass{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.45)}
+body.light .glass{box-shadow:0 30px 80px rgba(2,6,23,.15)}
+.titulo-secao{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.titulo-secao i{width:6px;height:22px;background:linear-gradient(180deg,var(--p1),var(--p2));border-radius:4px}
+.titulo-secao h2{margin:0;font-size:15px;font-weight:800;letter-spacing:.6px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.f2{grid-column:span 2}.f3{grid-column:span 3}
+@media(max-width:1100px){.f2,.f3{grid-column:span 12}}
+label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.grid input,.grid select{width:100%;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);outline:none;font-family:inherit}
+.grid select option{background:#0f172a;color:#e5e7eb}
+body.light .grid select option{background:#fff;color:#0f172a}
+.check-row{display:flex;flex-wrap:wrap;gap:26px;margin-top:14px;margin-bottom:6px;align-items:center}
+.inline-check{display:flex;align-items:center;gap:8px;min-height:24px;font-size:13px;color:var(--ink);font-weight:700;margin:0}
+.inline-check input{width:auto;margin:0;accent-color:var(--p1)}
+.counter{font-size:13px;color:var(--muted);margin-top:10px}
+hr{border:0;height:1px;background:var(--line);margin:18px 0}
+.table-wrap{margin-top:14px;border:1px solid var(--line);border-radius:18px;overflow:auto;max-height:70vh}
+table{width:100%;min-width:1300px;border-collapse:collapse;table-layout:fixed}
+th,td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:12px;color:var(--muted);text-align:left;font-weight:800;position:sticky;top:0;background:var(--card);z-index:5;backdrop-filter:blur(6px)}
+tbody tr:nth-child(even){background:rgba(255,255,255,.03)}
+.copy{cursor:pointer}
+.copy:hover{background:rgba(99,102,241,.06);border-radius:8px}
+.editable{display:block;width:100%;min-height:48px;padding:12px;border-radius:12px;background:rgba(99,102,241,.15);font-size:13px;line-height:1.5;white-space:nowrap;overflow-x:auto;outline:none}
+.editable:focus{box-shadow:0 0 0 2px var(--p1)}
+.locked-cell{display:block;width:100%;min-height:48px;padding:12px;border-radius:12px;font-size:13px;line-height:1.5;white-space:nowrap;overflow-x:auto}
+th:nth-child(1),td:nth-child(1){width:150px}
+th:nth-child(2),td:nth-child(2){width:260px}
+th:nth-child(3),td:nth-child(3){width:80px;text-align:center}
+th:nth-child(4),td:nth-child(4){width:90px;text-align:center}
+th:nth-child(5),td:nth-child(5),th:nth-child(6),td:nth-child(6){width:420px}
+th:nth-child(7),td:nth-child(7){width:70px;text-align:center}
+th:nth-child(8),td:nth-child(8){width:120px}
+.copiado{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:13px;font-weight:800;display:none;z-index:50}
+{% endblock %}
+{% block corpo %}
+{% set mes = competencia[5:] %}{% set ano = competencia[:4] %}
+<div class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h1>Caminhos XML</h1><span class="chip-exemplo" style="background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:#86efac">Empresas do cadastro</span></div>
+    <button id="themeToggle" class="btn dark" type="button">☀️ Claro</button>
+  </div>
+
+  <div class="glass">
+    <div class="titulo-secao"><i></i><h2>FILTROS</h2></div>
+    <div class="grid">
+      <div class="f3"><label for="fRazao">Razão</label><input id="fRazao"></div>
+      <div class="f3"><label for="fCnpj">CNPJ</label><input id="fCnpj"></div>
+      <div class="f2"><label for="fOk">Status</label><select id="fOk"><option value="">Todos</option><option value="1">OK</option><option value="0">Não OK</option></select></div>
+      <div class="f2"><label for="dataRef">Mês</label><input type="month" id="dataRef" value="{{ competencia }}"></div>
+    </div>
+    <div class="check-row">
+      <label class="inline-check"><input type="checkbox" id="hideOk"> <span>Ocultar OK</span></label>
+      <label class="inline-check"><input type="checkbox" id="hideEmpty"> <span>Ocultar sem caminhos</span></label>
+      <label class="inline-check"><input type="checkbox" id="onlyNFSe"> <span>Exibir somente NFSe marcados</span></label>
+      <label class="inline-check"><input type="checkbox" id="onlyNFe"> <span>Exibir somente NFe marcados</span></label>
+      <button class="btn dark" type="button" data-acao="Limpar OK">Limpar OK</button>
+    </div>
+    <div class="counter" id="counter">Exibindo {{ empresas|length }} de {{ empresas|length }}</div>
+    <hr>
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead><tr><th>CNPJ</th><th>Razão</th><th>Mês</th><th>Ano</th><th>XML NFSe</th><th>XML NFe</th><th>OK</th><th>Ação</th></tr></thead>
+        <tbody>
+        {% for e in empresas %}
+          <tr data-razao="{{ e.razao|lower }}" data-cnpj="{{ e.cnpj }}" data-ok="{{ 1 if e.ok else 0 }}">
+            <td class="copy" data-copy="{{ e.cnpj }}">{{ e.cnpj }}</td>
+            <td class="copy" data-copy="{{ e.razao }}">{{ e.razao }}</td>
+            <td class="copy" data-copy="{{ mes }}">{{ mes }}</td>
+            <td class="copy" data-copy="{{ ano }}">{{ ano }}</td>
+            <td>{% if e.ok %}<div class="locked-cell copy" data-copy="{{ e.caminho_nfse }}">{{ e.caminho_nfse }}</div>{% else %}<div class="editable" data-field="nfse" contenteditable="true">{{ e.caminho_nfse }}</div>{% endif %}</td>
+            <td>{% if e.ok %}<div class="locked-cell copy" data-copy="{{ e.caminho_nfe }}">{{ e.caminho_nfe }}</div>{% else %}<div class="editable" data-field="nfe" contenteditable="true">{{ e.caminho_nfe }}</div>{% endif %}</td>
+            <td><input type="checkbox" {{ 'checked' if e.ok }} data-acao="Marcar OK"></td>
+            <td><button type="button" class="btn primary" data-acao="Salvar caminhos">Salvar</button></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="copiado" id="copiado">Copiado!</div>
+{% endblock %}
+{% block js %}
+<script>
+(function(){
+  const b = document.getElementById('themeToggle');
+  const rotular = () => b.textContent = document.body.classList.contains('light') ? '🌙 Escuro' : '☀️ Claro';
+  rotular(); b.addEventListener('click', () => setTimeout(rotular));
+
+  // copiar ao clicar (funciona só na tela)
+  document.querySelectorAll('.copy').forEach(td => td.addEventListener('click', () => {
+    const txt = td.dataset.copy || ''; if (!txt) return;
+    try { navigator.clipboard.writeText(txt); } catch(e) {}
+    const t = document.getElementById('copiado'); t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 900);
+  }));
+
+  const $ = id => document.getElementById(id);
+  function filtrar(){
+    const razao = $('fRazao').value.trim().toLowerCase(), cnpj = $('fCnpj').value.replace(/\D/g,''), ok = $('fOk').value;
+    let n = 0; const linhas = document.querySelectorAll('#tbl tbody tr');
+    linhas.forEach(tr => {
+      const vazio = !tr.querySelector('td:nth-child(5)').textContent.trim() && !tr.querySelector('td:nth-child(6)').textContent.trim();
+      const mostra = (!razao || tr.dataset.razao.includes(razao)) && (!cnpj || tr.dataset.cnpj.includes(cnpj)) && (!ok || tr.dataset.ok === ok)
+        && !($('hideOk').checked && tr.dataset.ok === '1') && !($('hideEmpty').checked && vazio)
+        && !($('onlyNFSe').checked && !tr.querySelector('td:nth-child(5)').textContent.trim())
+        && !($('onlyNFe').checked && !tr.querySelector('td:nth-child(6)').textContent.trim());
+      tr.style.display = mostra ? '' : 'none'; if (mostra) n++;
+    });
+    $('counter').textContent = 'Exibindo ' + n + ' de ' + linhas.length;
+  }
+  ['fRazao','fCnpj','fOk','hideOk','hideEmpty','onlyNFSe','onlyNFe'].forEach(id => { $(id).addEventListener('input', filtrar); $(id).addEventListener('change', filtrar); });
+})();
+</script>
+{% endblock %}

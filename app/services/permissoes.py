@@ -88,6 +88,12 @@ ROTINAS: Dict[str, Dict[str, Any]] = {
         'prefixos': ['/relatorios'],
         'admin': False,
     },
+    # DESVIO INTENCIONAL (17o) — telas de escritório no visual do Integra Contador.
+    'escritorio': {
+        'nome': 'Escritório',
+        'prefixos': ['/escritorio'],
+        'admin': False,
+    },
 }
 
 # Sempre liberado para quem está logado: são a base de qualquer tela.
@@ -135,6 +141,7 @@ ICONES = {
     'filtros':       'M3 4h18M7 9h10M10 14h4',
     'relatorios':    'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8',
     'restaurar':     'M21 12a9 9 0 11-3-6.7M21 3v6h-6',
+    'escritorio':    'M3 21h18M5 21V7l7-4 7 4v14M9 10h1M14 10h1M9 14h1M14 14h1M10 21v-3h4v3',
     '__admin__':     'M17 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9.5 6.5a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0zM22 20v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8',
     'sair':          'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
 }
@@ -142,6 +149,7 @@ ICONES = {
 MENU: List = [
     ('Painel', [
         {'chave': 'dashboard',     'rotulo': 'Dashboard',     'spa': 'Dashboard'},
+        {'chave': 'escritorio',    'rotulo': 'Escritório',    'url': '/escritorio'},
         {'chave': 'caixa_postal',  'rotulo': 'Caixa Postal',  'spa': 'Caixa Postal'},
         {'chave': 'parcelamentos', 'rotulo': 'Parcelamentos', 'spa': 'Parcelamentos'},
     ]),

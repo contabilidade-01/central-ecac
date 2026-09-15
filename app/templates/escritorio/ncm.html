@@ -1,0 +1,159 @@
+{% extends 'escritorio/_base.html' %}
+{% block titulo %}Tabela NCM × CST{% endblock %}
+{% block css %}{% include 'escritorio/_modulo.css' %}
+.container{max-width:1200px}
+.intro{padding:16px 18px;margin-bottom:16px;font-size:13px;line-height:1.6;color:var(--muted)}
+.intro b{color:var(--title)}
+.legenda{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.cst{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:26px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:900;border:1px solid transparent}
+.cst-1{color:#cbd5e1;background:rgba(148,163,184,.14);border-color:rgba(148,163,184,.3)}
+.cst-4{color:#86efac;background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3)}
+.cst-5{color:#fcd34d;background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3)}
+.cst-6{color:#93c5fd;background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.3)}
+body.light .cst-1{color:#475569} body.light .cst-4{color:#15803d} body.light .cst-5{color:#a16207} body.light .cst-6{color:#1d4ed8}
+.form-ncm{display:grid;grid-template-columns:130px 190px 1fr 1fr auto auto;gap:10px;align-items:end;padding:16px 18px;margin-bottom:16px}
+.form-ncm label{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.form-ncm input,.form-ncm select{height:40px;border-radius:12px;border:1px solid var(--card-border);background:var(--panel-2);color:var(--text);padding:0 12px;font-family:inherit;font-size:13px;min-width:0}
+.form-ncm .chk{flex-direction:row;align-items:center;height:40px;text-transform:none;font-size:13px;color:var(--text)}
+@media(max-width:1000px){.form-ncm{grid-template-columns:1fr 1fr}}
+table.lista{min-width:900px}
+table.lista td{white-space:normal}
+tr.inativo td{opacity:.5}
+.acoes-ncm{display:flex;gap:6px}
+.testar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.testar input{height:40px;border-radius:12px;border:1px solid var(--card-border);background:var(--panel-2);color:var(--text);padding:0 12px;width:160px;font-family:inherit}
+.resultado-teste{font-size:13px;font-weight:700}
+{% endblock %}
+{% block corpo %}
+<header class="topo">
+  <div class="topbar">
+    <div class="brand-wrap">
+      <div class="brand-badge"><i class="fa-solid fa-table-list"></i></div>
+      <div class="brand-text"><h1>Tabela NCM × CST de PIS/COFINS</h1><p>Usada pelo leitor de XML de NF-e para separar monofásicos</p></div>
+    </div>
+    <div class="topbar-actions"><button type="button" id="themeToggle" title="Alternar tema">🌙</button></div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="card intro">
+    Cada linha guarda um <b>NCM ou prefixo</b> (2 a 8 dígitos). Na leitura dos XMLs vence o <b>prefixo mais longo</b> — por isso uma exceção de 8 dígitos
+    com CST 1 sobrepõe a regra do capítulo. NCM sem regra é tratado como <b>CST 1</b>, igual ao modelo.
+    <b>A carga inicial é ponto de partida:</b> confira com a legislação e com os produtos dos seus clientes (autopeças não foram carregadas).
+    <div class="legenda"><span class="cst cst-1">1</span> tributável <span class="cst cst-4">4</span> monofásico <span class="cst cst-5">5</span> substituição tributária <span class="cst cst-6">6</span> alíquota zero</div>
+  </div>
+
+  <div class="card toolbar">
+    <div class="testar">
+      <input type="text" id="testeNcm" placeholder="Testar um NCM" inputmode="numeric" maxlength="10" aria-label="NCM para testar">
+      <button class="btn-sec" type="button" id="btnTestar">Ver CST</button>
+      <span class="resultado-teste" id="resultadoTeste"></span>
+    </div>
+    <div class="toolbar-right">
+      <input type="text" id="busca" class="campo" placeholder="Filtrar por NCM ou descrição" aria-label="Filtrar">
+    </div>
+  </div>
+
+  {% if pode_editar %}
+  <form class="card form-ncm" id="formNcm" data-livre autocomplete="off">
+    <input type="hidden" id="fId">
+    <label>NCM / prefixo<input id="fNcm" required inputmode="numeric" maxlength="10" placeholder="30049099"></label>
+    <label>CST<select id="fCst"><option value="4">4 — monofásico</option><option value="6">6 — alíquota zero</option><option value="5">5 — subst. tributária</option><option value="1">1 — tributável (exceção)</option></select></label>
+    <label>Descrição<input id="fDesc" maxlength="255" placeholder="Ex.: Medicamentos"></label>
+    <label>Base legal<input id="fBase" maxlength="255" placeholder="Ex.: Lei 10.147/2000"></label>
+    <label class="chk"><input type="checkbox" id="fAtivo" checked> Ativo</label>
+    <div style="display:flex;gap:8px"><button class="btn-primario" type="submit" id="btnSalvar">Adicionar</button><button class="btn-sec" type="button" id="btnCancelar" hidden>Cancelar</button></div>
+  </form>
+  {% else %}
+  <div class="card intro">Só o administrador altera esta tabela.</div>
+  {% endif %}
+
+  <div class="table-card card">
+    <div class="table-top"><div><strong>Regras cadastradas</strong><br><small id="contador">Carregando...</small></div></div>
+    <div class="table-wrap">
+      <table class="lista" id="tabela">
+        <thead><tr><th>NCM / PREFIXO</th><th>CST</th><th>DESCRIÇÃO</th><th>BASE LEGAL</th><th>ATUALIZADO</th>{% if pode_editar %}<th>AÇÕES</th>{% endif %}</tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block js %}
+<script>
+(function(){
+  const PODE = {{ 'true' if pode_editar else 'false' }};
+  const URL_LISTA = "{{ url_for('escritorio.api_ncm_listar') }}";
+  const URL_SALVAR = "{{ url_for('escritorio.api_ncm_salvar') }}";
+  const URL_CST = "{{ url_for('escritorio.api_ncm_cst') }}";
+  const $ = (s) => document.querySelector(s);
+  const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const dig = (t) => String(t || '').replace(/\D/g, '');
+  const NOMES = {1:'tributável', 4:'monofásico', 5:'subst. tributária', 6:'alíquota zero'};
+  let itens = [];
+
+  async function carregar(){
+    const r = await fetch(URL_LISTA, {credentials:'same-origin'});
+    const j = await r.json();
+    itens = j.itens || [];
+    desenhar();
+  }
+  function desenhar(){
+    const q = $('#busca').value.trim().toLowerCase();
+    const qd = dig(q);
+    const lista = itens.filter((i) => !q || (qd && i.ncm.startsWith(qd)) || i.descricao.toLowerCase().includes(q) || i.base_legal.toLowerCase().includes(q));
+    $('#contador').textContent = `${lista.length} de ${itens.length} regra(s)`;
+    $('#tabela tbody').innerHTML = lista.map((i) => `<tr class="${i.ativo ? '' : 'inativo'}">
+      <td class="num"><strong>${esc(i.ncm)}</strong>${i.ativo ? '' : ' <small>(inativo)</small>'}</td>
+      <td><span class="cst cst-${i.cst}" title="${NOMES[i.cst] || ''}">${i.cst}</span></td>
+      <td>${esc(i.descricao)}</td><td><small>${esc(i.base_legal)}</small></td>
+      <td><small>${esc(i.atualizado_em)}${i.atualizado_por ? '<br>' + esc(i.atualizado_por) : ''}</small></td>
+      ${PODE ? `<td><div class="acoes-ncm"><button class="btn-sec btn-small" type="button" data-editar="${i.id}">Editar</button><button class="btn-sec btn-small" type="button" data-excluir="${i.id}">Excluir</button></div></td>` : ''}
+    </tr>`).join('') || `<tr><td colspan="6">Nenhuma regra encontrada.</td></tr>`;
+  }
+  $('#busca').addEventListener('input', desenhar);
+
+  $('#btnTestar').addEventListener('click', async () => {
+    const n = dig($('#testeNcm').value);
+    if (!n) { $('#resultadoTeste').textContent = 'Informe um NCM.'; return; }
+    const r = await fetch(URL_CST + '?ncms=' + n, {credentials:'same-origin'});
+    const j = await r.json();
+    const cst = (j.cst || {})[n] || 1;
+    $('#resultadoTeste').innerHTML = `NCM ${esc(n)} → <span class="cst cst-${cst}">${cst}</span> ${NOMES[cst] || ''}`;
+  });
+  $('#testeNcm').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#btnTestar').click(); });
+
+  if (PODE) {
+    const form = $('#formNcm');
+    function limpar(){ form.reset(); $('#fId').value = ''; $('#fAtivo').checked = true; $('#btnSalvar').textContent = 'Adicionar'; $('#btnCancelar').hidden = true; }
+    $('#btnCancelar').addEventListener('click', limpar);
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const corpo = { id: $('#fId').value || null, ncm: dig($('#fNcm').value), cst: +$('#fCst').value,
+                      descricao: $('#fDesc').value, base_legal: $('#fBase').value, ativo: $('#fAtivo').checked };
+      const r = await fetch(URL_SALVAR, {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body: JSON.stringify(corpo)});
+      let j = {}; try { j = await r.json(); } catch(err) {}
+      if (!r.ok || !j.ok) { mostrarAlerta('error', 'Não foi possível salvar', j.msg || j.message || ('Erro ' + r.status)); return; }
+      limpar(); await carregar();
+    });
+    $('#tabela').addEventListener('click', async (e) => {
+      const ed = e.target.closest('[data-editar]'), ex = e.target.closest('[data-excluir]');
+      if (ed) {
+        const i = itens.find((x) => x.id === +ed.dataset.editar); if (!i) return;
+        $('#fId').value = i.id; $('#fNcm').value = i.ncm; $('#fCst').value = i.cst; $('#fDesc').value = i.descricao;
+        $('#fBase').value = i.base_legal; $('#fAtivo').checked = i.ativo; $('#btnSalvar').textContent = 'Salvar alteração';
+        $('#btnCancelar').hidden = false; window.scrollTo({top:0, behavior:'smooth'}); $('#fNcm').focus();
+      }
+      if (ex) {
+        const i = itens.find((x) => x.id === +ex.dataset.excluir); if (!i) return;
+        if (!confirm(`Excluir a regra do NCM ${i.ncm}? Itens com esse NCM passam a seguir a regra mais curta (ou CST 1).`)) return;
+        const r = await fetch(`${URL_SALVAR}/${i.id}/excluir`, {method:'POST', credentials:'same-origin'});
+        if (!r.ok) { mostrarAlerta('error', 'Não foi possível excluir', 'Erro ' + r.status); return; }
+        await carregar();
+      }
+    });
+  }
+  carregar();
+})();
+</script>
+{% endblock %}

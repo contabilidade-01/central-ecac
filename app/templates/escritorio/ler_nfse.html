@@ -1,0 +1,47 @@
+{% extends 'escritorio/_base.html' %}
+{% block titulo %}Leitor NFS-e (Fator R x Anexos){% endblock %}
+{% block css %}{% include 'escritorio/_leitor.css' %}
+.aviso-vazio{margin-top:18px;padding:18px;border-radius:14px;border:1px dashed var(--line);color:var(--muted);text-align:center;font-size:13px}
+{% endblock %}
+{% block corpo %}
+{% set mes = competencia[5:] %}{% set ano = competencia[:4] %}
+{% set e = empresas[0] if empresas else none %}
+<div class="container">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="brand-dot"></div>
+      <h1 class="grad">Relatório de Notas de Serviços</h1>
+      <span class="chip-exemplo" style="background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:#86efac">Leitor em construção</span>
+    </div>
+    <button id="themeToggle" class="theme-btn" type="button" title="Alternar tema">🌙</button>
+  </div>
+
+  <div class="upload-area" role="button" tabindex="0" data-acao="Selecionar pasta/arquivos XML">
+    Arraste aqui um ZIP ou XMLs<br>
+    <small>(ou clique para selecionar <b>pasta</b> ou arquivos)</small>
+  </div>
+
+  <div class="controls">
+    <input type="number" id="mes" min="1" max="12" placeholder="Mês" value="{{ mes|int }}">
+    <input type="number" id="ano" placeholder="Ano" value="{{ ano }}">
+    <input type="text" id="cnpj" placeholder="CNPJ" maxlength="18" value="{{ e.cnpj_fmt if e else '' }}">
+    <button class="bt" type="button" data-acao="Gerar">Gerar</button>
+    <button class="bt" type="button" data-acao="Gerar Outra Empresa">Gerar Outra Empresa</button>
+    <button class="bt" type="button" data-acao="Salvar no Banco" disabled>💾 Salvar no Banco</button>
+  </div>
+  <div class="status">Nenhum XML carregado.</div>
+
+  {% if e %}
+  <div class="lcard" style="border-left-color:#475569;margin-top:10px">
+    <h3>Empresa (cadastro)</h3>
+    <p><b>Nome:</b> {{ e.razao }}</p>
+    <p><b>CNPJ:</b> {{ e.cnpj_fmt }}</p>
+    <p class="small">Competência: <b>{{ mes }}/{{ ano }}</b></p>
+  </div>
+  {% endif %}
+
+  <div class="aviso-vazio">
+    O leitor de NFS-e ainda não está ligado. Use <b>Ler XML NFe</b> para comércio; a apuração de serviços entra na sequência.
+  </div>
+</div>
+{% endblock %}

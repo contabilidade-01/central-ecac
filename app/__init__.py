@@ -140,7 +140,11 @@ def create_app() -> Flask:
                 or path == '/usuarios'
                 # Telas server-side de filtros e relatorios.
                 or path == '/filtros'
-                or path == '/relatorios'):
+                or path == '/relatorios'
+                # DESVIO INTENCIONAL (17o): area Escritorio (telas modeladas no
+                # visual do Integra Contador), servida pelo Flask.
+                or path == '/escritorio'
+                or path.startswith('/escritorio/')):
             return None
         if '.' in path.split('/')[-1]:
             return None
@@ -192,6 +196,13 @@ def create_app() -> Flask:
     # Tela /relatorios — navegar e visualizar PDFs armazenados.
     from app.routes.relatorios_tela import relatorios_tela_bp
     app.register_blueprint(relatorios_tela_bp)
+
+    # DESVIO INTENCIONAL (17o) — area /escritorio: painel de cards e telas de escritorio
+    # (Configuracao, Lancamentos, Transmitir PGDAS-D, XMLs, Upload PGDAS-D, Faturamento)
+    # no visual do Integra Contador. Nesta etapa so modelagem: dados de exemplo, nenhuma
+    # acao ligada e nenhuma chamada a SERPRO. Pedido do Jean em 15/09/2026.
+    from app.routes.escritorio import escritorio_bp
+    app.register_blueprint(escritorio_bp)
 
     from app.scheduler import iniciar as iniciar_agendador
     iniciar_agendador(app)

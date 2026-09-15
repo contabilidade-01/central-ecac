@@ -15,7 +15,8 @@ pendências, parcelamentos, caixa postal do e-CAC, emissão de DAS/DARF e pagame
 
 | Documento | Para quê |
 |---|---|
-| [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Como o sistema é organizado, o que é fiel ao exe e os **15 desvios intencionais** |
+| [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Como o sistema é organizado, o que é fiel ao exe e os **desvios intencionais** |
+| [docs/HANDOFF-ESCRITORIO.md](docs/HANDOFF-ESCRITORIO.md) | **Retomada da área Escritório** (o que funciona, prova Rafael, próximo passo SERPRO) |
 | [docs/DEPLOY_EASYPANEL.md](docs/DEPLOY_EASYPANEL.md) | **Passo a passo do deploy**: GitHub → EasyPanel → subdomínio → HTTPS |
 | [docs/OPERACAO.md](docs/OPERACAO.md) | Rotina do dia a dia: custos da API, backup, restauração, o que é grátis e o que é pago |
 | [docs/MELHORIAS.md](docs/MELHORIAS.md) | Lista priorizada de melhorias — o que já foi feito e o que falta |
@@ -32,6 +33,11 @@ compilada (14º desvio) a partir de `permissoes.MENU`:
 
 | Tela | Para quê |
 |---|---|
+| `/escritorio` | Painel do escritório (visual Integra Contador) [desvio 17] — ver [HANDOFF](docs/HANDOFF-ESCRITORIO.md) |
+| `/escritorio/xml/nfe` | **Leitor NF-e/NFC-e funcional** (ZIP/XML no browser → memória) |
+| `/escritorio/simples/lancamentos` | **Lançamentos** — conferência sobre a memória do leitor |
+| `/escritorio/simples/transmitir` | Lista real da memória; Calcular DAS / envio SERPRO na próxima etapa |
+| `/escritorio/ncm` | Tabela NCM × CST de PIS/COFINS (edição só pelo administrador) |
 | `/procuracoes` | Situação de procuração por empresa, erro exato da SERPRO e trava de chamadas pagas |
 | `/agendamento` | Frequência de cada rotina automática, teto mensal de gasto e execução manual |
 | `/login` · `/logout` | Entrada do sistema (sessão) [desvio 10] |

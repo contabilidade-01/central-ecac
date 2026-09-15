@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escritório — Central Pendências e-CAC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;800;900&display=swap">
+<style>{{ CSS|safe }}
+/* =====================================================================
+   Painel do Escritório (17o desvio) — visual do Integra Contador, dentro da
+   barra lateral do sistema. Tudo escopado em .integra para não colidir com
+   o CSS comum das telas do Flask (app/ui.py).
+   ===================================================================== */
+.integra{
+  --i-sub:rgba(255,255,255,.65); --i-ink:#fff;
+  flex:1; min-height:calc(100vh - 57px); color:var(--i-ink);
+  font-family:Inter,system-ui,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(1000px 420px at 20% 0%, rgba(99,102,241,.30), transparent 60%) no-repeat,
+    radial-gradient(900px 380px at 85% 10%, rgba(34,211,238,.22), transparent 55%),
+    linear-gradient(135deg, #0f172a, #020617);
+  transition:background .28s, color .22s;
+}
+.integra.light{
+  --i-sub:#64748b; --i-ink:#0f172a;
+  background:
+    radial-gradient(1000px 420px at 20% 0%, rgba(99,102,241,.16), transparent 60%),
+    radial-gradient(900px 380px at 85% 10%, rgba(34,211,238,.13), transparent 55%),
+    linear-gradient(135deg, #f8fafc, #eaf0f8);
+}
+.integra .i-wrap{max-width:1100px;margin:0 auto;padding:22px 18px 40px}
+.integra .i-topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.integra .i-logo{display:flex;align-items:center;gap:12px}
+.integra .i-logo .bloco{width:28px;height:36px;border-radius:4px;background:var(--i-ink)}
+.integra .i-logo .barra-az{width:7px;height:36px;border-radius:3px;background:#3b82f6;margin-left:-4px}
+.integra .i-logo b{display:block;font-size:19px;font-weight:800;color:var(--i-ink);letter-spacing:-.2px;line-height:1.1}
+.integra .i-logo span{display:block;font-size:12px;color:var(--i-sub);letter-spacing:.6px}
+.integra .i-right{display:flex;align-items:center;gap:8px}
+.integra .i-toggle{width:34px;height:34px;padding:0;margin:0;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);
+  color:#e2e8f0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;line-height:1;box-shadow:0 7px 18px rgba(0,0,0,.14);font-weight:400}
+.integra .i-toggle:hover{transform:translateY(-1px);background:rgba(255,255,255,.13)}
+.integra.light .i-toggle{background:rgba(255,255,255,.82);border-color:rgba(15,23,42,.1);color:#0f172a}
+.integra h1{margin:48px 0 6px;font-size:18px;font-weight:800;letter-spacing:-.3px;color:var(--i-ink)}
+.integra .i-sub{margin:0 0 32px;color:var(--i-sub);font-weight:500;font-size:14px;letter-spacing:.3px}
+.integra .i-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.integra .i-card{min-height:72px;padding:10px 14px;border-radius:0;box-shadow:0 14px 32px rgba(0,0,0,.35);transition:.25s;cursor:pointer;
+  position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;text-align:left;border:0;margin:0;font-family:inherit}
+.integra .i-card::after{content:"";position:absolute;top:-18px;right:-28px;width:90px;height:90px;transform:rotate(45deg);background:rgba(255,255,255,.12);pointer-events:none}
+.integra .i-card h2{margin:0;font-size:16px;line-height:1.05;font-weight:800;position:relative;z-index:1;color:#fff}
+.integra .i-card p{margin:4px 0 0;font-size:11px;line-height:1.15;color:rgba(255,255,255,.88);font-weight:700;position:relative;z-index:1}
+.integra .i-card.ativo:hover{transform:translateY(-6px) scale(1.02)}
+.integra.light .i-card{box-shadow:0 14px 30px rgba(15,23,42,.14)}
+.integra.light .i-card.ativo{opacity:.9}
+.integra.light .i-card.ativo:hover{opacity:1}
+.integra .i-card.destaque{border:1px solid rgba(255,255,255,.22)}
+.integra .i-card.destaque h2{font-size:15px}
+.integra .i-card.bloq{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);box-shadow:none;cursor:not-allowed}
+.integra .i-card.bloq h2,.integra .i-card.bloq p{color:rgba(255,255,255,.55)}
+.integra.light .i-card.bloq{background:rgba(255,255,255,.72);border-color:rgba(15,23,42,.1);box-shadow:0 10px 24px rgba(15,23,42,.07)}
+.integra.light .i-card.bloq h2{color:#475569}
+.integra.light .i-card.bloq p{color:#64748b}
+.integra .i-lock{position:absolute;top:12px;right:12px;font-size:11px;background:rgba(0,0,0,.45);padding:6px 10px;border-radius:4px;font-weight:900;z-index:2;color:#fff}
+.integra.light .i-lock{background:#e2e8f0;color:#475569;border:1px solid rgba(15,23,42,.08)}
+.integra .cert-info{display:inline-flex;margin-top:4px;padding:3px 7px;border-radius:999px;font-size:9px;line-height:1;font-weight:400;letter-spacing:.1px;
+  background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.34);color:#fffbeb}
+.integra .cfg-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:-18px 0 28px}
+.integra .cfg-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:700;
+  border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:rgba(255,255,255,.88);text-decoration:none}
+.integra .cfg-chip.ok{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.14);color:#bbf7d0}
+.integra .cfg-chip.warn{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.14);color:#fde68a}
+.integra .cfg-chip a{color:inherit;font-weight:800;text-decoration:underline}
+.integra.light .cfg-chip{background:rgba(15,23,42,.05);border-color:rgba(15,23,42,.1);color:#334155}
+.integra.light .cfg-chip.ok{background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.28);color:#166534}
+.integra.light .cfg-chip.warn{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#b45309}
+.integra .i-nota{margin-top:18px;font-size:12px;color:var(--i-sub)}
+
+/* janela do módulo */
+.i-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:999}
+.i-modal.show{display:flex}
+.i-modal-box{width:95%;height:95%;background:#0f172a;border-radius:0;box-shadow:0 30px 80px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden;transition:.25s}
+.i-modal-box.min{width:80%;height:90%;border-radius:18px}
+body.i-light .i-modal-box{background:#f8fafc}
+.i-modal-top{background:rgba(255,255,255,.06);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;font-weight:900;color:#fff;font-family:Inter,system-ui,sans-serif}
+body.i-light .i-modal-top{background:#eef2ff;color:#0f172a;border-bottom:1px solid rgba(15,23,42,.08)}
+.i-modal-top button{background:transparent;border:0;color:inherit;font-size:16px;cursor:pointer;margin:0 0 0 8px;padding:4px 6px;font-weight:400}
+.i-modal-top button:hover{background:rgba(255,255,255,.1)}
+.i-modal iframe{flex:1;border:0;width:100%;background:#0b1220}
+.i-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#0f172a;color:#fff;border:1px solid rgba(148,163,184,.25);
+  border-radius:14px;padding:12px 18px;font:700 13px Inter,system-ui,sans-serif;display:none;z-index:1000;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+@media (max-width:760px){.i-modal-box,.i-modal-box.min{width:100%;height:100%;border-radius:0}}
+</style>
+</head>
+<body>
+{{ LATERAL|safe }}
+<div class="integra" id="integra">
+  <div class="i-wrap">
+    <div class="i-topbar">
+      <div class="i-logo" aria-label="Central e-CAC — Escritório">
+        <div class="bloco"></div><div class="barra-az"></div>
+        <div><b>Central e-CAC</b><span>Escritório</span></div>
+      </div>
+      <div class="i-right">
+        <button type="button" class="i-toggle" id="iToggle" title="Ativar modo claro" aria-label="Alternar tema">☀</button>
+      </div>
+    </div>
+
+    <h1>Painel do Escritório</h1>
+    <p class="i-sub">{{ cfg.office_name or 'Escritório (configure o nome em Configurações)' }}</p>
+    <div class="cfg-bar">
+      {% if cfg.pronto_serpro %}
+      <span class="cfg-chip ok">SERPRO pronto · {{ cfg.contador_cnpj_fmt or cfg.contador_cnpj }}</span>
+      {% else %}
+      <span class="cfg-chip warn">SERPRO incompleto — certificado / chave / CNPJ do contador</span>
+      {% endif %}
+      <a class="cfg-chip" href="{{ cfg.url_configuracoes }}" target="_top">Abrir Configurações do sistema</a>
+    </div>
+
+    <div class="i-grid">
+    {% for c in cards %}
+      {% if c.bloqueado %}
+      <div class="i-card bloq" aria-disabled="true">
+        <h2>{{ c.titulo }}</h2><p>{{ c.sub }}</p><span class="i-lock">Bloqueado</span>
+      </div>
+      {% else %}
+      <button type="button" class="i-card ativo {{ 'destaque' if c.destaque }}"
+              style="background:linear-gradient(135deg,{{ c.cor[0] }},{{ c.cor[1] }})"
+              data-titulo="{{ c.titulo }} • {{ c.sub }}"
+              {% if c.rota %}data-rota="{{ url_for('escritorio.painel').rstrip('/') }}/{{ c.rota }}"{% endif %}>
+        <h2>{{ c.titulo }}</h2>
+        <p>{{ c.sub }}{% if c.cert %}<br><span class="cert-info">Certificado: validar ao ligar a tela</span>{% endif %}</p>
+      </button>
+      {% endif %}
+    {% endfor %}
+    </div>
+    <p class="i-nota">Certificado e chaves SERPRO vêm de <b>Configurações</b> do sistema. Funcionais: <b>Ler XML NFe</b>, <b>NCM × CST</b>, <b>Lançamentos</b>, <b>Transmitir → Emitir DAS/lote/ZIP</b>, <b>Upload PGDAS-D (PDF→RBT12)</b>. Envio da declaração PGDAS-D ainda pendente.</p>
+  </div>
+</div>
+
+<div class="i-modal" id="iModal" aria-hidden="true">
+  <div class="i-modal-box" id="iModalBox" role="dialog" aria-modal="true" aria-labelledby="iModalTitulo">
+    <div class="i-modal-top">
+      <span id="iModalTitulo">Módulo</span>
+      <div>
+        <button type="button" id="iMax" title="Maximizar/restaurar">🗖</button>
+        <button type="button" id="iFechar" title="Fechar (Esc)">✕</button>
+      </div>
+    </div>
+    <iframe id="iFrame" title="Módulo do escritório" src="about:blank"></iframe>
+  </div>
+</div>
+<div class="i-toast" id="iToast"></div>
+
+{{ FIM|safe }}
+<script>
+(function(){
+  // O painel vive dentro de .conteudo, logo abaixo da barra superior da lateral.
+  var conteudo = document.querySelector('.conteudo');
+  var integra = document.getElementById('integra');
+  if (conteudo && integra) conteudo.appendChild(integra);
+
+  var CHAVE = 'escritorio_tema', toggle = document.getElementById('iToggle');
+  function aplicar(tema){
+    var claro = tema === 'light';
+    integra.classList.toggle('light', claro);
+    document.body.classList.toggle('i-light', claro);
+    toggle.textContent = claro ? '☾' : '☀';
+    toggle.title = claro ? 'Ativar modo escuro' : 'Ativar modo claro';
+  }
+  var salvo = 'dark'; try { salvo = localStorage.getItem(CHAVE) === 'light' ? 'light' : 'dark'; } catch(e){}
+  aplicar(salvo);
+  toggle.addEventListener('click', function(){
+    var prox = integra.classList.contains('light') ? 'dark' : 'light';
+    aplicar(prox); try { localStorage.setItem(CHAVE, prox); } catch(e){}
+  });
+
+  var modal = document.getElementById('iModal'), box = document.getElementById('iModalBox'), frame = document.getElementById('iFrame');
+  function abrir(url, titulo){
+    document.getElementById('iModalTitulo').textContent = titulo || 'Módulo';
+    frame.src = url; box.classList.remove('min'); modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
+  }
+  function fechar(){ frame.src = 'about:blank'; modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
+  document.getElementById('iFechar').addEventListener('click', fechar);
+  document.getElementById('iMax').addEventListener('click', function(){ box.classList.toggle('min'); });
+  modal.addEventListener('click', function(e){ if (e.target === modal) fechar(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && modal.classList.contains('show')) fechar(); });
+
+  var toast = document.getElementById('iToast'), t;
+  document.querySelectorAll('.i-card.ativo').forEach(function(card){
+    card.addEventListener('click', function(){
+      if (card.dataset.rota) { abrir(card.dataset.rota, card.dataset.titulo); return; }
+      toast.textContent = '"' + card.dataset.titulo + '" ainda não foi modelada.';
+      toast.style.display = 'block'; clearTimeout(t); t = setTimeout(function(){ toast.style.display = 'none'; }, 2600);
+    });
+  });
+})();
+</script>
+</body>
+</html>

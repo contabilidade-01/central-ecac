@@ -214,6 +214,7 @@ class Contexto:
         self.competencia = competencia_de(pa)
         self.usuario = (usuario or '')[:120]
         self.company = Company.query.filter_by(cnpj=self.cnpj).first()
+        self.rba: Dict[str, Any] = {}
         self.lancamentos = (EscritorioLancamento.query
                             .filter_by(cnpj=self.cnpj, competencia=self.competencia)
                             .order_by(EscritorioLancamento.perfil).all())
@@ -237,6 +238,66 @@ def carregar(cnpj: str, competencia: str, usuario: str = '') -> Contexto:
 
 
 # ------------------------------------------------------------- declaração
+# ----------------------------------------------- 1ª declaração / ordem dos PAs
+# Manual do PGDAS-D (item 6.3): as receitas brutas dos meses ANTERIORES À OPÇÃO são
+# informadas no primeiro acesso; ficam dispensadas se a empresa já era optante nos 12
+# PAs anteriores ou se o mês de início de atividade coincide com o PA. Meses já
+# declarados não são editáveis (a API ignora o valor). E a Receita só aceita um PA
+# depois de transmitidos os anteriores ("É necessário transmitir as seguintes
+# declarações: 07/2026").
+_RE_PENDENCIAS = re.compile(r'necess[aá]rio\s+transmitir\s+as\s+seguintes\s+declara[cç][oõ]es\s*:?\s*([0-9/ ,;e]+)',
+                            re.I)
+
+
+def pendencias_receita(texto: Optional[str]) -> List[str]:
+    """PAs (AAAA-MM) que a Receita mandou transmitir antes, lidos da mensagem de recusa."""
+    achado = _RE_PENDENCIAS.search(texto or '')
+    if not achado:
+        return []
+    return sorted({f'{ano}-{mes}' for mes, ano in re.findall(r'(\d{2})/(\d{4})', achado.group(1))})
+
+
+def _lista_meses(competencias: List[str]) -> str:
+    return ', '.join(f'{c[5:]}/{c[:4]}' for c in sorted(competencias))
+
+
+def pas_transmitidos(cnpj: str, competencias: List[str]) -> set:
+    """Competências (AAAA-MM) que o Central sabe estarem transmitidas (pelo Central,
+    confirmadas por Consultar ou marcadas como enviadas em Lançamentos)."""
+    from app.escritorio_models import EscritorioDeclaracao as D
+    from app.escritorio_models import EscritorioLancamento as L
+    if not competencias:
+        return set()
+    feitos = {f'{d.pa[:4]}-{d.pa[4:]}' for d in D.query.filter(
+        D.cnpj == cnpj, D.pa.in_([c.replace('-', '') for c in competencias]), D.situacao == 'transmitida')}
+    feitos |= {l.competencia for l in L.query.filter(
+        L.cnpj == cnpj, L.competencia.in_(competencias), L.transmitido > 0)}
+    return feitos
+
+
+def datas_inicio(ctx: 'Contexto') -> Dict[str, Optional[str]]:
+    """Início de atividade e 1º PA no Simples (AAAA-MM). Manual (tela) > Situação Fiscal."""
+    from app.escritorio_models import EscritorioEmpresa
+    from app.models import RelatorioSitFiscal
+    saida: Dict[str, Optional[str]] = {'atividade': None, 'simples': None, 'origem_simples': None}
+    if ctx.company is None:
+        return saida
+    emp = EscritorioEmpresa.query.filter_by(company_id=ctx.company.id).first()
+    if emp is not None:
+        saida['atividade'] = emp.inicio_atividade or None
+        if emp.inicio_simples:
+            saida['simples'], saida['origem_simples'] = emp.inicio_simples, 'manual'
+    if not saida['simples']:
+        rel = (RelatorioSitFiscal.query
+               .filter(RelatorioSitFiscal.company_id == ctx.company.id,
+                       RelatorioSitFiscal.simples_nacional_inclusao.isnot(None))
+               .order_by(RelatorioSitFiscal.data_hora.desc()).first())
+        if rel is not None:
+            saida['simples'] = rel.simples_nacional_inclusao.strftime('%Y-%m')
+            saida['origem_simples'] = 'situacao_fiscal'
+    return saida
+
+
 def montar_declaracao(ctx: Contexto, tipo: int = 1) -> Tuple[Dict[str, Any], List[str], List[str]]:
     """JSON de TRANSDECLARACAO11 a partir da memória. (dados, bloqueios, avisos)."""
     from app.escritorio_models import EscritorioPgdasHistorico
@@ -306,19 +367,65 @@ def montar_declaracao(ctx: Contexto, tipo: int = 1) -> Tuple[Dict[str, Any], Lis
         'receitaPaCompetenciaExterno': 0.0,
         'estabelecimentos': [estabelecimento],
     }
-    # Receitas dos 12 meses anteriores: a Receita IGNORA períodos já declarados
-    # (regra d da doc), mas elas são obrigatórias na 1ª declaração. Enviar não custa nada.
+    # Receitas brutas anteriores (RBA) — ver regras em `datas_inicio`/manual 6.3.
+    from app.escritorio_models import EscritorioLancamento
     meses = meses_rbt12(ctx.competencia)
-    historico = {h.competencia: h for h in EscritorioPgdasHistorico.query.filter(
+    datas = datas_inicio(ctx)
+    abertura, entrada = datas['atividade'], datas['simples']
+    historico = {h.competencia: _r2(h.receita_bruta) for h in EscritorioPgdasHistorico.query.filter(
         EscritorioPgdasHistorico.cnpj == ctx.cnpj,
         EscritorioPgdasHistorico.competencia.in_(meses)).all()}
-    if historico:
+    lancados: Dict[str, float] = {}
+    for lanc in EscritorioLancamento.query.filter(EscritorioLancamento.cnpj == ctx.cnpj,
+                                                  EscritorioLancamento.competencia.in_(meses),
+                                                  EscritorioLancamento.ok.is_(True)).all():
+        lancados[lanc.competencia] = _r2(lancados.get(lanc.competencia, 0) + _r2(lanc.total_receita))
+    transmitidos = pas_transmitidos(ctx.cnpj, meses)
+    existentes = [m for m in meses if not abertura or m >= abertura]      # antes da abertura não há receita
+    if abertura and abertura >= ctx.competencia:
+        exigidos: List[str] = []                                           # início de atividade no próprio PA
+    elif entrada:
+        exigidos = [m for m in existentes if m < entrada]                  # só os anteriores à opção
+    else:
+        exigidos = list(existentes)                                        # sem data de opção: não dá para dispensar
+    exigidos = [m for m in exigidos if m not in transmitidos]
+    valores: Dict[str, float] = {}
+    origem: Dict[str, str] = {}
+    for m in existentes:
+        if m in historico:
+            valores[m], origem[m] = historico[m], 'extrato'
+        elif m in lancados:
+            valores[m], origem[m] = lancados[m], 'lancamento'
+    if valores:
         declaracao['receitasBrutasAnteriores'] = [
-            {'pa': int(m.replace('-', '')), 'valorInterno': _r2(historico[m].receita_bruta), 'valorExterno': 0.0}
-            for m in meses if m in historico]
-    if len(historico) < 12:
-        avisos.append(f'Histórico de receitas anteriores com {len(historico)}/12 meses. Se esta for a '
-                      '1ª declaração da empresa no Simples, importe o Upload PGDAS-D (RBT12).')
+            {'pa': int(m.replace('-', '')), 'valorInterno': valores[m], 'valorExterno': 0.0}
+            for m in meses if m in valores]
+    faltando = [m for m in exigidos if m not in valores]
+    ctx.rba = {'abertura': abertura, 'entrada_simples': entrada, 'origem_entrada': datas['origem_simples'],
+               'exigidos': exigidos, 'faltando': faltando, 'movimento': rpa > 0,
+               'de_lancamento': [m for m in exigidos if origem.get(m) == 'lancamento']}
+    if faltando:
+        dica_datas = ('' if (abertura or entrada) else
+                      ' Se a empresa já é optante há 12 meses ou mais, ou abriu há menos de 12 meses, '
+                      'informe o início de atividade / entrada no Simples — aí esses meses deixam de ser exigidos.')
+        if rpa > 0:
+            bloqueios.append(f'Receitas brutas anteriores obrigatórias sem valor: {_lista_meses(faltando)}. '
+                             'Empresa com movimento: importe o extrato/espelho do PGDAS-D (Upload PGDAS-D) '
+                             'ou gere e marque OK o lançamento desses meses.' + dica_datas)
+        else:
+            avisos.append(f'Declaração sem movimento, mas faltam receitas brutas anteriores de '
+                          f'{_lista_meses(faltando)}. Se for a 1ª declaração no Simples, a Receita pode recusar.'
+                          + dica_datas)
+    if ctx.rba['de_lancamento']:
+        avisos.append(f'Receitas anteriores de {_lista_meses(ctx.rba["de_lancamento"])} vêm dos lançamentos '
+                      '(XML), não do extrato. Confira: depois de declaradas não podem ser alteradas.')
+    inicio = max([d for d in (abertura, entrada) if d] or [''])
+    if inicio:
+        sem_confirmacao = [m for m in meses if m >= inicio and m not in transmitidos]
+        if sem_confirmacao:
+            avisos.append(f'Ordem dos PAs: a Receita só aceita {ctx.competencia[5:]}/{ctx.competencia[:4]} '
+                          f'depois de {_lista_meses(sem_confirmacao)}, que ainda não constam como transmitidas '
+                          'no Central (se foram pelo PGDAS-D web, ignore).')
 
     dados = {'cnpjCompleto': ctx.cnpj, 'pa': int(ctx.pa), 'indicadorTransmissao': False,
              'indicadorComparacao': False, 'declaracao': declaracao}
@@ -378,6 +485,13 @@ def preflight(ctx: Contexto, operacao: str, custo: float = 0.0, **opcoes) -> Dic
         _dados, b, a = montar_declaracao(ctx)
         bloqueios += b
         avisos += a
+    if operacao in ('calcular', 'transmitir'):
+        pendentes = [p for p in pendencias_receita(decl.ultimo_erro) if p < ctx.competencia]
+        faltam = [p for p in pendentes if p not in pas_transmitidos(ctx.cnpj, pendentes)]
+        if faltam and not opcoes.get('confirmar_pendencias'):
+            bloqueios.append(f'A Receita exige transmitir antes: {_lista_meses(faltam)}. Transmita essa(s) '
+                             'competência(s) primeiro. Se já transmitiu fora do Central, marque a confirmação — '
+                             'assim não pagamos outro cálculo recusado pelo mesmo motivo.')
     if operacao in ('calcular', 'transmitir') and decl.situacao == 'incerta':
         bloqueios.append('O último envio ficou INCERTO (a SERPRO não respondeu). Clique em Consultar '
                          'para saber se a declaração foi recebida antes de tentar de novo.')
@@ -489,9 +603,10 @@ def pre_visualizar(ctx: Contexto) -> Dict[str, Any]:
             'bloqueios': bloqueios, 'avisos': avisos}
 
 
-def calcular(ctx: Contexto, cliente: Optional[SerproPgdasdClient] = None) -> Dict[str, Any]:
+def calcular(ctx: Contexto, cliente: Optional[SerproPgdasdClient] = None,
+             confirmar_pendencias: bool = False) -> Dict[str, Any]:
     custo = float(custo_de('TRANSDECLARACAO11'))
-    pf = preflight(ctx, 'calcular', custo)
+    pf = preflight(ctx, 'calcular', custo, confirmar_pendencias=confirmar_pendencias)
     _exigir(pf)
     dados, _b, _a = montar_declaracao(ctx, tipo_para(ctx, False))
     h = hash_declaracao(dados)
@@ -620,13 +735,14 @@ def _indice(dados: Any, pa: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, A
 
 
 def transmitir(ctx: Contexto, retificar: bool = False, hash_confirmado: Optional[str] = None,
-               cliente: Optional[SerproPgdasdClient] = None) -> Dict[str, Any]:
+               cliente: Optional[SerproPgdasdClient] = None, confirmar_pendencias: bool = False) -> Dict[str, Any]:
     cliente = _novo_cliente(cliente)
     decl = ctx.decl
     precisa_consultar = (not retificar and decl.situacao != 'transmitida'
                          and ctx.declaracoes_na_receita() is None)
     custo = float(custo_de('TRANSDECLARACAO11')) + (float(custo_de('CONSDECLARACAO13')) if precisa_consultar else 0)
-    pf = preflight(ctx, 'transmitir', custo, retificar=retificar, hash_confirmado=hash_confirmado)
+    pf = preflight(ctx, 'transmitir', custo, retificar=retificar, hash_confirmado=hash_confirmado,
+                   confirmar_pendencias=confirmar_pendencias)
     _exigir(pf)
     _travar(ctx, 'transmitir')
     try:
@@ -877,6 +993,10 @@ def estado(ctx: Contexto) -> Dict[str, Any]:
         },
         'custos': {k: float(v) for k, v in CUSTO_ESTIMADO.items()},
         'lancamento_transmitido': max((int(l.transmitido or 0) for l in ctx.lancamentos), default=0),
+        'rba': getattr(ctx, 'rba', None) or {},
+        'pendencias_receita': [p for p in pendencias_receita(d.ultimo_erro) if p < ctx.competencia
+                               and p not in pas_transmitidos(ctx.cnpj, [p])],
+        'montagem': {'bloqueios': bloqueios_montagem, 'avisos': _avisos},
     }
 
 

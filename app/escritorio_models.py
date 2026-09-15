@@ -223,5 +223,8 @@ class EscritorioEmpresa(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     company_id = db.Column(db.Integer, nullable=False, unique=True, index=True)
     incluso = db.Column(db.Boolean, nullable=False, default=True)
+    # PGDAS-D (1ª declaração / receitas brutas anteriores). AAAA-MM, informados no Transmitir.
+    inicio_atividade = db.Column(db.String(7), nullable=True)   # mês de abertura
+    inicio_simples = db.Column(db.String(7), nullable=True)     # 1º PA no Simples (opção)
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     atualizado_por = db.Column(db.String(120), nullable=True)

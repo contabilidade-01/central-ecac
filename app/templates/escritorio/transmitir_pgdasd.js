@@ -98,9 +98,12 @@
       ok.textContent = opcoes.botao || 'Confirmar';
       ok.hidden = !!opcoes.somenteLeitura;
       cancelar.textContent = opcoes.somenteLeitura ? 'Fechar' : 'Cancelar';
-      var check = $('#confirmaConferi');
-      function atualizar() { ok.disabled = !!(check && !check.checked); }
-      if (check) check.addEventListener('change', atualizar);
+      var obrigatorios = document.querySelectorAll('#confirmaConferi, #confirmaCorpo input[data-obrigatorio]');
+      function atualizar() {
+        ok.disabled = Array.prototype.some.call(obrigatorios, function (c) { return !c.checked; });
+      }
+      Array.prototype.forEach.call(obrigatorios, function (c) { c.addEventListener('change', atualizar); });
+      if (opcoes.aoAbrir) opcoes.aoAbrir(fechar);
       atualizar();
       function fechar(valor) {
         ov.classList.remove('show');
@@ -239,12 +242,16 @@
       }
 
       var bloqueios = (cfg.bloqueios || []).slice();
+      var declara = op === 'calcular' || op === 'transmitir' || op === 'retificar';
+      var montagem = est.montagem || {};
+      if (declara) bloqueios = bloqueios.concat(montagem.bloqueios || []);
       if (op === 'transmitir' && !est.calculo_valido) bloqueios.push('Calcule antes de enviar (o valor calculado é conferido na transmissão).');
       if (op === 'retificar' && !est.calculo_valido) bloqueios.push('Ajuste o lançamento e clique em Calcular antes de retificar.');
       if ((op === 'calcular' || op === 'transmitir' || op === 'retificar') && est.situacao === 'incerta')
         bloqueios.push('O último envio ficou INCERTO. Clique em Consultar primeiro.');
       if (op === 'gerar_das' && est.situacao === 'incerta') bloqueios.push('Envio INCERTO: consulte a Receita antes de gerar o DAS.');
-      var avisosTela = (cfg.avisos || []).slice();
+      var avisosTela = (cfg.avisos || []).concat(declara ? (montagem.avisos || []) : []);
+      var pendencias = declara ? (est.pendencias_receita || []) : [];
       if (op === 'gerar_das' && est.das && est.das.tem_pdf && est.das.vencimento && est.das.vencimento < hojeAaaammdd())
         avisosTela.unshift('A guia guardada venceu em ' + dataBr(est.das.vencimento) + '. Informe a data de pagamento abaixo.');
 
@@ -276,6 +283,19 @@
         html += '<label class="confirma-extra">Data de pagamento (opcional; em branco = vencimento normal)<input type="date" data-campo="data_consolidacao"></label>';
       }
       if (bloqueios.length) { somenteLeitura = true; html = listaHtml(bloqueios, 'bloq') + html; }
+      var rba = est.rba || {};
+      if (declara && (rba.faltando || []).length) {
+        html += '<div class="confirma-extra"><strong>Datas da empresa (1ª declaração no Simples)</strong>' +
+          '<label>Início de atividade (mês de abertura)<input type="month" id="dtAbertura" value="' + esc(rba.abertura || '') + '"></label>' +
+          '<label>Entrada no Simples (1º período)' + (rba.origem_entrada === 'situacao_fiscal' ? ' — veio da Situação Fiscal' : '') +
+          '<input type="month" id="dtEntrada" value="' + esc(rba.entrada_simples || '') + '"></label>' +
+          '<button type="button" class="btn-sec" id="btnSalvarDatas">Salvar datas (grátis)</button></div>';
+      }
+      if (!somenteLeitura && pendencias.length) {
+        html += '<label class="confirma-check"><input type="checkbox" data-obrigatorio data-campo="confirmar_pendencias"> ' +
+          'A Receita pediu antes: ' + esc(pendencias.map(function (p) { return p.slice(5) + '/' + p.slice(0, 4); }).join(', ')) +
+          '. Confirmo que já foi(ram) transmitida(s) fora do Central.</label>';
+      }
       html += listaHtml(avisosTela, 'aviso');
       if (!somenteLeitura) {
         html += '<div class="confirma-custo"><span>Custo estimado SERPRO</span><b>' + moeda(custoOp(op, est)) + '</b></div>';
@@ -283,11 +303,31 @@
           html += '<label class="confirma-check"><input type="checkbox" id="confirmaConferi"> Conferi empresa, competência e valores.</label>';
       }
       var resposta = await confirmar({ titulo: NOMES[op], sub: somenteLeitura ? 'Nada foi enviado — resolva os itens abaixo.' : 'Chamada paga à SERPRO',
-        botao: NOMES[op], html: html, somenteLeitura: somenteLeitura });
+        botao: NOMES[op], html: html, somenteLeitura: somenteLeitura,
+        aoAbrir: function (fechar) {
+          var b = $('#btnSalvarDatas');
+          if (!b) return;
+          b.onclick = async function () {
+            b.disabled = true;
+            try {
+              var resp = await fetch(API + '/datas-inicio', {
+                method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cnpj: info.cnpj, competencia: COMP, company_id: info.company_id,
+                  inicio_atividade: $('#dtAbertura').value, inicio_simples: $('#dtEntrada').value })
+              });
+              var j = await lerJson(resp);
+              if (!resp.ok || !j.ok) throw new Error(j.mensagem || ('HTTP ' + resp.status));
+              log('✔ Datas da empresa salvas — ' + info.razao);
+              fechar(false);
+              setTimeout(function () { executar(tr, op); }, 60);
+            } catch (e) { b.disabled = false; mostrarAlerta('error', 'Datas não salvas', e.message); }
+          };
+        } });
       if (!resposta) return;
       var corpo = Object.assign({}, extraCorpo);
       if (resposta.data_consolidacao) corpo.data_consolidacao = resposta.data_consolidacao;
       if (resposta.confirmar_externa) corpo.confirmar_externa = true;
+      if (resposta.confirmar_pendencias) corpo.confirmar_pendencias = true;
       await enviar(tr, info, op, corpo);
     } catch (e) {
       log('✖ ' + NOMES[op] + ' — ' + info.razao + ': ' + e.message);

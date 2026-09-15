@@ -63,6 +63,12 @@ def _preparar_tabelas(estado):
                 add_column_if_not_exists('escritorio_lancamentos', col, sql)
             except Exception:
                 app.logger.exception('Falha ao migrar coluna %s de escritorio_lancamentos', col)
+        for col in ('inicio_atividade', 'inicio_simples'):
+            try:
+                add_column_if_not_exists('escritorio_empresas', col,
+                                         f'ALTER TABLE escritorio_empresas ADD COLUMN {col} VARCHAR(7)')
+            except Exception:
+                app.logger.exception('Falha ao migrar coluna %s de escritorio_empresas', col)
         try:
             escritorio_ncm.garantir_carga_inicial()
         except Exception:
@@ -803,10 +809,11 @@ def _pgdasd_executar(operacao):
         return jsonify({'ok': False, 'mensagem': 'Confirmação de custo ausente. Nada foi enviado.'}), 428
     try:
         if operacao == 'calcular':
-            r = svc.calcular(ctx)
+            r = svc.calcular(ctx, confirmar_pendencias=bool(corpo.get('confirmar_pendencias')))
         elif operacao == 'transmitir':
             r = svc.transmitir(ctx, retificar=bool(corpo.get('retificar')),
-                               hash_confirmado=corpo.get('hash_confirmado') or '')
+                               hash_confirmado=corpo.get('hash_confirmado') or '',
+                               confirmar_pendencias=bool(corpo.get('confirmar_pendencias')))
         elif operacao == 'consultar':
             r = svc.consultar(ctx)
         elif operacao == 'recuperar':
@@ -835,6 +842,36 @@ def api_pgdasd_estado():
     pf = svc.preflight(ctx, 'estado')
     return jsonify({'ok': True, 'estado': svc.estado(ctx), 'configuracao': {
         'bloqueios': pf['bloqueios'], 'avisos': pf['avisos'], 'info': pf['info']}})
+
+
+@escritorio_bp.post('/api/pgdasd/datas-inicio')
+def api_pgdasd_datas_inicio():
+    """Grátis: início de atividade e 1º PA no Simples (AAAA-MM) da empresa — definem quais
+    receitas brutas anteriores a 1ª declaração exige."""
+    from app.escritorio_models import EscritorioEmpresa
+    from app.services import escritorio_pgdasd as svc
+    ctx, corpo, erro = _pgdasd_contexto()
+    if erro:
+        return erro
+    if ctx.company is None:
+        return jsonify({'ok': False, 'mensagem': 'Empresa não cadastrada.'}), 400
+    novos = {}
+    for campo in ('inicio_atividade', 'inicio_simples'):
+        valor = str(corpo.get(campo) or '').strip()
+        if valor and not re.fullmatch(r'\d{4}-(0[1-9]|1[0-2])', valor):
+            return jsonify({'ok': False, 'mensagem': f'{campo}: use AAAA-MM.'}), 400
+        novos[campo] = valor or None
+    if novos['inicio_atividade'] and novos['inicio_simples'] and novos['inicio_simples'] < novos['inicio_atividade']:
+        return jsonify({'ok': False, 'mensagem': 'A entrada no Simples não pode ser antes da abertura.'}), 400
+    emp = EscritorioEmpresa.query.filter_by(company_id=ctx.company.id).first()
+    if emp is None:
+        emp = EscritorioEmpresa(company_id=ctx.company.id, incluso=True)
+        db.session.add(emp)
+    emp.inicio_atividade = novos['inicio_atividade']
+    emp.inicio_simples = novos['inicio_simples']
+    emp.atualizado_por = _nome_usuario() or None
+    db.session.commit()
+    return jsonify({'ok': True, 'estado': svc.estado(ctx)})
 
 
 @escritorio_bp.post('/api/pgdasd/pre-visualizar')

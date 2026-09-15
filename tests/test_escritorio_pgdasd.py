@@ -117,7 +117,7 @@ def svc(app, monkeypatch):
     ctx = app.app_context()
     ctx.push()
     for modelo in (em.EscritorioSerproChamada, em.EscritorioDeclaracao, em.EscritorioLancamento,
-                   em.EscritorioPgdasHistorico, ApiUsageLog, Company, AppSetting):
+                   em.EscritorioPgdasHistorico, em.EscritorioEmpresa, ApiUsageLog, Company, AppSetting):
         modelo.query.delete()
     db.session.commit()
     caminho = ProcuracaoService.caminho()
@@ -129,6 +129,10 @@ def svc(app, monkeypatch):
     db.session.add(em.EscritorioLancamento(
         cnpj=CNPJ, competencia=COMP, perfil='comercio', total_receita=6049.52,
         rec_sem_st=4000.00, rec_monofasica=2049.52, ok=True))
+    db.session.commit()
+    # padrão dos testes: empresa optante há anos (nenhuma receita anterior exigida)
+    empresa = Company.query.filter_by(cnpj=CNPJ).first()
+    db.session.add(em.EscritorioEmpresa(company_id=empresa.id, incluso=True, inicio_simples='2020-01'))
     db.session.commit()
     # configuração/certificado são testados à parte
     monkeypatch.setattr(escritorio_pgdasd, 'checar_configuracao', lambda: ([], [], {}))
@@ -611,9 +615,10 @@ def test_recusa_meses_anteriores_pode_repetir_mesmo_json(svc):
     r = svc.calcular(contexto(svc), cliente(fake))
     assert r['ok'] is False and len(fake.chamadas) == 1
 
-    # mesmos dados: deve chamar de novo (06/07 podem já ter sido transmitidos)
+    # mesmos dados: pode chamar de novo depois que 06/07 foram transmitidos (aqui: confirmado
+    # pelo usuário; sem confirmação o pré-voo bloqueia de graça — ver teste de ordem dos PAs)
     fake = FakeSerpro(r_calculo())
-    r = svc.calcular(contexto(svc), cliente(fake))
+    r = svc.calcular(contexto(svc), cliente(fake), confirmar_pendencias=True)
     assert r['ok'] is True and len(fake.chamadas) == 1 and 'já foi recusado' not in (r.get('serpro') or {}).get('mensagem', '')
 
 
@@ -643,3 +648,123 @@ def test_problema_na_transmissao_mas_declaracao_entrou_nao_retransmite(svc):
     r = svc.transmitir(contexto(svc), hash_confirmado=h, cliente=cliente(fake))
     assert r['ok'] is False and fake.servicos() == ['CONSDECLARACAO13']
     assert r['estado']['situacao'] == 'transmitida'
+
+
+
+# -------------------- 1ª declaração no Simples / ordem dos PAs (caso real 15/09/2026)
+def _datas(inicio_atividade=None, inicio_simples=None):
+    from app.escritorio_models import EscritorioEmpresa
+    from app.models import Company
+    emp = EscritorioEmpresa.query.filter_by(company_id=Company.query.filter_by(cnpj=CNPJ).first().id).first()
+    emp.inicio_atividade, emp.inicio_simples = inicio_atividade, inicio_simples
+    db.session.commit()
+
+
+def _historico(meses_valores):
+    from app.escritorio_models import EscritorioPgdasHistorico
+    for comp, valor in meses_valores.items():
+        db.session.add(EscritorioPgdasHistorico(cnpj=CNPJ, competencia=comp, receita_bruta=valor))
+    db.session.commit()
+
+
+def test_optante_ha_12_meses_nao_exige_receitas_anteriores(svc):
+    dados, bloqueios, _a = svc.montar_declaracao(contexto(svc))
+    assert bloqueios == [] and 'receitasBrutasAnteriores' not in dados['declaracao']
+
+
+def test_sem_datas_com_movimento_cobra_extrato(svc):
+    _datas(None, None)
+    fake = FakeSerpro()
+    with pytest.raises(svc.BloqueioPgdasd) as exc:
+        svc.calcular(contexto(svc), cliente(fake))
+    texto = ' '.join(exc.value.bloqueios)
+    assert 'Receitas brutas anteriores obrigatórias' in texto and '08/2025' in texto and fake.chamadas == []
+
+
+def test_primeira_declaracao_exige_so_meses_antes_da_opcao_e_usa_extrato(svc):
+    _datas('2025-01', '2026-06')          # abriu em 01/2025, entrou no Simples em 06/2026
+    ctx = contexto(svc)
+    _d, bloqueios, _a = svc.montar_declaracao(ctx)
+    assert ctx.rba['exigidos'] == ['2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01',
+                                   '2026-02', '2026-03', '2026-04', '2026-05']
+    assert bloqueios                        # com movimento e sem espelho → bloqueia
+
+    _historico({m: 1000.0 for m in ctx.rba['exigidos']})
+    ctx = contexto(svc)
+    dados, bloqueios, avisos = svc.montar_declaracao(ctx)
+    assert bloqueios == []
+    rba = {r['pa']: r['valorInterno'] for r in dados['declaracao']['receitasBrutasAnteriores']}
+    assert rba[202508] == 1000.0 and 202607 not in rba
+    assert any('Ordem dos PAs' in a and '06/2026' in a and '07/2026' in a for a in avisos)
+
+
+def test_abertura_no_proprio_pa_dispensa_receitas_anteriores(svc):
+    _datas('2026-08', '2026-08')
+    ctx = contexto(svc)
+    dados, bloqueios, _a = svc.montar_declaracao(ctx)
+    assert bloqueios == [] and ctx.rba['exigidos'] == [] and 'receitasBrutasAnteriores' not in dados['declaracao']
+
+
+def test_abertura_recente_so_exige_meses_desde_a_abertura(svc):
+    _datas('2026-03', '2026-06')           # abriu 03/2026, opção em 06/2026
+    ctx = contexto(svc)
+    svc.montar_declaracao(ctx)
+    assert ctx.rba['exigidos'] == ['2026-03', '2026-04', '2026-05']
+
+
+def test_sem_movimento_nao_bloqueia_mas_avisa(svc):
+    from app.escritorio_models import EscritorioLancamento
+    EscritorioLancamento.query.update({'total_receita': 0, 'rec_sem_st': 0, 'rec_monofasica': 0})
+    db.session.commit()
+    _datas(None, None)
+    _d, bloqueios, avisos = svc.montar_declaracao(contexto(svc))
+    assert bloqueios == [] and any('sem movimento' in a for a in avisos)
+
+
+def test_lancamento_ok_serve_de_espelho_com_aviso(svc):
+    from app.escritorio_models import EscritorioLancamento
+    _datas('2026-05', '2026-07')           # exige 05/2026 e 06/2026
+    for comp in ('2026-05', '2026-06'):
+        db.session.add(EscritorioLancamento(cnpj=CNPJ, competencia=comp, perfil='comercio',
+                                            total_receita=500.0, rec_sem_st=500.0, ok=True))
+    db.session.commit()
+    ctx = contexto(svc)
+    _d, bloqueios, avisos = svc.montar_declaracao(ctx)
+    assert bloqueios == [] and ctx.rba['de_lancamento'] == ['2026-05', '2026-06']
+    assert any('vêm dos lançamentos' in a for a in avisos)
+
+
+def test_recusa_por_ordem_bloqueia_de_graca_ate_transmitir_ou_confirmar(svc):
+    recusa = r_msg('Erro-SNENTREGAR', 'SN-Entregar: É necessário transmitir as seguintes declarações: 07/2026.')
+    fake = FakeSerpro(recusa)
+    r = svc.calcular(contexto(svc), cliente(fake))
+    assert r['ok'] is False and len(fake.chamadas) == 1
+    assert r['estado']['pendencias_receita'] == ['2026-07']
+
+    fake = FakeSerpro()
+    with pytest.raises(svc.BloqueioPgdasd) as exc:            # repetir sem resolver: grátis, bloqueado
+        svc.calcular(contexto(svc), cliente(fake))
+    assert '07/2026' in ' '.join(exc.value.bloqueios) and fake.chamadas == []
+
+    fake = FakeSerpro(r_calculo())                              # usuário confirma que transmitiu fora
+    assert svc.calcular(contexto(svc), cliente(fake), confirmar_pendencias=True)['ok'] is True
+
+
+def test_recusa_por_ordem_liberada_quando_mes_anterior_transmitido_no_central(svc):
+    from app.escritorio_models import EscritorioLancamento
+    svc.calcular(contexto(svc), cliente(FakeSerpro(
+        r_msg('Erro-SNENTREGAR', 'SN-Entregar: É necessário transmitir as seguintes declarações: 07/2026.'))))
+    db.session.add(EscritorioLancamento(cnpj=CNPJ, competencia='2026-07', perfil='comercio',
+                                        total_receita=1.0, rec_sem_st=1.0, ok=True, transmitido=1))
+    db.session.commit()
+    fake = FakeSerpro(r_calculo())
+    assert svc.calcular(contexto(svc), cliente(fake))['ok'] is True and len(fake.chamadas) == 1
+
+
+def test_rota_datas_inicio(http, svc):
+    r = http.post('/escritorio/api/pgdasd/datas-inicio',
+                  json={'cnpj': CNPJ, 'competencia': COMP, 'inicio_atividade': '2026-08', 'inicio_simples': '2026-08'})
+    assert r.status_code == 200 and r.json['estado']['rba']['exigidos'] == []
+    r = http.post('/escritorio/api/pgdasd/datas-inicio',
+                  json={'cnpj': CNPJ, 'competencia': COMP, 'inicio_atividade': '2026-08', 'inicio_simples': '2026-01'})
+    assert r.status_code == 400

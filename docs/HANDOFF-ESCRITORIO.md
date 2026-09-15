@@ -66,7 +66,7 @@ CT-e e inutilizações **não entram na receita** (só aviso no cabeçalho).
 | Ler XML NFe `/escritorio/xml/nfe` | **Funcional** (leitura no browser) |
 | NCM × CST `/escritorio/ncm` | **Funcional** (admin edita; **88** regras na carga inicial — Jean deve revisar; autopeças faltando) |
 | Lançamentos `/escritorio/simples/lancamentos` | **Funcional** sobre a memória |
-| Transmitir `/escritorio/simples/transmitir` | **Código + 36 testes OK** (perfil comércio): Pré-visualizar, Calcular, Enviar, Retificar, Consultar, Gerar DAS, buscar declaração/recibo, lote, ZIP — `/escritorio/api/pgdasd/*`. **1º caso real SERPRO ainda não validado** |
+| Transmitir `/escritorio/simples/transmitir` | **Código + 47 testes OK** (perfil comércio): Pré-visualizar, Calcular, Enviar, Retificar, Consultar, Gerar DAS, buscar declaração/recibo, lote, ZIP — `/escritorio/api/pgdasd/*`. **1º caso real SERPRO ainda não validado** |
 | Empresas `/escritorio/empresas` | **Funcional** — ticar empresas do cadastro (`escritorio_empresas`); também checkbox **Escritório** nos cards de `/?aba=configuracoes`. Filtros (razão/CNPJ, Incluídas/Fora, Ativas/Inativas — lembrados no navegador) + **Marcar todos / Desmarcar todos** das visíveis, com confirmação (`tests/test_escritorio_empresas_lote.py`) |
 | Upload PGDAS-D `/escritorio/simples/rbt12` | **Funcional** — PDF+OCR (`pgdas_leitor.js` v16) → `POST /escritorio/api/pgdas/importar` |
 | Caminhos / ÚTEIS / NFS-e | UI sem mock de empresa; ações ainda “Ação pendente” |
@@ -259,6 +259,33 @@ voltou `SN-Entregar: Houve um problema na transmissão. Tente novamente mais tar
 cobrado). Tratamento: texto de instabilidade conta como **sistêmico** (lote para) e a declaração
 perde a "consulta recente" → o próximo Enviar faz CONSDECLARACAO13 antes e só transmite se a Receita
 não tiver declaração do PA. Situação continua `calculada` (a doc diz que erro não grava nada).
+
+### 1ª declaração no Simples e ordem dos PAs (16/09/2026 — Claude)
+
+Caso real Rafael: 08/2026 recusado com `É necessário transmitir as seguintes declarações: 06/2026 e
+07/2026`, depois só `07/2026` (1ª declaração da empresa no Simples).
+
+**Receitas brutas anteriores (RBA)** — Manual do PGDAS-D, item 6.3: informadas no 1º acesso só para os
+meses **anteriores à opção**; dispensadas se a empresa já era optante nos 12 PAs anteriores ou se o mês
+de início de atividade é o próprio PA; meses já declarados não são editáveis (API ignora).
+
+| Dado | Origem |
+|---|---|
+| Início de atividade (AAAA-MM) | `escritorio_empresas.inicio_atividade` — informado no modal do Transmitir |
+| Entrada no Simples (1º PA) | `escritorio_empresas.inicio_simples` (manual) → senão `RelatorioSitFiscal.simples_nacional_inclusao` (Situação Fiscal) |
+| Valor de cada mês | extrato importado (`escritorio_pgdas_historico`) → senão lançamento do Central **marcado OK** (aviso) |
+
+Regra (`montar_declaracao` → `ctx.rba`): dos 12 meses anteriores, exigidos = meses ≥ abertura e < entrada no
+Simples, que o Central não sabe transmitidos. Sem data de entrada → todos desde a abertura. Abertura = PA →
+nenhum. **Com movimento (receita do PA > 0) e mês exigido sem valor → BLOQUEIO grátis** ("importe o
+extrato/espelho ou marque OK o lançamento"). Sem movimento → só aviso. O modal mostra os campos de data e o
+botão "Salvar datas (grátis)" (`POST /escritorio/api/pgdasd/datas-inicio`).
+
+**Ordem dos PAs:** a recusa "É necessário transmitir as seguintes declarações: MM/AAAA" é lida de
+`ultimo_erro` (`pendencias_receita`). O próximo Calcular/Enviar do mesmo PA é **bloqueado de graça** até
+esses PAs constarem como transmitidos no Central (Transmitir, Consultar ou Lançamentos transmitido) ou o
+usuário marcar "já transmiti fora do Central" (`confirmar_pendencias`). Aviso preventivo lista PAs desde o
+início no Simples ainda não confirmados. (Substitui o "repetir sempre" do PR #2 por "repetir quando resolvido".)
 
 ### Pendências / limitações conhecidas
 

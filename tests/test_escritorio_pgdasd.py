@@ -161,7 +161,8 @@ def test_montar_declaracao_mapeia_atividades(svc):
     assert ativ[1]['valorAtividade'] == 4000.0
     parcela = ativ[2]['receitasAtividade'][0]
     assert parcela['valor'] == 2049.52
-    assert {(i['codTributo'], i['identificador']) for i in parcela['isencoes']} == {(1004, 9), (1005, 9)}
+    assert {(q['codigoTributo'], q['id']) for q in parcela['qualificacoesTributarias']} == {(1004, 9), (1005, 9)}
+    assert 'isencoes' not in parcela      # SERPRO recusa ST/monofásica em isencoes (15/09/2026)
 
 
 def test_hash_ignora_tipo_e_indicadores(svc):
@@ -573,3 +574,29 @@ def test_recuperar_documentos_guarda_pdfs_e_nao_repete(svc):
     assert r['estado']['pode']['recuperar'] is False
     with pytest.raises(svc.BloqueioPgdasd):                     # já guardados: não paga de novo
         svc.recuperar_documentos(contexto(svc), cliente=cliente(FakeSerpro()))
+
+
+# ------------------------------------- recusa "Campo inválido" (caso real 15/09/2026)
+def test_recusa_de_preenchimento_nao_repete_pedido_identico_nem_trava_procuracao(svc):
+    from app.services.procuracao_service import ProcuracaoService
+    recusa = r_msg('Erro-SNENTREGAR', "SN-Entregar: Campo 'isencao/identificacao' inválido.", 400)
+    fake = FakeSerpro(recusa)
+    r = svc.calcular(contexto(svc), cliente(fake))
+    assert r['ok'] is False and len(fake.chamadas) == 1
+
+    # mesmo lançamento = mesmo JSON: bloqueado sem chamar e sem custo
+    custo_antes = custo_registrado()
+    fake = FakeSerpro()
+    r = svc.calcular(contexto(svc), cliente(fake))
+    assert r['ok'] is False and fake.chamadas == [] and 'já foi recusado' in r['serpro']['mensagem']
+    assert custo_registrado() == custo_antes
+
+    # erro de preenchimento não conta para a trava de procuração
+    assert ProcuracaoService.pode_gastar(contexto(svc).company)[0] is True
+
+    # corrigiu o lançamento (JSON diferente): pode enviar
+    from app.escritorio_models import EscritorioLancamento
+    EscritorioLancamento.query.update({'rec_sem_st': 3900.0, 'rec_monofasica': 2149.52})
+    db.session.commit()
+    fake = FakeSerpro(r_calculo())
+    assert svc.calcular(contexto(svc), cliente(fake))['ok'] is True and len(fake.chamadas) == 1

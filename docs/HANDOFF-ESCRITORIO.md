@@ -66,7 +66,7 @@ CT-e e inutilizações **não entram na receita** (só aviso no cabeçalho).
 | Ler XML NFe `/escritorio/xml/nfe` | **Funcional** (leitura no browser) |
 | NCM × CST `/escritorio/ncm` | **Funcional** (admin edita; **88** regras na carga inicial — Jean deve revisar; autopeças faltando) |
 | Lançamentos `/escritorio/simples/lancamentos` | **Funcional** sobre a memória |
-| Transmitir `/escritorio/simples/transmitir` | **Código + 31 testes OK** (perfil comércio): Pré-visualizar, Calcular, Enviar, Retificar, Consultar, Gerar DAS, buscar declaração/recibo, lote, ZIP — `/escritorio/api/pgdasd/*`. **1º caso real SERPRO ainda não validado** |
+| Transmitir `/escritorio/simples/transmitir` | **Código + 34 testes OK** (perfil comércio): Pré-visualizar, Calcular, Enviar, Retificar, Consultar, Gerar DAS, buscar declaração/recibo, lote, ZIP — `/escritorio/api/pgdasd/*`. **1º caso real SERPRO ainda não validado** |
 | Empresas `/escritorio/empresas` | **Funcional** — ticar empresas do cadastro (`escritorio_empresas`); também checkbox **Escritório** nos cards de `/?aba=configuracoes`. Filtros (razão/CNPJ, Incluídas/Fora, Ativas/Inativas — lembrados no navegador) + **Marcar todos / Desmarcar todos** das visíveis, com confirmação (`tests/test_escritorio_empresas_lote.py`) |
 | Upload PGDAS-D `/escritorio/simples/rbt12` | **Funcional** — PDF+OCR (`pgdas_leitor.js` v16) → `POST /escritorio/api/pgdas/importar` |
 | Caminhos / ÚTEIS / NFS-e | UI sem mock de empresa; ações ainda “Ação pendente” |
@@ -233,14 +233,25 @@ Tudo entra em `api_usage_logs` (mesma base do teto `LIMITE_GASTO_MENSAL`) e em
 | Lançamento | PGDAS-D |
 |---|---|
 | `rec_sem_st` | atividade **1** |
-| `rec_com_st_mono` | atividade **2**, `isencoes`: COFINS 1004 e PIS 1005 id **9** (monofásica) + ICMS 1007 id **8** (ST) |
-| `rec_monofasica` | atividade **2**, `isencoes`: COFINS/PIS id **9** |
-| `rec_com_st` | atividade **2**, `isencoes`: ICMS id **8** |
+| `rec_com_st_mono` | atividade **2**, `qualificacoesTributarias`: COFINS 1004 e PIS 1005 id **9** (monofásica) + ICMS 1007 id **8** (ST) |
+| `rec_monofasica` | atividade **2**, `qualificacoesTributarias`: COFINS/PIS id **9** |
+| `rec_com_st` | atividade **2**, `qualificacoesTributarias`: ICMS id **8** |
 | `rec_sem_st_isencao` | **bloqueia** (isenção/redução de ICMS exige percentual) |
 
-Ids 8/9 = tabela "Tipo de Isenção" do domínio SERPRO (1 Imunidade, 3 Lançamento de ofício,
-8 ST, 9 Monofásica, 10 Antecipação, 11 Retenção ISS). **Validar no 1º caso real: Calcular e
-comparar com o PGDAS-D web antes de Enviar.**
+Formato: `{"codigoTributo": 1004, "id": 9}` dentro de `receitasAtividade[].qualificacoesTributarias`.
+Ids: 1 Imunidade, 3 Lançamento de ofício, 8 ST, 9 Monofásica, 10 Antecipação, 11 Retenção ISS.
+
+**Histórico (15/09/2026, 1º Calcular real no servidor):** a 1ª versão mandava ST/monofásica em
+`isencoes` (`{codTributo, valor, identificador}`) e a SERPRO recusou:
+`SN-Entregar: Campo 'isencao/identificacao' inválido.` Trocado para `qualificacoesTributarias`
+(inferência pela mensagem + modelo de cliente público; a doc oficial bloqueia leitura automática).
+**Próximo Calcular valida.** Se voltar erro de campo, conferir a tabela de domínio no apicenter
+da SERPRO antes de repetir.
+
+**Proteção nova:** pedido IDÊNTICO (mesmo hash) já recusado por erro de preenchimento
+(`EntradaIncorreta` ou "Campo 'x' inválido") nos últimos 7 dias **não é reenviado** — o cliente
+devolve o motivo sem chamar a SERPRO. Esse tipo de erro também não conta para a trava de
+procuração. Mudou o lançamento → hash novo → pode enviar.
 
 ### Pendências / limitações conhecidas
 

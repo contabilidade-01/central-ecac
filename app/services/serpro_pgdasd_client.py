@@ -33,12 +33,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import logging
 import os
 import threading
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Callable, Dict, List, Optional
 
@@ -145,6 +146,12 @@ class Resultado:
         return any(m.tem(trecho) for m in self.mensagens)
 
     @property
+    def preenchimento(self) -> bool:
+        """Recusa do CONTEÚDO enviado (campo inválido etc.): repetir igual dá o mesmo erro."""
+        return (not self.ok and not self.incerto and bool(self.http_status)
+                and erro_de_preenchimento(','.join(self.codigos), self.texto))
+
+    @property
     def sistemico(self) -> bool:
         """Falha que não é do contribuinte (rede, gateway, SERPRO fora) — para lotes."""
         if self.erro_rede or self.incerto:
@@ -168,6 +175,14 @@ class Resultado:
             'custo_estimado': self.custo_estimado, 'cobravel': self.cobravel,
             'chamada_id': self.chamada_id,
         }
+
+
+_RE_CAMPO_INVALIDO = re.compile(r"campo\s+'[^']+'\s+inv[aá]lid|inv[aá]lid[oa]s?\b.*campo", re.I)
+
+
+def erro_de_preenchimento(codigos: str, texto: str) -> bool:
+    """EntradaIncorreta ou "Campo 'x' inválido": problema no JSON, não na procuração."""
+    return 'EntradaIncorreta' in (codigos or '') or bool(_RE_CAMPO_INVALIDO.search(texto or ''))
 
 
 def _parse_mensagens(corpo: Any) -> List[Mensagem]:
@@ -286,6 +301,15 @@ class SerproPgdasdClient:
 
         url = f'{BASE_URL}/{servico.endpoint}'
         hash_pedido = hash_dados(dados)
+
+        # Pedido IDÊNTICO já recusado por erro de preenchimento: não paga de novo.
+        recusa = self._recusa_anterior(id_servico, cnpj, hash_pedido)
+        if recusa:
+            resultado.erro = ('Este mesmo pedido já foi recusado pela SERPRO em '
+                              f'{recusa.criado_em:%d/%m/%Y %H:%M}: {recusa.mensagem or recusa.codigos}. '
+                              'Nada foi enviado — corrija os dados antes de tentar de novo.')
+            resultado.mensagens = [Mensagem('Bloqueio-Central-REPETICAO', resultado.erro)]
+            return resultado
         for tentativa in (1, 2):
             try:
                 headers = self._headers(setting)
@@ -359,6 +383,21 @@ class SerproPgdasdClient:
                       hash_pedido, tentativa, cobravel=cobravel)
         return resultado
 
+    @staticmethod
+    def _recusa_anterior(id_servico: str, cnpj: str, hash_pedido: str):
+        try:
+            from app.escritorio_models import EscritorioSerproChamada as C
+            ultima = (C.query.filter(C.cnpj == cnpj, C.id_servico == id_servico, C.hash_dados == hash_pedido,
+                                     C.criado_em >= datetime.utcnow() - timedelta(days=7))
+                      .order_by(C.id.desc()).first())
+        except Exception:
+            logger.exception('Falha ao consultar recusas anteriores')
+            return None
+        if (ultima and not ultima.sucesso and not ultima.incerto and ultima.http_status
+                and erro_de_preenchimento(ultima.codigos or '', ultima.mensagem or '')):
+            return ultima
+        return None
+
     # -- auditoria ------------------------------------------------------------
     def _auditar(self, resultado: Resultado, servico: Servico, operacao: str, company,
                  cnpj: str, pa: str, usuario: str, hash_pedido: str, tentativa: int,
@@ -401,7 +440,7 @@ class SerproPgdasdClient:
             if resultado.ok:
                 ProcuracaoService.registrar_sucesso(company, servico.id_servico)
             elif (resultado.http_status and not resultado.sistemico
-                  and not any(m.tipo == 'EntradaIncorreta' for m in resultado.mensagens)):
+                  and not resultado.preenchimento):
                 # Erro de preenchimento (EntradaIncorreta) é do nosso JSON, não da
                 # procuração — não entra na contagem que trava a empresa.
                 corpo = json.dumps({'mensagens': [{'codigo': m.codigo, 'texto': m.texto}

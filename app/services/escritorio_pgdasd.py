@@ -30,8 +30,11 @@ Mapeamento da memória (perfil comércio) → atividades do PGDAS-D
 * `rec_com_st`        → atividade 2, parcela com ICMS ST (id 8)
 * `rec_sem_st_isencao`→ **bloqueia** (isenção/redução de ICMS exige percentual por UF)
 
-As qualificações vão em `isencoes` com os identificadores do domínio SERPRO
-("Tipo de Isenção": 8 = Substituição Tributária, 9 = Tributação Monofásica).
+As qualificações vão em `qualificacoesTributarias` ({codigoTributo, id}), com os ids do
+domínio SERPRO (8 = Substituição Tributária, 9 = Tributação Monofásica).
+⚠️ 15/09/2026: a 1ª versão mandava em `isencoes` e a SERPRO recusou no Calcular
+("SN-Entregar: Campo 'isencao/identificacao' inválido") — `isencoes` é só para
+isenção/redução de verdade (valor + identificador próprio).
 **Valide o primeiro caso real com "Calcular" e confira com o PGDAS-D web.**
 """
 
@@ -265,8 +268,8 @@ def montar_declaracao(ctx: Contexto, tipo: int = 1) -> Tuple[Dict[str, Any], Lis
                 bloqueios.append('Há valor negativo nos lançamentos (devoluções maiores que as vendas). '
                                  'Revise em Lançamentos.')
             elif valor > 0:
-                parcelas2.append({'valor': valor, 'isencoes': [
-                    {'codTributo': cod, 'valor': valor, 'identificador': ident} for cod, ident in qualif]})
+                parcelas2.append({'valor': valor, 'qualificacoesTributarias': [
+                    {'codigoTributo': cod, 'id': ident} for cod, ident in qualif]})
         soma_linhas = _r2(_r2(lanc.rec_sem_st) + _r2(lanc.rec_sem_st_isencao) + _r2(lanc.rec_com_st_mono)
                           + _r2(lanc.rec_monofasica) + _r2(lanc.rec_com_st))
         if abs(soma_linhas - _r2(lanc.total_receita)) > 0.01:

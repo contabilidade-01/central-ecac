@@ -191,6 +191,16 @@ def erro_de_preenchimento(codigos: str, texto: str) -> bool:
     return 'EntradaIncorreta' in (codigos or '') or bool(_RE_CAMPO_INVALIDO.search(texto or ''))
 
 
+def erro_de_campo(texto: str) -> bool:
+    """Só "Campo 'x' inválido": o MESMO JSON sempre dará o mesmo erro, então não repetimos.
+
+    Outras recusas dependem da situação na Receita e podem mudar sem alterar o JSON
+    (ex.: "É necessário transmitir as seguintes declarações: 06/2026 e 07/2026" — some
+    depois que os meses anteriores são transmitidos). Essas NÃO bloqueiam a repetição.
+    """
+    return bool(_RE_CAMPO_INVALIDO.search(texto or ''))
+
+
 def _parse_mensagens(corpo: Any) -> List[Mensagem]:
     saida = []
     if isinstance(corpo, dict):
@@ -400,7 +410,7 @@ class SerproPgdasdClient:
             logger.exception('Falha ao consultar recusas anteriores')
             return None
         if (ultima and not ultima.sucesso and not ultima.incerto and ultima.http_status
-                and erro_de_preenchimento(ultima.codigos or '', ultima.mensagem or '')):
+                and erro_de_campo(ultima.mensagem or '')):
             return ultima
         return None
 

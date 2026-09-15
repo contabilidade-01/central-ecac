@@ -1,0 +1,393 @@
+{% extends 'escritorio/_base.html' %}
+{% block titulo %}Lançamentos • Simples Nacional{% endblock %}
+{% block css %}{% include 'escritorio/_modulo.css' %}
+body{font-size:13px}
+header.topo{padding:10px 14px;z-index:60}
+.topbar,.container{max-width:1500px}
+.brand-badge{width:34px;height:34px;border-radius:12px;font-size:15px}
+.brand-text h1{font-size:16px;line-height:1.1}
+.brand-text p{margin-top:3px;font-size:11px}
+#themeToggle,.top-chip,.chip-ok{height:32px;padding:0 12px;font-size:12px}
+.chip-ok{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#86efac;font-weight:800}
+body.light .chip-ok{color:#15803d}
+.hero{padding:14px;margin-bottom:12px;grid-template-columns:1.25fr .95fr;gap:12px}
+.metrics-grid.m4{gap:8px}
+.metric-card{border-radius:16px;padding:11px;min-height:72px}
+.metric-label{font-size:10px;margin-bottom:6px;letter-spacing:.5px}
+.metric-sub{margin-top:6px;font-size:11px}
+.hero-right{gap:10px;padding:14px;border-radius:18px}
+.progress-item{grid-template-columns:90px 1fr 52px;gap:8px}
+.progress-label{font-size:12px} .progress-bar{height:8px} .progress-value{font-size:11px}
+.toolbar{padding:12px 14px;margin-bottom:12px;border-radius:22px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.filtros-card{padding:14px;margin-bottom:12px}
+.filtros-head strong{font-size:13px}
+.filtros-panel{gap:8px}
+input[type="month"],.filtros-panel input,.filtros-panel select{height:34px;border-radius:10px;padding:0 10px;min-width:130px;font-size:12px}
+.btn-sec,.btn-calc,.btn-primario{height:34px;padding:0 12px;border-radius:10px;font-size:12px;cursor:pointer;border:0;font-weight:800;font-family:inherit}
+.btn-primario{background:linear-gradient(90deg,var(--g1),var(--g2));color:#fff}
+.btn-calc{background:linear-gradient(90deg,#1d4ed8,#2563eb);color:#fff}
+.vazio{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--card-border);border-radius:16px;background:var(--panel)}
+.vazio a{color:var(--g3);font-weight:800}
+
+.cards-wrap{display:grid;grid-template-columns:1fr;gap:12px}
+.empresa-card{padding:12px;border-radius:18px;background:var(--panel);border:1px solid var(--card-border);box-shadow:var(--shadow-soft);position:relative;overflow:hidden}
+.empresa-card::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:1px;background:var(--line-grad)}
+.empresa-head{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(240px,auto);gap:10px;align-items:start;margin-bottom:10px}
+@media(max-width:900px){.empresa-head{grid-template-columns:1fr}}
+.col-empresa strong{line-height:1.2}
+.info-competencia{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.info-chip{display:inline-flex;align-items:center;justify-content:center;height:28px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:800;background:var(--panel-2);border:1px solid var(--card-border);color:var(--text)}
+.status-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center}
+@media(max-width:900px){.status-actions{justify-content:flex-start}}
+.switch-inline{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer}
+input[type="checkbox"]{width:15px;height:15px}
+.dot{display:inline-flex;width:10px;height:10px;border-radius:999px;border:1px solid transparent}
+.dot-ok{background:#22c55e;border-color:#22c55e}
+.dot-no{background:#f59e0b;border-color:#f59e0b}
+.dot-manual{background:#facc15;border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.18)}
+.acoes-cell{display:flex;flex-direction:column;gap:6px;min-width:100px}
+.row-muted{opacity:.76}
+.empresa-card.transmitido-manual{border-color:rgba(245,158,11,.62);box-shadow:0 0 0 1px rgba(245,158,11,.18),var(--shadow-soft)}
+.empresa-card.transmitido-manual::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#f59e0b,#facc15,#f97316)}
+.perfis-wrap{display:flex;flex-direction:column;gap:8px;width:100%}
+.perfil-box{border:1px solid var(--card-border);background:linear-gradient(180deg,var(--panel-2),var(--panel-3));border-radius:14px;padding:10px}
+.perfil-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.perfil-title{display:flex;align-items:center;gap:6px;font-weight:800;color:var(--title);font-size:12px}
+.perfil-chip{display:inline-flex;align-items:center;justify-content:center;height:24px;padding:0 8px;border-radius:999px;font-size:10px;font-weight:800;background:rgba(79,125,240,.10);border:1px solid rgba(79,125,240,.18);color:#93c5fd}
+body.light .perfil-chip{color:#1d4ed8}
+.campos-grid{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px}
+@media(max-width:1100px){.campos-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:560px){.campos-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.field input{height:30px;border-radius:9px;border:1px solid var(--card-border);background:var(--panel-2);color:var(--text);padding:0 8px;outline:none;font-size:11px;width:100%;font-family:inherit;font-variant-numeric:tabular-nums}
+.field input[readonly]{opacity:.88;background:rgba(148,163,184,.08);font-weight:800}
+.field input[disabled]{opacity:.88;background:rgba(148,163,184,.08)}
+.diff-ok{background:rgba(34,197,94,.12)!important;border:1px solid rgba(34,197,94,.35)!important;color:#22c55e!important;font-weight:800}
+.diff-erro{background:rgba(239,68,68,.12)!important;border:1px solid rgba(239,68,68,.35)!important;color:#ef4444!important;font-weight:800;animation:pulseRed 1.2s infinite}
+@keyframes pulseRed{0%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}70%{box-shadow:0 0 0 6px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0f172a;color:#fff;border:1px solid rgba(148,163,184,.3);border-radius:12px;padding:10px 16px;font-weight:700;font-size:13px;display:none;z-index:20050;box-shadow:0 16px 40px rgba(0,0,0,.35)}
+.toast.show{display:block}
+.xml-back{position:fixed;inset:0;background:rgba(2,6,23,.66);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:12000;padding:14px}
+.xml-back.show{display:flex}
+.xml-box{width:min(1200px,96vw);height:min(92vh,920px);background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 90px rgba(0,0,0,.45)}
+.xml-box header{padding:10px 14px;background:linear-gradient(90deg,var(--g1),var(--g2));color:#fff;font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.xml-box iframe{flex:1;border:0;width:100%;background:#0b1220}
+.xml-box header button{background:transparent;border:0;color:#fff;font-size:16px;cursor:pointer;padding:4px 8px}
+{% endblock %}
+
+{% block corpo %}
+<header class="topo">
+  <div class="topbar">
+    <div class="brand-wrap">
+      <div class="brand-badge"><i class="fa-solid fa-layer-group"></i></div>
+      <div class="brand-text">
+        <h1>Lançamentos • Simples Nacional</h1>
+        <p>Nescon • Conferência e ajustes por perfil</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="chip-ok"><i class="fa-solid fa-database"></i> Memória do Central</span>
+      <span class="top-chip" id="chipComp">Competência {{ competencia }}</span>
+      <button type="button" id="themeToggle" title="Alternar tema">🌙</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <section class="card hero">
+    <div class="hero-left">
+      <div class="metrics-grid m4">
+        <div class="metric-card"><div class="metric-label">Empresas</div><div class="metric-value" id="mTotal">{{ m.total }}</div><div class="metric-sub">Listadas na competência</div></div>
+        <div class="metric-card"><div class="metric-label">OK</div><div class="metric-value" id="mOk">{{ m.ok }}</div><div class="metric-sub"><span id="mPOk">{{ m.p_ok }}</span>% do total</div></div>
+        <div class="metric-card"><div class="metric-label">Transmitidas</div><div class="metric-value" id="mEnv">{{ m.enviadas }}</div><div class="metric-sub"><span id="mPEnv">{{ m.p_env }}</span>% do total</div></div>
+        <div class="metric-card"><div class="metric-label">Pendentes</div><div class="metric-value" id="mPend">{{ m.pendentes }}</div><div class="metric-sub"><span id="mPPend">{{ m.p_pend }}</span>% do total</div></div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="progress-item"><div class="progress-label">OK</div><div class="progress-bar"><div class="progress-fill success" id="barOk" style="width:{{ m.p_ok|replace(',', '.') }}%"></div></div><div class="progress-value" id="txtOk">{{ m.p_ok }}%</div></div>
+      <div class="progress-item"><div class="progress-label">Transmitido</div><div class="progress-bar"><div class="progress-fill" id="barTr" style="width:{{ m.p_env|replace(',', '.') }}%"></div></div><div class="progress-value" id="txtTr">{{ m.p_env }}%</div></div>
+      <div class="progress-item"><div class="progress-label">Pendente</div><div class="progress-bar"><div class="progress-fill warning" id="barPend" style="width:{{ m.p_pend|replace(',', '.') }}%"></div></div><div class="progress-value" id="txtPend">{{ m.p_pend }}%</div></div>
+    </div>
+  </section>
+
+  <section class="card toolbar">
+    <form method="get" data-livre style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input type="month" name="competencia" id="competencia" value="{{ competencia }}">
+      <button type="submit" class="btn-sec"><i class="fa-solid fa-rotate"></i> Carregar competência</button>
+    </form>
+    <button type="button" class="btn-primario" id="btnSalvarTudo"><i class="fa-solid fa-floppy-disk"></i> Salvar tudo</button>
+  </section>
+
+  <section class="card filtros-card">
+    <div class="filtros-head"><div><strong>Filtros</strong></div></div>
+    <div class="filtros-panel">
+      <input type="text" id="filtroRazao" placeholder="Filtrar por razão social">
+      <input type="text" id="filtroCnpj" placeholder="Filtrar por CNPJ">
+      <select id="filtroPerfil"><option value="">Todos os perfis</option><option value="comercio">Comércio</option><option value="servico">Serviço</option><option value="fator_r">Fator R</option><option value="outros">Anexo IV</option></select>
+      <select id="filtroOk"><option value="">OK: todos</option><option value="1">Somente OK</option><option value="0">Somente não OK</option></select>
+      <select id="filtroTransmitido"><option value="">Transmitido: todos</option><option value="1">Somente transmitido</option><option value="2">Somente transmitido manual/amarelo</option><option value="0">Somente não transmitido</option></select>
+    </div>
+  </section>
+
+  <section class="cards-wrap" id="listaEmpresas">
+  {% if not empresas %}
+    <div class="vazio">
+      Nenhum lançamento em <b>{{ competencia }}</b>.<br>
+      Abra <a href="{{ url_nfe }}?competencia={{ competencia }}" target="_blank" rel="noopener">Ler XML NFe</a>,
+      apure a empresa e use <b>Salvar na Memória</b>.
+    </div>
+  {% endif %}
+  {% for e in empresas %}
+    {% set trans = e.get('transmitido', 0)|int %}
+    {% set travado = e.get('ok') or trans > 0 %}
+    <article class="empresa-card {{ 'row-muted' if travado }} {{ 'transmitido-manual' if trans == 2 }}"
+             data-razao="{{ e.razao|lower }}" data-cnpj="{{ e.cnpj }}"
+             data-perfis="{{ e.perfis|map(attribute='perfil')|join(',') }}"
+             data-ok="{{ 1 if e.get('ok') else 0 }}" data-transmitido="{{ trans }}"
+             data-company-id="{{ e.get('company_id') or '' }}">
+      <div class="empresa-head">
+        <div class="col-empresa">
+          <strong>{{ e.razao }}</strong>
+          <small>CNPJ {{ e.cnpj_fmt }}{% if e.get('company_id') %} • ID {{ e.company_id }}{% endif %} • Simples Nacional</small>
+        </div>
+        <div class="info-competencia">
+          <span class="info-chip">{{ competencia }}</span>
+          <span class="info-chip">{{ e.n_perfis }} perfil(is)</span>
+        </div>
+        <div class="status-actions">
+          <label class="switch-inline"><input type="checkbox" class="flag-ok" {{ 'checked' if e.get('ok') }}> <span class="dot badge-ok {{ 'dot-ok' if e.get('ok') else 'dot-no' }}"></span> <span class="badge-ok-text">OK</span></label>
+          <label class="switch-inline"><input type="checkbox" class="flag-transmitido" {{ 'checked' if trans }}> <span class="dot badge-tr {{ 'dot-manual' if trans == 2 else ('dot-ok' if trans == 1 else 'dot-no') }}"></span> <span class="badge-tr-text">{{ 'Transmitido manual' if trans == 2 else 'Transmitido' }}</span></label>
+          <div class="acoes-cell"><button type="button" class="btn-calc btn-ler-xml">LER XML</button></div>
+        </div>
+      </div>
+      <div class="perfis-wrap">
+      {% for p in e.perfis %}
+        {% set v = p.valores %}
+        <div class="perfil-box" data-perfil="{{ p.perfil }}" data-lanc-id="{{ p.id }}">
+          <div class="perfil-head">
+            <div class="perfil-title"><i class="fa-solid fa-folder-tree"></i> {{ p.perfil_nome }}</div>
+            <span class="perfil-chip">{{ p.perfil_nome }}{% if p.origem %} • {{ p.origem }}{% endif %}</span>
+          </div>
+          {% if p.perfil == 'comercio' %}
+          <div class="campos-grid">
+            <div class="field"><label>Total Receita</label><input class="total_comercio" type="text" value="{{ moeda(v.total_receita) }}" readonly></div>
+            <div class="field"><label>Rec. s/ ST</label><input class="data-field" data-field="rec_sem_st" type="text" value="{{ moeda(v.rec_sem_st) }}"></div>
+            <div class="field"><label>Rec. s/ ST c/ isenção</label><input class="data-field" data-field="rec_sem_st_isencao" type="text" value="{{ moeda(v.get('rec_sem_st_isencao', 0)) }}"></div>
+            <div class="field"><label>Rec. c/ ST</label><input class="data-field" data-field="rec_com_st" type="text" value="{{ moeda(v.rec_com_st) }}"></div>
+            <div class="field"><label>Rec. monofásica</label><input class="data-field" data-field="rec_monofasica" type="text" value="{{ moeda(v.rec_monofasica) }}"></div>
+            <div class="field"><label>Rec. c/ ST e mono</label><input class="data-field" data-field="rec_com_st_mono" type="text" value="{{ moeda(v.rec_com_st_mono) }}"></div>
+            <div class="field"><label>Outras Saídas</label><input class="data-field" data-field="outras_receitas" type="text" value="{{ moeda(v.outras_receitas) }}"></div>
+            <div class="field"><label>Devoluções</label><input class="data-field" data-field="devolucoes" type="text" value="{{ moeda(v.devolucoes) }}"></div>
+            <div class="field"><label>Saldo Sefaz</label><input class="data-field" data-field="saldo_sefaz" type="text" value="{{ moeda(v.get('saldo_sefaz', 0)) }}"></div>
+            <div class="field"><label>Diferença</label><input class="dif_comercio {{ 'diff-ok' if (p.get('diferenca', 0)|abs) < 0.01 else 'diff-erro' }}" type="text" value="{{ moeda(p.get('diferenca', 0)) }}" readonly></div>
+          </div>
+          {% else %}
+          <div class="campos-grid">
+            <div class="field"><label>Total Receita</label><input type="text" value="{{ moeda(v.total_receita) }}" readonly></div>
+          </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+      </div>
+    </article>
+  {% endfor %}
+  </section>
+</div>
+
+<div class="xml-back" id="xmlBack" aria-hidden="true">
+  <div class="xml-box" role="dialog" aria-modal="true">
+    <header>
+      <span id="xmlTitulo">LER XML • NF-e</span>
+      <button type="button" id="xmlFechar" title="Fechar">✕</button>
+    </header>
+    <iframe id="xmlFrame" title="Leitor de XML" src="about:blank"></iframe>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block js %}
+<script>
+(function(){
+  const URL_NFE = {{ url_nfe|tojson }};
+  const URL_SALVAR = {{ url_salvar|tojson }};
+  const COMPETENCIA = {{ competencia|tojson }};
+  const $ = (s, el=document) => el.querySelector(s);
+  const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+
+  function parseMoney(v){
+    if (typeof v === 'number') return v;
+    const t = String(v||'').replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',', '.');
+    const n = parseFloat(t); return isNaN(n) ? 0 : n;
+  }
+  function formatMoney(n){
+    return (Number(n)||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function toast(msg){
+    const el = $('#toast'); el.textContent = msg; el.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  function getTransmitidoValue(card){
+    const chk = $('.flag-transmitido', card);
+    let tr = parseInt(card.dataset.transmitido || '0', 10);
+    if (!chk.checked) return 0;
+    return tr > 0 ? tr : 2; // marca manual se ainda não tinha
+  }
+
+  function applyLockedState(card){
+    const ok = $('.flag-ok', card).checked;
+    const trValor = getTransmitidoValue(card);
+    const locked = ok || trValor > 0;
+    card.dataset.ok = ok ? '1' : '0';
+    card.dataset.transmitido = String(trValor);
+    card.classList.toggle('row-muted', locked);
+    card.classList.toggle('transmitido-manual', trValor === 2);
+    $$('.data-field', card).forEach(inp => { inp.disabled = locked; });
+    const okDot = $('.badge-ok', card), trDot = $('.badge-tr', card), trTxt = $('.badge-tr-text', card);
+    if (okDot) okDot.className = 'dot badge-ok ' + (ok ? 'dot-ok' : 'dot-no');
+    if (trDot) trDot.className = 'dot badge-tr ' + (trValor === 2 ? 'dot-manual' : (trValor === 1 ? 'dot-ok' : 'dot-no'));
+    if (trTxt) trTxt.textContent = trValor === 2 ? 'Transmitido manual' : 'Transmitido';
+  }
+
+  function recalcPerfil(box){
+    if (box.dataset.perfil !== 'comercio') return;
+    const get = f => parseMoney(($(`[data-field="${f}"]`, box) || {}).value);
+    const total = get('rec_sem_st') + get('rec_sem_st_isencao') + get('rec_com_st')
+                + get('rec_monofasica') + get('rec_com_st_mono');
+    const dif = total + get('outras_receitas') + get('devolucoes') - get('saldo_sefaz');
+    const totEl = $('.total_comercio', box); if (totEl) totEl.value = formatMoney(total);
+    const difEl = $('.dif_comercio', box);
+    if (difEl){
+      difEl.value = formatMoney(dif);
+      difEl.classList.toggle('diff-ok', Math.abs(dif) < 0.01);
+      difEl.classList.toggle('diff-erro', Math.abs(dif) >= 0.01);
+    }
+  }
+
+  function valoresPerfil(box){
+    const out = {};
+    $$('.data-field', box).forEach(inp => { out[inp.dataset.field] = parseMoney(inp.value); });
+    if (box.dataset.perfil === 'comercio'){
+      out.total_receita = parseMoney(($('.total_comercio', box)||{}).value);
+    }
+    return out;
+  }
+
+  async function saveCard(card, silencioso){
+    const ok = $('.flag-ok', card).checked;
+    const transmitido = getTransmitidoValue(card);
+    const boxes = $$('.perfil-box', card);
+    for (const box of boxes){
+      const id = parseInt(box.dataset.lancId, 10);
+      if (!id) continue;
+      const r = await fetch(URL_SALVAR, {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ id, ok, transmitido, valores: valoresPerfil(box) })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.ok) throw new Error(d.msg || 'Falha ao salvar');
+    }
+    applyLockedState(card);
+    updateGraph();
+    if (!silencioso) toast('Lançamento salvo');
+  }
+
+  function updateGraph(){
+    const rows = $$('.empresa-card').filter(c => c.style.display !== 'none');
+    const total = rows.length;
+    const ok = rows.filter(c => $('.flag-ok', c).checked).length;
+    const trn = rows.filter(c => getTransmitidoValue(c) > 0).length;
+    const pend = rows.filter(c => !$('.flag-ok', c).checked && getTransmitidoValue(c) === 0).length;
+    const pct = n => total ? ((n/total)*100) : 0;
+    const fmt = n => pct(n).toFixed(2).replace('.', ',');
+    $('#mTotal').textContent = total;
+    $('#mOk').textContent = ok; $('#mEnv').textContent = trn; $('#mPend').textContent = pend;
+    $('#mPOk').textContent = fmt(ok); $('#mPEnv').textContent = fmt(trn); $('#mPPend').textContent = fmt(pend);
+    $('#barOk').style.width = pct(ok).toFixed(2) + '%';
+    $('#barTr').style.width = pct(trn).toFixed(2) + '%';
+    $('#barPend').style.width = pct(pend).toFixed(2) + '%';
+    $('#txtOk').textContent = fmt(ok) + '%';
+    $('#txtTr').textContent = fmt(trn) + '%';
+    $('#txtPend').textContent = fmt(pend) + '%';
+  }
+
+  function filtrar(){
+    const razao = $('#filtroRazao').value.trim().toLowerCase();
+    const cnpj = $('#filtroCnpj').value.replace(/\D/g,'');
+    const perfil = $('#filtroPerfil').value, ok = $('#filtroOk').value, tr = $('#filtroTransmitido').value;
+    $$('.empresa-card').forEach(c => {
+      const t = String(getTransmitidoValue(c));
+      const mostra = (!razao || c.dataset.razao.includes(razao))
+        && (!cnpj || c.dataset.cnpj.includes(cnpj))
+        && (!perfil || c.dataset.perfis.split(',').includes(perfil))
+        && (!ok || c.dataset.ok === ok)
+        && (!tr || (tr === '1' ? t !== '0' : t === tr));
+      c.style.display = mostra ? '' : 'none';
+    });
+    updateGraph();
+  }
+
+  // máscara + eventos
+  $$('.empresa-card').forEach(card => {
+    applyLockedState(card);
+    $$('.perfil-box', card).forEach(recalcPerfil);
+    $$('.data-field', card).forEach(inp => {
+      inp.addEventListener('input', () => recalcPerfil(inp.closest('.perfil-box')));
+      inp.addEventListener('blur', () => {
+        inp.value = formatMoney(parseMoney(inp.value));
+        recalcPerfil(inp.closest('.perfil-box'));
+      });
+      inp.addEventListener('change', () => saveCard(card, true).catch(e => toast(e.message)));
+    });
+    $('.flag-ok', card).addEventListener('change', () => {
+      applyLockedState(card); updateGraph();
+      saveCard(card, true).catch(e => toast(e.message));
+    });
+    $('.flag-transmitido', card).addEventListener('change', () => {
+      if ($('.flag-transmitido', card).checked && parseInt(card.dataset.transmitido||'0',10) <= 0)
+        card.dataset.transmitido = '2';
+      applyLockedState(card); updateGraph();
+      saveCard(card, true).catch(e => toast(e.message));
+    });
+    $('.btn-ler-xml', card).addEventListener('click', () => abrirXml(card));
+  });
+
+  ['filtroRazao','filtroCnpj','filtroPerfil','filtroOk','filtroTransmitido'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', filtrar); el.addEventListener('change', filtrar);
+  });
+
+  $('#btnSalvarTudo').addEventListener('click', async () => {
+    try {
+      for (const card of $$('.empresa-card')) await saveCard(card, true);
+      toast('Todos os lançamentos salvos');
+    } catch (e) { toast(e.message || 'Erro ao salvar'); }
+  });
+
+  function abrirXml(card){
+    const [ano, mes] = COMPETENCIA.split('-');
+    const cnpj = (card.dataset.cnpj || '').replace(/\D/g,'');
+    const qs = new URLSearchParams({ mes: String(parseInt(mes,10)), ano, cnpj: cnpj.slice(0,8), origem: 'lancamentos' });
+    $('#xmlTitulo').textContent = 'LER XML • NF-e — ' + ($('strong', card)?.textContent || cnpj);
+    $('#xmlFrame').src = URL_NFE + '?' + qs.toString();
+    $('#xmlBack').classList.add('show');
+    $('#xmlBack').setAttribute('aria-hidden', 'false');
+  }
+  function fecharXml(){
+    $('#xmlFrame').src = 'about:blank';
+    $('#xmlBack').classList.remove('show');
+    $('#xmlBack').setAttribute('aria-hidden', 'true');
+    // recarrega a competência para pegar o que foi salvo na memória
+    location.reload();
+  }
+  $('#xmlFechar').addEventListener('click', fecharXml);
+  $('#xmlBack').addEventListener('click', e => { if (e.target === $('#xmlBack')) fecharXml(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && $('#xmlBack').classList.contains('show')) fecharXml();
+  });
+})();
+</script>
+{% endblock %}

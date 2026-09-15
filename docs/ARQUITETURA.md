@@ -34,7 +34,7 @@ verdade, não funcionavam.
 
 ---
 
-## Os 16 desvios intencionais
+## Os 17 desvios intencionais
 
 | # | O quê | Por quê | Onde |
 |---|---|---|---|
@@ -54,6 +54,7 @@ verdade, não funcionavam.
 | 14 | Barra lateral por cima da SPA | o layout de cabeçalho horizontal não comportava as telas novas nem a navegação por seções. Como o bundle não tem fonte, a barra é montada por fora: o cabeçalho original é escondido por CSS e **cada item clica no botão original**, que segue no DOM | `app/static/app/index.html`, `app/ui.py`, `services/permissoes.py` |
 | 15 | Backup do banco (botão + automático) | no exe o banco ficava na máquina do usuário, dentro do backup dele. Num servidor, sem isto, um erro operacional não tem volta | `services/backup_service.py`, `routes/restaurar.py`, `scheduler.py` |
 | 16 | Correção da leitura de pendências | **o exe lê errado.** O cabeçalho se repete em toda página e, quando uma seção atravessa a quebra, entra no meio do texto; como o extrator aceita qualquer número de 4 dígitos como ano, o `0001` do CNPJ e o `2026` da data viravam pendência fantasma. E `DASN SIMEI` nunca era capturada, por causa de um espaço | `services/pdf_parser.py` |
+| 17 | Área **Escritório** (`/escritorio`) no visual do Integra Contador | o Jean usa no dia a dia as telas de escritório do Integra Contador. **Sem dados mockados** nas listas (cadastro + memória). **Funcional:** Ler XML NFe (`/escritorio/xml/nfe`), tabela NCM×CST (`/escritorio/ncm`), Lançamentos (`/escritorio/simples/lancamentos`) lendo/gravando `escritorio_lancamentos`. **Transmitir** lista a memória; Calcular DAS / envio SERPRO = próxima etapa (diretrizes do Jean). Tabelas em `app/escritorio_models.py`, **fora** de `models.py` (regra 3). Handoff: `docs/HANDOFF-ESCRITORIO.md` | `routes/escritorio.py`, `templates/escritorio/`, `escritorio_models.py`, `services/escritorio_ncm.py`, `services/escritorio_lancamentos.py`, `services/permissoes.py`, `app/__init__.py` |
 
 ### Detalhe do 16º — por que a leitura vinha errada
 

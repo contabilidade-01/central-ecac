@@ -1,0 +1,148 @@
+/* =====================================================================
+   Componentes das telas de lista (Lançamentos, Transmitir, Faturamento):
+   cabeçalho fixo, métricas, barras de progresso, barra de ações, filtros,
+   tabela, badges, botões de ação e carregando.
+   ===================================================================== */
+header.topo{position:sticky;top:0;z-index:50;padding:16px 22px;backdrop-filter:blur(14px);
+  background:rgba(11,18,32,.66);border-bottom:1px solid var(--card-border)}
+body.light header.topo{background:rgba(245,247,251,.72)}
+.topbar{max-width:1560px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.topbar.largo{max-width:none}
+.brand-wrap{display:flex;align-items:center;gap:14px}
+.brand-badge{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,var(--brand),var(--brand-2));
+  box-shadow:0 12px 28px rgba(34,211,238,.22);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px}
+.brand-text h1{margin:0;font-size:19px;font-weight:800;color:var(--title);letter-spacing:.2px}
+.brand-text p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.topbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#themeToggle,.top-chip,.tab-link{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 14px;
+  border-radius:999px;background:var(--panel);border:1px solid var(--card-border);color:var(--text);font-size:13px;
+  font-weight:700;line-height:1;white-space:nowrap;box-shadow:var(--shadow-soft);backdrop-filter:blur(10px);text-decoration:none;cursor:default}
+#themeToggle{cursor:pointer;min-width:44px}
+.tab-link{font-weight:800;cursor:pointer}
+.tab-link.active{color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-2))}
+
+.container{max-width:1560px;margin:0 auto;padding:12px}
+.container.largo{max-width:none;padding:14px 22px}
+.card{background:var(--panel);border:1px solid var(--card-border);border-radius:var(--radius-xl);box-shadow:var(--shadow);backdrop-filter:blur(14px)}
+
+/* ---------------------------------------------------------- métricas */
+.hero{padding:22px;margin-bottom:18px;display:grid;grid-template-columns:1.4fr .9fr;gap:18px}
+@media(max-width:1100px){.hero{grid-template-columns:1fr}}
+.hero-left{display:flex;flex-direction:column;gap:18px}
+.metrics-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.metrics-grid.m4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.metrics-grid.auto{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:16px}
+@media(max-width:1200px){.metrics-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:720px){.metrics-grid,.metrics-grid.m4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.metric-card{position:relative;overflow:hidden;border-radius:20px;padding:16px;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel-3));border:1px solid var(--card-border);min-height:104px}
+.metric-card::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--brand),var(--brand-2),var(--brand-3));opacity:.95}
+.metric-label{font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.metric-value{font-size:20px;font-weight:800;color:var(--title);line-height:1;font-variant-numeric:tabular-nums}
+.metric-sub{margin-top:8px;font-size:12px;color:var(--muted)}
+.hero-right{display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:22px;
+  background:linear-gradient(180deg, rgba(79,125,240,.12), rgba(34,211,238,.07));border:1px solid var(--card-border)}
+.progress-item{display:grid;grid-template-columns:92px 1fr 64px;gap:12px;align-items:center}
+.progress-label{font-size:13px;color:var(--muted);font-weight:700}
+.progress-bar{height:10px;background:rgba(148,163,184,.14);border-radius:999px;overflow:hidden}
+.progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+.progress-fill.success{background:linear-gradient(90deg,#22c55e,#4ade80)}
+.progress-fill.warning{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.progress-fill.danger{background:linear-gradient(90deg,#ef4444,#fb7185)}
+.progress-value{text-align:right;font-size:12px;color:var(--title);font-weight:800;font-variant-numeric:tabular-nums}
+
+/* ----------------------------------------------------- barra de ações */
+.toolbar{padding:16px 18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.toolbar-left,.toolbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+input[type="month"],.filtros-panel input,.filtros-panel select,.filters-grid input,.filters-grid select,.campo{
+  height:42px;border-radius:14px;border:1px solid var(--card-border);background:var(--panel-2);color:var(--text);
+  padding:0 14px;outline:none;min-width:160px;font-family:inherit;font-size:13px}
+input::placeholder{color:var(--muted)}
+.btn-primario,.btn-sec,.btn-smart,.btn-calc,.btn{height:42px;padding:0 16px;border-radius:14px;font-size:13px;font-weight:800;
+  cursor:pointer;border:1px solid var(--card-border);display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  white-space:nowrap;text-decoration:none;transition:.18s ease}
+.btn-primario{color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-2));box-shadow:0 10px 24px rgba(34,211,238,.18)}
+.btn-sec{color:var(--text);background:var(--panel-2)}
+.btn-smart{color:#dbeafe;background:linear-gradient(135deg,rgba(79,125,240,.18),rgba(34,211,238,.10))}
+body.light .btn-smart{color:#1d4ed8}
+.btn-calc{color:#fff;background:linear-gradient(135deg,#0ea5e9,#2563eb)}
+.btn-green{color:#fff;background:linear-gradient(135deg,#16a34a,#15803d)}
+.btn-orange{color:#fff;background:linear-gradient(135deg,#f97316,#ea580c)}
+.btn-blue{color:#fff;background:linear-gradient(135deg,#2563eb,#1d4ed8)}
+.btn-small{height:34px;border-radius:10px;padding:0 10px;font-size:12px}
+.btn-primario:hover,.btn-sec:hover,.btn-smart:hover,.btn-calc:hover,.btn:hover,#themeToggle:hover{transform:translateY(-1px)}
+.btn-primario:active,.btn-sec:active,.btn-smart:active,.btn:active{transform:translateY(1px) scale(.99)}
+button:disabled.btn,button:disabled.btn-sec,button:disabled.btn-calc,button:disabled.btn-primario{opacity:.45;cursor:not-allowed;transform:none}
+body.light .btn-primario,body.light .btn-calc{box-shadow:0 8px 20px rgba(37,99,235,.18)}
+
+/* ------------------------------------------------------------ filtros */
+.filtros-card,.filters{padding:18px;margin-bottom:18px}
+.filtros-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.filtros-head strong{color:var(--title);font-size:15px}
+.filtros-panel{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.filters-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:10px}
+@media(max-width:900px){.filtros-panel,.filters-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.filtros-panel,.filters-grid{grid-template-columns:1fr}}
+
+/* ------------------------------------------------------------- tabela */
+.table-card{padding:0;overflow:hidden;margin-bottom:18px}
+.table-top{padding:18px;border-bottom:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.table-top strong{color:var(--title);font-size:16px}
+.table-top small{color:var(--muted)}
+.resumo-inline{display:flex;gap:10px;flex-wrap:wrap}
+.mini-chip{height:30px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;
+  background:var(--panel-2);border:1px solid var(--card-border);color:var(--muted);font-size:12px;font-weight:700}
+.table-wrap{overflow:auto}
+table.lista{width:100%;border-collapse:separate;border-spacing:0;min-width:1180px;font-size:13px}
+table.lista thead th{position:sticky;top:0;z-index:2;text-align:left;padding:14px 12px;background:rgba(2,6,23,.72);color:#cbd5e1;
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--card-border);font-size:12px;letter-spacing:.6px}
+body.light table.lista thead th{background:rgba(255,255,255,.88);color:#475569}
+table.lista tbody tr{position:relative}
+table.lista tbody tr:hover{background:rgba(79,125,240,.05)}
+table.lista td{padding:10px 8px;color:var(--text);vertical-align:middle;white-space:nowrap;border-bottom:1px solid var(--card-border)}
+table.lista td input[type="date"],table.lista td input[type="text"]{height:36px;border-radius:12px;border:1px solid var(--card-border);
+  background:var(--panel-2);color:var(--text);padding:0 10px;font-family:inherit}
+.col-empresa strong{display:block;color:var(--title);font-size:13px}
+.col-empresa small{color:var(--muted);font-size:11px}
+.money{font-weight:800;color:var(--title);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+.link-das{cursor:pointer;color:#60a5fa;font-weight:800}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:72px;height:28px;padding:0 10px;border-radius:999px;
+  font-size:11px;font-weight:800;border:1px solid transparent;text-transform:lowercase}
+.badge.up{text-transform:uppercase;font-weight:900}
+.badge-ok{color:#86efac;background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.22)}
+.badge-erro{color:#fda4af;background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.22)}
+.badge-pend{color:#fcd34d;background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.22)}
+.badge-info{color:#93c5fd;background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.22)}
+.badge-manual{color:#fdba74;background:rgba(249,115,22,.18);border-color:rgba(249,115,22,.52);box-shadow:0 0 0 3px rgba(249,115,22,.12)}
+body.light .badge-ok{color:#15803d} body.light .badge-erro{color:#be123c}
+body.light .badge-pend{color:#a16207} body.light .badge-info{color:#1d4ed8} body.light .badge-manual{color:#c2410c}
+tr.transmitido-manual{background:rgba(249,115,22,.075)}
+.perc-pill{display:inline-flex;align-items:center;justify-content:center;min-width:74px;height:28px;padding:0 10px;border-radius:999px;
+  font-size:11px;font-weight:800;background:rgba(79,125,240,.12);color:#93c5fd;border:1px solid rgba(79,125,240,.20)}
+.perc-pill.alto{background:rgba(239,68,68,.12);color:#fca5a5;border-color:rgba(239,68,68,.18)}
+body.light .perc-pill{color:#1d4ed8} body.light .perc-pill.alto{color:#b91c1c}
+input[type="checkbox"]{width:16px;height:16px;accent-color:#4f7df0}
+
+/* ------------------------------------------------- botões de ação (ícone) */
+.td-acoes{display:flex;align-items:center;gap:8px;min-width:260px}
+.btn-acao{position:relative;overflow:hidden;border:none;border-radius:10px;padding:8px 10px;cursor:pointer;font-size:14px;
+  display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1e293b,#0f172a);color:#fff;
+  box-shadow:0 4px 12px rgba(0,0,0,.35);transition:all .2s ease}
+.btn-acao::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent,rgba(255,255,255,.15),transparent);
+  opacity:0;transition:.2s;pointer-events:none}
+.btn-acao:hover{transform:translateY(-2px) scale(1.05);box-shadow:0 12px 30px rgba(0,0,0,.35)}
+.btn-acao:hover::after{opacity:1}
+.btn-acao:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-acao i{font-size:15px}
+.acao-enviar{background:linear-gradient(135deg,#2563eb,#1d4ed8);box-shadow:0 4px 14px rgba(37,99,235,.5)}
+.acao-retificar{background:linear-gradient(135deg,#7c3aed,#5b21b6);box-shadow:0 4px 14px rgba(124,58,237,.5)}
+.acao-calcular,.acao-visualizar,.acao-download{background:linear-gradient(135deg,#16a34a,#15803d);box-shadow:0 4px 14px rgba(22,163,74,.5)}
+.acao-doc{background:linear-gradient(135deg,#f97316,#ea580c);box-shadow:0 4px 14px rgba(249,115,22,.5)}
+
+/* ------------------------------------------------------------- log */
+.log-card{padding:18px}
+.log-execucao{font-size:12px;background:rgba(2,6,23,.24);border-radius:16px;padding:16px;max-height:260px;overflow:auto;
+  white-space:pre-wrap;border:1px solid var(--card-border);color:var(--text);font-family:ui-monospace,"Cascadia Mono",Consolas,monospace}
+body.light .log-execucao{background:rgba(79,125,240,.04)}

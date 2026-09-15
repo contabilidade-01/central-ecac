@@ -1,0 +1,164 @@
+{% extends 'escritorio/_base.html' %}
+{% block titulo %}Transmitir • Simples Nacional{% endblock %}
+{% block body_attrs %} data-acao-msg="A empresa e a receita já vêm da memória. Calcular/enviar DAS depende da integração SERPRO — na próxima etapa, com as suas diretrizes."{% endblock %}
+{% block css %}{% include 'escritorio/_modulo.css' %}
+html{zoom:85%}
+body{min-height:118vh}
+.vazio{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--card-border);border-radius:16px;margin:12px}
+.vazio a{color:var(--g3);font-weight:800}
+.chip-ok{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#86efac}
+body.light .chip-ok{color:#15803d}
+{% endblock %}
+{% block corpo %}
+<header class="topo">
+  <div class="topbar">
+    <div class="brand-wrap">
+      <div class="brand-badge"><i class="fa-solid fa-chart-line"></i></div>
+      <div class="brand-text">
+        <h1>Transmitir • Simples Nacional</h1>
+        <p>PGDAS-D • Automação</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="chip-ok"><i class="fa-solid fa-database"></i> Memória do Central</span>
+      <span class="top-chip">Competência {{ competencia }}</span>
+      <button type="button" id="themeToggle" title="Alternar tema">🌙</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="hero card">
+    <div class="hero-left">
+      <div class="metrics-grid">
+        <div class="metric-card"><div class="metric-label">Empresas</div><div class="metric-value">{{ m.total }}</div><div class="metric-sub">Com lançamento na competência</div></div>
+        <div class="metric-card"><div class="metric-label">OK</div><div class="metric-value">{{ m.ok }}</div><div class="metric-sub">{{ m.p_ok }}% aptas</div></div>
+        <div class="metric-card"><div class="metric-label">Enviadas</div><div class="metric-value">{{ m.enviadas }}</div><div class="metric-sub">{{ m.p_env }}% transmitidas</div></div>
+        <div class="metric-card"><div class="metric-label">Pendentes</div><div class="metric-value">{{ m.pendentes }}</div><div class="metric-sub">{{ m.p_pend }}% aguardando ação</div></div>
+        <div class="metric-card"><div class="metric-label">Erros</div><div class="metric-value">{{ m.erros }}</div><div class="metric-sub">{{ m.p_err }}% com falha</div></div>
+      </div>
+    </div>
+    <div class="hero-right">
+      {% for rotulo, pct, cls in [('OK', m.p_ok, 'success'), ('Enviadas', m.p_env, ''), ('Pendentes', m.p_pend, 'warning'), ('Erros', m.p_err, 'danger')] %}
+      <div class="progress-item">
+        <div class="progress-label">{{ rotulo }}</div>
+        <div class="progress-bar"><div class="progress-fill {{ cls }}" style="width:{{ pct|replace(',', '.') }}%"></div></div>
+        <div class="progress-value">{{ pct }}%</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="toolbar card">
+    <div class="toolbar-left">
+      <form method="get" data-livre style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input type="month" name="competencia" id="competencia" value="{{ competencia }}">
+        <button class="btn-sec" type="submit">Trocar competência</button>
+      </form>
+    </div>
+    <div class="toolbar-right">
+      <button type="button" class="btn-sec" onclick="document.querySelectorAll('.chkEmpresa').forEach(c=>c.checked=true)">Selecionar todos</button>
+      <button type="button" class="btn-sec" onclick="document.querySelectorAll('.chkEmpresa').forEach(c=>c.checked=false)">Limpar seleção</button>
+      <button type="button" class="btn-smart" data-acao="Calcular DAS">🧮 Calcular DAS</button>
+      <button type="button" class="btn-primario" data-acao="Enviar lote">Enviar lote</button>
+      <button type="button" class="btn-sec" data-acao="Emitir DAS lote">Emitir DAS lote</button>
+      <button type="button" class="btn-sec" data-acao="ZIP DAS">ZIP DAS</button>
+    </div>
+  </div>
+
+  <div class="filtros-card card">
+    <div class="filtros-head"><div><strong>Filtros</strong></div></div>
+    <div class="filtros-panel">
+      <input type="text" id="filtroEmpresa" placeholder="Filtrar por Empresa">
+      <input type="text" id="filtroCNPJ" placeholder="Filtrar por CNPJ">
+      <select id="filtroOK"><option value="">Todas</option><option value="OK">OK</option><option value="NOK">NOK</option></select>
+      <select id="filtroStatus"><option value="">Status Declaração</option><option value="enviado">Enviado</option><option value="manual">Env. Manual</option><option value="pendente">Pendente</option><option value="erro">Erro</option></select>
+    </div>
+  </div>
+
+  <div class="table-card card">
+    <div class="table-top">
+      <div><strong>Empresas com lançamento em {{ competencia }}</strong></div>
+      <div class="resumo-inline">
+        <span class="mini-chip">{{ m.total }} empresas</span>
+        <span class="mini-chip">{{ m.ok }} OK</span>
+        <span class="mini-chip">{{ m.enviadas }} enviadas</span>
+      </div>
+    </div>
+    {% if not empresas %}
+    <div class="vazio">
+      Nenhum lançamento em <b>{{ competencia }}</b>.<br>
+      Gere o relatório em <b>Ler XML NFe</b>, salve na memória e confira em <b>Lançamentos</b>.
+    </div>
+    {% else %}
+    <div class="table-wrap">
+      <table class="lista" id="tabela">
+        <thead>
+          <tr><th style="width:50px;"></th><th>EMPRESA</th><th>CNPJ</th><th>RECEITA</th><th>RBT12</th><th>R$ DAS</th><th>%</th><th>OK</th><th>STATUS</th><th>AÇÕES</th></tr>
+        </thead>
+        <tbody>
+        {% for e in empresas %}
+          {% set enviado = e.status in ('enviado', 'manual') %}
+          <tr class="{{ 'transmitido-manual' if e.status == 'manual' else '' }}" data-status="{{ e.status }}" data-ok="{{ 'OK' if e.ok else 'NOK' }}" data-empresa="{{ e.razao|lower }}" data-cnpj="{{ e.cnpj_raw if e.cnpj_raw is defined else e.cnpj }}">
+            <td><input type="checkbox" class="chkEmpresa" value="{{ e.id }}"></td>
+            <td class="col-empresa"><strong>{{ e.razao }}</strong><small>{% if e.id %}ID {{ e.id }} • {% endif %}regime simples</small></td>
+            <td class="num">{{ e.cnpj }}</td>
+            <td class="money">R$ {{ moeda(e.receita) }}</td>
+            <td class="num">{% if e.rbt12 %}R$ {{ moeda(e.rbt12) }}{% else %}—{% endif %}</td>
+            <td>{% if e.das %}<span class="link-das" data-acao="Detalhe do cálculo do DAS">R$ {{ moeda(e.das) }}</span>{% else %}<span title="Cálculo SERPRO na próxima etapa">—</span>{% endif %}</td>
+            <td>{% if e.aliq %}<span class="perc-pill">{{ ('%.2f'|format(e.aliq))|replace('.', ',') }}%</span>{% else %}—{% endif %}</td>
+            <td>{% if e.ok %}<span class="badge badge-ok up">OK</span>{% else %}<span class="badge" style="opacity:.5;">-</span>{% endif %}</td>
+            <td>
+              {% if e.status == 'enviado' %}<span class="badge badge-ok">enviado</span>
+              {% elif e.status == 'manual' %}<span class="badge badge-manual">Env. Manual</span>
+              {% elif e.status == 'erro' %}<span class="badge badge-erro">erro</span>
+              {% else %}<span class="badge badge-pend">pendente</span>{% endif %}
+            </td>
+            <td><div class="td-acoes">
+              <button type="button" class="btn-acao acao-enviar" title="Enviar declaração automática" data-acao="Enviar declaração" {{ 'disabled' if (not e.ok or enviado) }}><i class="fa-solid fa-paper-plane"></i></button>
+              <button type="button" class="btn-acao acao-retificar" title="Retificar declaração" data-acao="Retificar declaração" {{ '' if enviado else 'disabled' }}><i class="fa-solid fa-rotate-right"></i></button>
+              <button type="button" class="btn-acao acao-calcular" title="Emitir DAS" data-acao="Emitir DAS" {{ '' if enviado else 'disabled' }}><i class="fa-solid fa-file-invoice-dollar"></i></button>
+              <button type="button" class="btn-acao acao-visualizar" title="Visualizar DAS" data-acao="Visualizar DAS" disabled><i class="fa-solid fa-eye"></i></button>
+              <button type="button" class="btn-acao acao-download" title="Baixar DAS" data-acao="Baixar DAS" disabled><i class="fa-solid fa-download"></i></button>
+              <button type="button" class="btn-acao acao-doc" title="Visualizar Declaração" data-acao="Visualizar Declaração" disabled><i class="fa-solid fa-file-lines"></i></button>
+              <button type="button" class="btn-acao acao-doc" title="Visualizar Recibo" data-acao="Visualizar Recibo" disabled><i class="fa-solid fa-receipt"></i></button>
+            </div></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="log-card card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap;">
+      <div><strong style="color:var(--title);">Log de Execução</strong><br><small style="color:var(--muted);">Preenchido quando o envio SERPRO estiver ligado.</small></div>
+      <button class="btn-sec" type="button" onclick="document.getElementById('logExecucao').textContent=''">🧹 Limpar Log</button>
+    </div>
+    <div id="logExecucao" class="log-execucao">Aguardando ações de cálculo/envio…</div>
+  </div>
+</div>
+{% endblock %}
+{% block js %}
+<script>
+(function(){
+  const ids = ['filtroEmpresa','filtroCNPJ','filtroOK','filtroStatus'];
+  function filtrar(){
+    const emp = document.getElementById('filtroEmpresa').value.trim().toLowerCase();
+    const cnpj = document.getElementById('filtroCNPJ').value.replace(/\D/g,'');
+    const ok = document.getElementById('filtroOK').value;
+    const st = document.getElementById('filtroStatus').value;
+    document.querySelectorAll('#tabela tbody tr').forEach(tr => {
+      const mostra = (!emp || tr.dataset.empresa.includes(emp)) && (!cnpj || tr.dataset.cnpj.includes(cnpj))
+        && (!ok || tr.dataset.ok === ok) && (!st || tr.dataset.status === st);
+      tr.style.display = mostra ? '' : 'none';
+    });
+  }
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.addEventListener('input', filtrar); el.addEventListener('change', filtrar); }
+  });
+})();
+</script>
+{% endblock %}

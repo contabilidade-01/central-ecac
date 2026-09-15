@@ -1,0 +1,298 @@
+{% extends 'escritorio/_base.html' %}
+{% block titulo %}Relatório de Notas de Comércio (NF-e){% endblock %}
+{% block css %}{% include 'escritorio/_leitor.css' %}
+.container{max-width:1200px;padding:0 18px 40px;text-align:center}
+.cabeca{display:flex;align-items:center;justify-content:center;gap:12px;padding-top:22px;flex-wrap:wrap}
+h1.grad{font-size:26px}
+.upload-area.dragover{border-color:rgba(34,211,238,.95);background:var(--card-2);transform:translateY(-1px)}
+.upload-area .alt{margin-top:8px;font-size:12px}
+.upload-area .alt a{color:var(--g3);font-weight:800;cursor:pointer;text-decoration:underline}
+.progress{display:none}
+.controls{justify-content:center}
+.controls input{width:130px}
+.export-btns{display:none;justify-content:center;gap:10px;margin:6px 0 0;flex-wrap:wrap}
+.cfop-controls{display:flex;gap:10px;justify-content:flex-end;margin:10px auto 0;flex-wrap:wrap}
+.section-title{text-align:left}
+.vazio{grid-column:1/-1;color:var(--muted);text-align:left;font-size:13px;margin:4px 0}
+.ncard{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--g1);border-radius:14px;box-shadow:var(--shadow);padding:18px;text-align:left;transition:.25s;backdrop-filter:blur(12px)}
+.ncard:hover{transform:translateY(-3px)}
+.ncard h3{margin:0 0 8px;font-size:16px;color:var(--text)}
+.ncard p{margin:3px 0;font-size:13.5px;color:var(--text);font-variant-numeric:tabular-nums}
+.ncard .total{font-weight:800;color:#60a5fa}
+.ncard.sum{border-left-width:8px}
+.ncard.emit{border-left-color:#00b894}.ncard.emit .total{color:#00b894}
+.ncard.devo{border-left-color:#d63031}.ncard.devo .total{color:#ef4444}
+.ncard.rece{border-left-color:#0984e3}.ncard.rece .total{color:#38bdf8}
+.ncard.outr{border-left-color:#fdcb6e}.ncard.outr .total{color:#fbbf24}
+.ncard.devol{background:rgba(239,68,68,.10);border-left-color:#d63031}
+.ncard.devol h3,.ncard.devol .total{color:#ef4444}
+body.light .ncard .total{color:#1f39b8}
+body.light .ncard.emit .total{color:#00a383} body.light .ncard.rece .total{color:#0984e3} body.light .ncard.outr .total{color:#b7791f}
+.monof{margin-top:8px!important;padding-top:8px;border-top:1px dashed var(--line);font-weight:700;color:#0fbf4b!important}
+.nmonof{font-weight:700;color:#e63946!important}
+.header-card{display:none;background:linear-gradient(90deg,var(--p1),var(--p2));color:#fff;border-radius:12px;padding:14px 18px;margin-top:12px;text-align:left}
+.header-card h3{margin:0 0 4px}
+.header-card p{margin:2px 0;font-size:13px}
+.header-card .aviso-emp{margin-top:6px;font-size:12px;opacity:.95}
+.details{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);margin:18px auto 10px;text-align:left;overflow:hidden}
+.details header{background:linear-gradient(90deg,var(--g1),var(--g2));color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.details h2{margin:0;font-size:16px}
+.details .content{display:none;padding:14px}
+.details.aberto .content{display:block}
+
+/* ---------- janelas (CFOP, PGDAS-D, PIS/COFINS, duplicidades) ---------- */
+.jan-fundo{position:fixed;inset:0;background:rgba(2,6,23,.66);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:12000;padding:14px}
+.jan-fundo.show{display:flex}
+.jan{width:min(1050px,96vw);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 30px 90px rgba(0,0,0,.45);text-align:left;color:var(--text)}
+.jan > header{padding:12px 16px;background:linear-gradient(90deg,var(--g1),var(--g2));color:#fff;font-weight:800;position:sticky;top:0;z-index:3}
+.jan .corpo{padding:14px 16px}
+.jan footer{display:flex;gap:10px;justify-content:flex-end;padding:10px 16px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--panel)}
+.jan .helper{color:var(--muted);font-size:13px;margin:0 0 12px}
+.bt.sec{background:var(--panel-2);border:1px solid var(--line);color:var(--text);box-shadow:none}
+.dual-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:800px){.dual-cols{grid-template-columns:1fr}}
+.dual-cols h4{margin:0 0 10px;font-size:14px;display:flex;flex-direction:column;gap:6px}
+.dual-cols h4 .lista{font-size:11px;font-weight:600;color:var(--muted);word-break:break-word}
+.grid-cfop{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (max-width:520px){.grid-cfop{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.grid-cfop label,.cfop-list label{display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:12.5px;font-weight:700;cursor:pointer}
+.grid-cfop input,.cfop-list input{accent-color:var(--g1)}
+
+.pg-warning{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.45);color:#fcd34d;font-weight:700;text-align:center;padding:8px 10px;margin:0 0 12px;border-radius:8px;font-size:12px}
+body.light .pg-warning{color:#8a6100;background:#fffbe6}
+.pg-head{background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.30);color:#86efac;font-weight:700;padding:7px 10px;font-size:12px;border-radius:8px 8px 0 0}
+body.light .pg-head{color:#2b4a1c;background:#e9f6e3;border-color:#b9d6a5}
+.pg-section{border:1px solid var(--line);border-top:0;margin-bottom:12px;border-radius:0 0 8px 8px}
+.pg-cols,.pg-row{display:grid;grid-template-columns:2fr repeat(6,minmax(58px,1fr));gap:6px;padding:6px 8px;align-items:center}
+.pg-cols{font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;text-align:center;border-bottom:1px solid var(--line)}
+.pg-cols span:first-child{text-align:left}
+.pg-row + .pg-row{border-top:1px solid var(--line)}
+.pg-input{background:var(--input-bg);border:1px solid var(--line);border-radius:6px;padding:7px 8px;cursor:copy;font-size:12.5px;text-align:right;color:var(--text);font-weight:800;font-variant-numeric:tabular-nums;width:100%;font-family:inherit}
+.pg-tag{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:7px 4px;font-size:10.5px;text-align:center;color:var(--muted);min-height:31px;font-weight:700}
+.pg-tag.on{color:#fbbf24;border-color:rgba(245,158,11,.45)}
+body.light .pg-tag.on{color:#9a6200}
+.pg-total{background:rgba(79,125,240,.12);border-top:2px solid rgba(79,125,240,.55);padding:10px 12px;font-weight:800;display:flex;justify-content:space-between;align-items:center;font-size:13px;border-radius:8px 8px 0 0}
+.pg-total strong{cursor:copy;font-variant-numeric:tabular-nums}
+.pg-extra{background:rgba(79,125,240,.06);border-top:1px solid var(--line);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-weight:700;cursor:copy;font-size:12.5px}
+.pg-extra:hover{background:rgba(79,125,240,.14)}
+.pg-extra span{font-variant-numeric:tabular-nums}
+
+.tbl-jan{width:100%;border-collapse:collapse;font-size:13px}
+.tbl-jan th,.tbl-jan td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+.tbl-jan th{background:var(--thead);position:sticky;top:0;z-index:1}
+.tbl-jan td{cursor:copy}
+.tbl-jan tfoot td{font-weight:800;background:rgba(79,125,240,.08)}
+.linha-devo td{color:#f87171;font-weight:700;background:rgba(239,68,68,.07)}
+.dup-info{margin:0 0 8px;padding:8px 10px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;font-size:12.5px}
+.dup-count{margin:0 0 8px;padding:8px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:8px;font-size:12.5px;font-weight:800;color:#fcd34d}
+body.light .dup-count{color:#7a5900;background:#fff8e6}
+.dup-filters{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin:8px 0 12px}
+.cfop-list{display:flex;flex-wrap:wrap;gap:6px;max-height:84px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px 8px;flex:1;min-width:240px}
+.dup-filters .btns{display:flex;gap:8px;flex-wrap:wrap}
+.dup-tr td{color:#f87171;font-weight:700;background:rgba(239,68,68,.06)}
+
+.copy-tip{position:absolute;background:#293d7a;color:#fff;font-size:11px;padding:3px 8px;border-radius:5px;display:none;z-index:20001;pointer-events:none;font-weight:700}
+.loading-overlay{position:fixed;inset:0;background:var(--overlay);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:20000}
+.loading-overlay.show{display:flex}
+.loading-box{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:20px;padding:24px 26px;box-shadow:0 30px 100px rgba(0,0,0,.35);min-width:300px;max-width:340px;text-align:center}
+.loading-title{font-size:15px;font-weight:800}
+.loading-hint{margin-top:6px;font-size:12px;color:var(--muted)}
+.loading-percent{font-size:34px;font-weight:900;margin:10px 0 6px;font-variant-numeric:tabular-nums}
+.loading-bar{width:100%;height:9px;background:rgba(148,163,184,.22);border-radius:999px;overflow:hidden}
+.loading-bar-inner{height:100%;width:0%;background:linear-gradient(90deg,var(--g1),var(--g2),var(--g3));transition:width .2s}
+.toast-sucesso{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:20002}
+.toast-sucesso.show{display:flex}
+.toast-sucesso .caixa{background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;padding:32px 48px;border-radius:18px;font-size:24px;font-weight:800;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35);animation:zoomIn .22s ease}
+.toast-sucesso .caixa small{display:block;font-size:13px;font-weight:600;margin-top:10px;opacity:.95}
+@keyframes zoomIn{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.link-ncm{font-size:12px;color:var(--muted);margin-top:8px;text-align:right}
+.link-ncm a{color:var(--g3);font-weight:800}
+{% endblock %}
+
+{% block corpo %}
+{% set ano = competencia[:4] %}{% set mes = competencia[5:] %}
+<div class="container">
+  <div class="cabeca">
+    <h1 class="grad">Relatório de Notas de Comércio</h1>
+    <button id="themeToggle" class="theme-btn" type="button" title="Alternar tema">🌙</button>
+  </div>
+
+  <div class="upload-area" id="dropzone" role="button" tabindex="0" title="Clique para selecionar a pasta dos XMLs">
+    Arraste aqui um ZIP ou XMLs<br>
+    <small>(ou clique para selecionar <b>pasta</b>)</small>
+    <div class="alt">ou <a id="lnkArquivos">selecione arquivos XML/ZIP soltos</a></div>
+    <input type="file" id="fileInput" multiple webkitdirectory directory mozdirectory hidden>
+    <input type="file" id="fileInputSoltos" multiple accept=".xml,.zip" hidden>
+    <div class="progress" id="progress"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+  </div>
+
+  <div class="controls">
+    <input type="number" id="mes" min="1" max="12" placeholder="Mês" aria-label="Mês">
+    <input type="number" id="ano" min="2000" max="2100" placeholder="Ano" aria-label="Ano">
+    <input type="text" id="cnpjbase" maxlength="8" inputmode="numeric" placeholder="CNPJ base" aria-label="CNPJ base (8 dígitos)">
+    <button class="bt" id="analisar" type="button">Gerar Relatório</button>
+    <button class="bt" id="novaEmpresa" type="button">Gerar Outra Empresa</button>
+  </div>
+
+  <div class="export-btns" id="exportBtns">
+    <button class="bt" id="btnPDF" type="button">📄 Gerar PDF (Cards)</button>
+    <button class="bt" id="btnExcel" type="button">📊 Exportar Excel</button>
+  </div>
+  <div class="status" id="statusInfo">Nenhum XML carregado.</div>
+
+  <div id="headerEmpresa" class="header-card"></div>
+
+  <div class="cfop-controls">
+    <button class="bt" id="btnConfig" type="button">⚙️ Configurar CFOPs</button>
+    <button class="bt" id="btnPGDAS" type="button">🧾 Simular PGDAS-D</button>
+    <button class="bt" id="btnPisCofins" type="button">📘 PIS/COFINS L. Presumido</button>
+    <button class="bt" id="btnDuplicadas" type="button">📑 Duplicidades de Notas</button>
+    <button class="bt" id="btnMemoria" type="button">💾 Salvar na Memória</button>
+  </div>
+  <div class="link-ncm">CST de PIS/COFINS pelo NCM: <a href="{{ url_for('escritorio.tabela_ncm') }}" id="lnkNcm">tabela NCM × CST</a> (também no painel do Escritório)</div>
+
+  <h2 class="section-title">Totais Gerais</h2>
+  <section class="grid4" id="totaisGerais"></section>
+
+  <h2 class="section-title">CFOP por CST</h2>
+  <section class="grid4" id="cardsContainer"></section>
+
+  <section class="details" id="details">
+    <header><h2>Detalhes dos Itens</h2><button class="bt" id="toggleDetails" type="button" style="box-shadow:none">Ver detalhes</button></header>
+    <div class="content">
+      <div class="small" id="detailsResume" style="margin-bottom:8px"></div>
+      <div style="overflow:auto;max-height:520px">
+        <table class="tbl" id="itemsTable" style="min-width:900px">
+          <thead><tr><th>Data</th><th>Modelo</th><th>Nº NF</th><th>CFOP</th><th>NCM</th><th>CST</th><th class="right">Valor</th><th class="right">Desc</th><th>Arquivo</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Configurar CFOPs -->
+<div class="jan-fundo" id="modalCfop">
+  <div class="jan" role="dialog" aria-modal="true" aria-labelledby="tituloCfop" style="width:min(980px,96vw)">
+    <header id="tituloCfop">Configurar CFOPs</header>
+    <div class="corpo">
+      <p class="helper">Selecione as CFOPs de cada grupo. Um CFOP marcado em uma coluna sai automaticamente da outra. A escolha fica salva neste navegador.</p>
+      <div class="dual-cols">
+        <div><h4>CFOPs de Receita <span class="lista" id="badgeReceita">—</span></h4><div id="gridReceita" class="grid-cfop"></div></div>
+        <div><h4>CFOPs de Outras Saídas <span class="lista" id="badgeOutras">—</span></h4><div id="gridOutras" class="grid-cfop"></div></div>
+      </div>
+    </div>
+    <footer><button class="bt sec" id="modalCancel" type="button">Cancelar</button><button class="bt" id="modalSave" type="button">Salvar</button></footer>
+  </div>
+</div>
+
+<!-- Simulador PGDAS-D -->
+<div class="jan-fundo" id="pgdasBack">
+  <div class="jan" id="pgdasModalBox" role="dialog" aria-modal="true" aria-labelledby="tituloPg">
+    <header id="tituloPg">Simular PGDAS-D</header>
+    <div class="corpo" id="pgdasConteudo">
+      <div class="pg-warning">⚠️ ESTE SISTEMA NÃO APURA ISENÇÃO OU REDUÇÃO.<br>VERIFIQUE AS REGRAS DO SEU ESTADO NESTES CASOS.</div>
+      <div class="pg-head">Revenda de mercadorias, exceto para o exterior › Sem substituição tributária/tributação monofásica/antecipação</div>
+      <div class="pg-section">
+        <div class="pg-cols"><span>Receita</span><span>COFINS</span><span>CSLL</span><span>ICMS</span><span>IPI</span><span>IRPJ</span><span>PIS/PASEP</span></div>
+        <div class="pg-row"><input id="pg1" class="pg-input" readonly value="0,00" title="Clique para copiar"><span class="pg-tag"></span><span class="pg-tag"></span><span class="pg-tag"></span><span class="pg-tag"></span><span class="pg-tag"></span><span class="pg-tag"></span></div>
+      </div>
+      <div class="pg-head">Revenda de mercadorias, exceto para o exterior › Com substituição tributária/tributação monofásica/antecipação</div>
+      <div class="pg-section">
+        <div class="pg-cols"><span>Receita</span><span>COFINS</span><span>CSLL</span><span>ICMS</span><span>IPI</span><span>IRPJ</span><span>PIS/PASEP</span></div>
+        <div class="pg-row"><input id="pg2" class="pg-input" readonly value="0,00" title="Clique para copiar"><span class="pg-tag on">MONOFÁSICO</span><span class="pg-tag"></span><span class="pg-tag on">SUBS TRIB</span><span class="pg-tag"></span><span class="pg-tag"></span><span class="pg-tag on">MONOFÁSICO</span></div>
+        <div class="pg-row"><input id="pg3" class="pg-input" readonly value="0,00" title="Clique para copiar"><span class="pg-tag on">MONOFÁSICO</span><span class="pg-tag"></span><span class="pg-tag"></span><span class="pg-tag"></span><span class="pg-tag"></span><span class="pg-tag on">MONOFÁSICO</span></div>
+        <div class="pg-row"><input id="pg4" class="pg-input" readonly value="0,00" title="Clique para copiar"><span class="pg-tag"></span><span class="pg-tag"></span><span class="pg-tag on">SUBS TRIB</span><span class="pg-tag"></span><span class="pg-tag"></span><span class="pg-tag"></span></div>
+      </div>
+      <div class="pg-total"><span>Total da Receita a Declarar</span><strong id="pgTotal" title="Clique para copiar">R$ 0,00</strong></div>
+      <div class="pg-extra" id="pgRece" title="Clique para copiar">Total do card TOTAL RECEITA <span>R$ 0,00</span></div>
+      <div class="pg-extra" id="pgDevo" title="Clique para copiar">Total do card TOTAL DEVOLUÇÕES <span>R$ 0,00</span></div>
+      <div class="pg-extra" id="pgOutr" title="Clique para copiar">Total do card TOTAL OUTRAS SAÍDAS <span>R$ 0,00</span></div>
+      <div class="pg-extra" id="pgEmit" title="Clique para copiar">Total do card TOTAL NOTAS EMITIDAS <span>R$ 0,00</span></div>
+    </div>
+    <footer><button class="bt" id="pgPdf" type="button">📄 Gerar PDF</button><button class="bt" id="pgCopyAll" type="button">Copiar Todos</button><button class="bt sec" id="pgClose" type="button">Fechar</button></footer>
+  </div>
+</div>
+
+<!-- PIS/COFINS Lucro Presumido -->
+<div class="jan-fundo" id="pisBack">
+  <div class="jan" role="dialog" aria-modal="true" aria-labelledby="tituloPis">
+    <header id="tituloPis">PIS/COFINS — Lucro Presumido</header>
+    <div class="corpo">
+      <p class="helper">Tabela agrupada por <b>CFOP • Modelo • CST</b>. Clique em qualquer célula para copiar.<br>
+        Linhas de <b style="color:#f87171">devolução</b> aparecem em vermelho e <b>deduzem</b> dos totais. PIS 0,65% e COFINS 3% só no CST 01.</p>
+      <div style="overflow:auto;max-height:60vh">
+        <table class="tbl-jan" id="pisTable">
+          <thead><tr><th>CFOP</th><th>Modelo</th><th>CST</th><th>Valor Receita</th><th>Valor PIS (0,65%)</th><th>Valor COFINS (3%)</th></tr></thead>
+          <tbody></tbody>
+          <tfoot><tr><td colspan="3">Totais líquidos (Receitas - Devoluções)</td><td id="pisTotReceita">R$ 0,00</td><td id="pisTotPis">R$ 0,00</td><td id="pisTotCofins">R$ 0,00</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <footer><button class="bt" id="pisCopyAll" type="button">Copiar Tudo</button><button class="bt sec" id="pisClose" type="button">Fechar</button></footer>
+  </div>
+</div>
+
+<!-- Duplicidades -->
+<div class="jan-fundo" id="dupBack">
+  <div class="jan" role="dialog" aria-modal="true" aria-labelledby="tituloDup" style="width:min(1000px,96vw)">
+    <header id="tituloDup">Notas Emitidas Possivelmente em Duplicidade</header>
+    <div class="corpo" id="dupConteudo">
+      <div class="dup-info" id="dupHeadInfo"></div>
+      <div class="dup-count" id="dupCount"></div>
+      <p class="helper" style="font-size:12.5px">
+        Escopo: <b>somente notas emitidas</b> (empresa como emitente).<br>
+        Critério de possível duplicidade: <b>mesma data</b> + <b>mesmo destinatário (CNPJ/CPF)</b> + <b>mesmo CFOP</b> + <b>mesmo valor</b>.<br>
+        (Ignorando <b>destinatário vazio</b>, <b>mesma chave</b> e <b>mesmo nº NF</b> na mesma data/destinatário)
+      </p>
+      <div class="dup-filters">
+        <div class="cfop-list" id="dupCfopList"></div>
+        <div class="btns">
+          <button class="bt" id="dupSelAll" type="button">Selecionar tudo</button>
+          <button class="bt sec" id="dupClear" type="button">Limpar</button>
+          <button class="bt" id="dupApply" type="button">Aplicar filtro</button>
+        </div>
+      </div>
+      <div style="overflow:auto;max-height:52vh">
+        <table class="tbl-jan" id="dupTable">
+          <thead><tr><th>Data</th><th>Nº NF</th><th>Destinatário (CNPJ/CPF)</th><th>CFOP</th><th>Valor</th><th>Arquivo</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <footer><button class="bt" id="dupPdf" type="button">📄 Gerar PDF</button><button class="bt" id="dupExcel" type="button">📊 Gerar Excel</button><button class="bt sec" id="dupClose" type="button">Fechar</button></footer>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div class="loading-title" id="loadingTitle">Processando...</div>
+    <div class="loading-hint" id="loadingStep"></div>
+    <div class="loading-percent" id="loadingPercent">0%</div>
+    <div class="loading-bar"><div class="loading-bar-inner" id="loadingBarInner"></div></div>
+    <div class="loading-hint">Não feche esta janela.</div>
+  </div>
+</div>
+<div class="toast-sucesso" id="toastSucesso"><div class="caixa">✅ LANÇAMENTO ATUALIZADO<br>COM SUCESSO<small id="toastDetalhe"></small></div></div>
+<div class="copy-tip" id="copyTip">Copiado!</div>
+{% endblock %}
+
+{% block js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+window.LEITOR_NFE = {
+  urlCst: "{{ url_for('escritorio.api_ncm_cst') }}",
+  urlEmpresa: "{{ url_for('escritorio.api_empresa') }}",
+  urlSalvar: "{{ url_for('escritorio.api_salvar_lancamento') }}",
+  mesInicial: "{{ mes_inicial|default('') }}",
+  anoInicial: "{{ ano_inicial|default('') }}",
+  cnpjBaseInicial: "{{ cnpj_base_inicial|default('') }}"
+};
+</script>
+<script>
+{% include 'escritorio/ler_nfe.js' %}
+</script>
+{% endblock %}

@@ -170,8 +170,8 @@ body.light .confirma-lista.bloq{color:#b91c1c} body.light .confirma-lista.aviso{
               <button type="button" class="btn-acao acao-calcular js-pg" data-op="gerar_das" title="Gerar DAS (PDF guardado no Central)" {{ 'disabled' if sem_cad }}><i class="fa-solid fa-file-invoice-dollar"></i></button>
               <button type="button" class="btn-acao acao-visualizar js-arq" data-arq="das" title="Visualizar DAS" {{ '' if e.tem_das else 'disabled' }}><i class="fa-solid fa-eye"></i></button>
               <button type="button" class="btn-acao acao-download js-arq" data-arq="das" data-download="1" title="Baixar DAS" {{ '' if e.tem_das else 'disabled' }}><i class="fa-solid fa-download"></i></button>
-              <button type="button" class="btn-acao acao-doc js-arq" data-arq="declaracao" title="Visualizar Declaração" {{ '' if e.tem_declaracao else 'disabled' }}><i class="fa-solid fa-file-lines"></i></button>
-              <button type="button" class="btn-acao acao-doc js-arq" data-arq="recibo" title="Visualizar Recibo" {{ '' if e.tem_recibo else 'disabled' }}><i class="fa-solid fa-receipt"></i></button>
+              <button type="button" class="btn-acao acao-doc js-arq" data-arq="declaracao" data-tem="{{ 1 if e.tem_declaracao else 0 }}" title="{{ 'Visualizar Declaração' if e.tem_declaracao else 'Buscar declaração na Receita (pago)' }}" {{ '' if (e.tem_declaracao or (enviado and not sem_cad)) else 'disabled' }}><i class="fa-solid fa-file-lines"></i></button>
+              <button type="button" class="btn-acao acao-doc js-arq" data-arq="recibo" data-tem="{{ 1 if e.tem_recibo else 0 }}" title="{{ 'Visualizar Recibo' if e.tem_recibo else 'Buscar recibo na Receita (pago)' }}" {{ '' if (e.tem_recibo or (enviado and not sem_cad)) else 'disabled' }}><i class="fa-solid fa-receipt"></i></button>
             </div></td>
           </tr>
         {% endfor %}

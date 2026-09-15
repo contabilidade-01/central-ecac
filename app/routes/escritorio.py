@@ -46,6 +46,7 @@ def _preparar_tabelas(estado):
         from app import escritorio_models  # noqa: F401  (registra as tabelas)
         from app.migrations import add_column_if_not_exists
         from app.services import escritorio_ncm
+        from app.services import escritorio_empresas
         db.create_all()
         # colunas novas da conferência (Lançamentos funcional)
         for col, sql in (
@@ -66,6 +67,10 @@ def _preparar_tabelas(estado):
             escritorio_ncm.garantir_carga_inicial()
         except Exception:
             app.logger.exception('Falha na carga inicial da tabela NCM x CST')
+        try:
+            escritorio_empresas.garantir_semente()
+        except Exception:
+            app.logger.exception('Falha na semente de empresas do Escritório')
 
 
 def _usuario():
@@ -112,6 +117,12 @@ def _ids_empresas_usuario():
     if liberadas == permissoes.TODAS:
         return None
     return [int(e) for e in (liberadas or [])]
+
+
+def _ids_empresas_escritorio():
+    """IDs efetivos nas listas do Escritório: permissão do usuário ∩ ticked."""
+    from app.services import escritorio_empresas as emp
+    return emp.filtrar_ids(_ids_empresas_usuario())
 
 
 def _config_sistema() -> dict:
@@ -169,7 +180,8 @@ def _config_sistema() -> dict:
 # Cards do painel, na mesma ordem e cor do original. `rota` = tela já modelada;
 # sem rota, o card aparece igual mas avisa que a tela ainda não foi modelada.
 CARDS = [
-    {'titulo': 'Empresas', 'sub': 'Cadastro e gestão', 'cor': ('#5b21b6', '#7c3aed')},
+    {'titulo': 'Empresas', 'sub': 'Cadastro e gestão', 'cor': ('#5b21b6', '#7c3aed'),
+     'rota': 'empresas'},
     # Oculto: Configuração própria do Escritório — usar Configurações do sistema
     # ({'titulo': 'Configuração', 'sub': 'Dados do Escritório', 'cor': ('#581c87', '#7e22ce'),
     #  'rota': 'configuracao', 'cert': True}),
@@ -229,14 +241,13 @@ def _contexto(**extra):
     from app.services import escritorio_pgdas as pgdas
 
     competencia = _competencia()
-    empresa_ids = _ids_empresas_usuario()
+    empresa_ids = _ids_empresas_escritorio()
     dados_mem = svc.listar_competencia(competencia, empresa_ids=empresa_ids)
     por_cnpj = {e['cnpj']: e for e in dados_mem['empresas']}
     rbt12_map = pgdas.rbt12_em_lote(list(por_cnpj.keys()), competencia)
 
     q = Company.query.filter_by(ativo=True).order_by(Company.razao_social.asc())
-    if empresa_ids is not None:
-        q = q.filter(Company.id.in_(empresa_ids or [-1]))
+    q = q.filter(Company.id.in_(empresa_ids or [-1]))
     cadastradas = q.all()
 
     empresas = []
@@ -326,11 +337,59 @@ def painel():
 # Template configuracao.html removido (15/09/2026); card em CARDS também comentado.
 
 
+@escritorio_bp.get('/empresas')
+def empresas():
+    """Cadastro e gestão no Escritório: ticar empresas do cadastro central."""
+    from app.services import escritorio_empresas as emp
+    itens = emp.listar(empresa_ids=_ids_empresas_usuario())
+    incluidos = sum(1 for e in itens if e['incluso'])
+    return render_template(
+        'escritorio/empresas.html',
+        empresas=itens,
+        m={'total': len(itens), 'incluidos': incluidos,
+           'ativos': sum(1 for e in itens if e['ativo'])},
+        fmt_cnpj=_fmt_cnpj,
+        cfg=_config_sistema(),
+        url_toggle=url_for('escritorio.api_empresas_toggle'),
+    )
+
+
+@escritorio_bp.get('/api/empresas')
+def api_empresas_listar():
+    """Lista cadastro + flag incluso (usada pelo checkbox em Configurações)."""
+    from app.services import escritorio_empresas as emp
+    return jsonify({'ok': True, 'empresas': emp.listar(empresa_ids=_ids_empresas_usuario())})
+
+
+@escritorio_bp.post('/api/empresas/toggle')
+def api_empresas_toggle():
+    """Ticar/desmarcar empresa no Escritório. Body: {company_id, incluso}."""
+    from app.services import escritorio_empresas as emp
+    from app.services import permissoes
+    corpo = request.get_json(silent=True) or {}
+    try:
+        company_id = int(corpo.get('company_id') or 0)
+    except (TypeError, ValueError):
+        company_id = 0
+    if not company_id:
+        return jsonify({'ok': False, 'mensagem': 'company_id obrigatório.'}), 400
+    u = _usuario()
+    if u and not permissoes.e_admin(u):
+        liberadas = _ids_empresas_usuario()
+        if liberadas is not None and company_id not in liberadas:
+            return jsonify({'ok': False, 'mensagem': 'Empresa não liberada para o seu usuário.'}), 403
+    try:
+        item = emp.definir(company_id, bool(corpo.get('incluso')), _nome_usuario())
+    except LookupError as exc:
+        return jsonify({'ok': False, 'mensagem': str(exc)}), 404
+    return jsonify({'ok': True, 'empresa': item})
+
+
 @escritorio_bp.get('/simples/lancamentos')
 def lancamentos():
     from app.services import escritorio_lancamentos as svc
     competencia = _competencia()
-    dados = svc.listar_competencia(competencia, empresa_ids=_ids_empresas_usuario())
+    dados = svc.listar_competencia(competencia, empresa_ids=_ids_empresas_escritorio())
     return render_template(
         'escritorio/lancamentos.html',
         competencia=competencia,
@@ -358,7 +417,7 @@ def transmitir():
     from app.services.serpro_pgdasd_client import CUSTO_ESTIMADO
     competencia = _competencia()
     periodo = competencia.replace('-', '')  # AAAAMM para a SERPRO
-    dados = svc.listar_competencia(competencia, empresa_ids=_ids_empresas_usuario())
+    dados = svc.listar_competencia(competencia, empresa_ids=_ids_empresas_escritorio())
     cnpjs = [e['cnpj'] for e in dados['empresas']]
     rbt12_map = pgdas.rbt12_em_lote(cnpjs, competencia)
     declaracoes = {d.cnpj: d for d in EscritorioDeclaracao.query.filter(
@@ -677,9 +736,6 @@ def faturamento():
 #  PGDAS-D pela SERPRO: Calcular → Transmitir → Gerar DAS (PDF guardado)
 #  Regras de custo em app/services/escritorio_pgdasd.py e serpro_pgdasd_client.py.
 # =====================================================================================
-_OPERACOES_PAGAS = ('calcular', 'transmitir', 'consultar', 'gerar_das')
-
-
 def _pgdasd_erro(exc):
     return jsonify({'ok': False, 'bloqueios': exc.bloqueios, 'avisos': exc.avisos,
                     'mensagem': ' '.join(exc.bloqueios), 'custo_estimado': 0.0}), exc.status
@@ -728,6 +784,8 @@ def _pgdasd_executar(operacao):
                                hash_confirmado=corpo.get('hash_confirmado') or '')
         elif operacao == 'consultar':
             r = svc.consultar(ctx)
+        elif operacao == 'recuperar':
+            r = svc.recuperar_documentos(ctx, forcar=bool(corpo.get('forcar')))
         else:
             r = svc.gerar_das(ctx, data_consolidacao=corpo.get('data_consolidacao') or None,
                               forcar=bool(corpo.get('forcar')),
@@ -777,6 +835,12 @@ def api_pgdasd_transmitir():
 @escritorio_bp.post('/api/pgdasd/consultar')
 def api_pgdasd_consultar():
     return _pgdasd_executar('consultar')
+
+
+@escritorio_bp.post('/api/pgdasd/recuperar-documentos')
+def api_pgdasd_recuperar_documentos():
+    """CONSULTIMADECREC14 — declaração/recibo da última declaração do PA (pago)."""
+    return _pgdasd_executar('recuperar')
 
 
 @escritorio_bp.post('/api/pgdasd/gerar-das')

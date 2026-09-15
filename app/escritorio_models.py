@@ -209,3 +209,19 @@ class EscritorioSerproChamada(db.Model):
     cobravel = db.Column(db.Boolean, nullable=False, default=True)
     hash_dados = db.Column(db.String(64), nullable=True)
     tentativa = db.Column(db.Integer, nullable=False, default=1)
+
+
+class EscritorioEmpresa(db.Model):
+    """Empresa do cadastro central marcada para aparecer no Escritório.
+
+    O cadastro (razão, CNPJ, ativo) continua em `companies` / Configurações.
+    Esta tabela só guarda o "ticar": incluso=True → entra em Empresas, Lançamentos,
+    Transmitir, Caminhos etc. Sem mock e sem alterar `models.py`.
+    """
+    __tablename__ = 'escritorio_empresas'
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, nullable=False, unique=True, index=True)
+    incluso = db.Column(db.Boolean, nullable=False, default=True)
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    atualizado_por = db.Column(db.String(120), nullable=True)

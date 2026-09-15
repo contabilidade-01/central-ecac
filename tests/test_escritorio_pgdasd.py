@@ -479,8 +479,8 @@ def test_cliente_real_monta_envelope_e_reaproveita_token(svc, monkeypatch):
     from app.services import serpro_pgdasd_client as mod
     from app.services.serpro_das_service import SerproDasService
     geracoes = []
-    monkeypatch.setattr(SerproDasService, '_get_headers',
-                        lambda self, setting, contribuinte_numero=None: geracoes.append(1) or
+    monkeypatch.setattr(SerproDasService, '_gerar_headers_a1',
+                        lambda self, setting: geracoes.append(1) or
                         {'Authorization': 'Bearer t', 'jwt_token': 'j'})
     mod.CACHE_TOKEN.invalidar()
     fake = FakeSerpro(r_consulta(), r_consulta())
@@ -496,3 +496,80 @@ def test_cliente_real_monta_envelope_e_reaproveita_token(svc, monkeypatch):
     assert p['pedidoDados'] == {'idSistema': 'PGDASD', 'idServico': 'CONSDECLARACAO13', 'versaoSistema': '1.0',
                                 'dados': json.dumps({'periodoApuracao': PA})}
     mod.CACHE_TOKEN.invalidar()
+
+
+# ------------------------------------------------- correções 15/09 (fora do fluxo PGDAS-D)
+def test_procurador_ligado_falha_antes_do_envio_e_nao_trava(svc):
+    from app.models import AppSetting
+    from app.services.procuracao_service import ProcuracaoService
+    from app.services.serpro_das_service import SerproDasService
+    from app.services.serpro_erros import ErroAntesDoEnvio
+    s = AppSetting.query.first()
+    s.procurador_pf_habilitado = True
+    db.session.commit()
+    with pytest.raises(ErroAntesDoEnvio):
+        SerproDasService()._get_headers(s)
+    with pytest.raises(ErroAntesDoEnvio):
+        SerproDasService().montar_payload_emitir(s, CNPJ, 'PGDASD', 'GERARDAS12', {'periodoApuracao': PA})
+    empresa = contexto(svc).company
+    for _ in range(3):
+        try:
+            SerproDasService()._get_headers(s)
+        except ErroAntesDoEnvio as exc:
+            ProcuracaoService.registrar_erro(empresa, 'GERARDAS12', exc)
+    assert ProcuracaoService.pode_gastar(empresa)[0] is True
+
+
+def test_das_service_reaproveita_token_e_renova_uma_vez(svc, monkeypatch):
+    from app.models import AppSetting
+    from app.services import serpro_das_service as mod
+    from app.services.serpro_pgdasd_client import CACHE_TOKEN
+    geracoes, posts = [], []
+    monkeypatch.setattr(mod.SerproDasService, '_gerar_headers_a1',
+                        lambda self, setting: geracoes.append(1) or {'Authorization': f'Bearer {len(geracoes)}'})
+    respostas = [SimpleNamespace(status_code=401, text='', json=lambda: {}),
+                 SimpleNamespace(status_code=200, text='{}', json=lambda: {'dados': '[]'})]
+    monkeypatch.setattr(mod, 'serpro_post', lambda url, headers=None, **kw: posts.append(headers) or respostas.pop(0))
+    CACHE_TOKEN.invalidar()
+    s = AppSetting.query.first()
+    servico = mod.SerproDasService()
+    servico._get_headers(s)
+    servico._get_headers(s)
+    assert len(geracoes) == 1
+    servico.emitir(s, {'contribuinte': {'numero': CNPJ}})
+    assert len(posts) == 2 and len(geracoes) == 2          # 401 → renova e tenta 1 vez
+    CACHE_TOKEN.invalidar()
+
+
+def test_emitir_das_avulso_respeita_teto_e_registra_custo(http, svc, monkeypatch):
+    from app.services import serpro_das_service as mod
+    from app.services.limite_gasto_service import LimiteGastoService
+    chamadas = []
+    monkeypatch.setattr(mod.SerproDasService, 'emitir_pdf', lambda self, **kw: chamadas.append(kw) or b'%PDF-1.4')
+    monkeypatch.setattr(LimiteGastoService, 'pode_gastar', staticmethod(lambda custo=0: (False, 'teto')))
+    r = http.post('/api/das/emitir', json={'cnpj': CNPJ, 'periodo_apuracao': PA})
+    assert r.status_code == 409 and chamadas == []
+    monkeypatch.setattr(LimiteGastoService, 'pode_gastar', staticmethod(lambda custo=0: (True, None)))
+    r = http.post('/api/das/emitir', json={'cnpj': CNPJ, 'periodo_apuracao': PA})
+    assert r.status_code == 200 and len(chamadas) == 1 and custo_registrado() > 0
+
+
+def r_ultima_declaracao(numero='00000000202608001'):
+    return 200, {'status': 200, 'mensagens': ok_msg(), 'dados': json.dumps({
+        'numeroDeclaracao': numero, 'recibo': {'nomeArquivo': 'recibo.pdf', 'pdf': PDF},
+        'declaracao': {'nomeArquivo': 'declaracao.pdf', 'pdf': PDF}, 'maed': None})}
+
+
+def test_recuperar_documentos_guarda_pdfs_e_nao_repete(svc):
+    with pytest.raises(svc.BloqueioPgdasd):                     # sem declaração conhecida
+        svc.recuperar_documentos(contexto(svc), cliente=cliente(FakeSerpro()))
+    ctx = contexto(svc)
+    ctx.decl.situacao = 'transmitida'
+    db.session.commit()
+    fake = FakeSerpro(r_ultima_declaracao())
+    r = svc.recuperar_documentos(contexto(svc), cliente=cliente(fake))
+    assert r['ok'] and fake.servicos() == ['CONSULTIMADECREC14']
+    assert r['estado']['arquivos']['declaracao'] and r['estado']['arquivos']['recibo']
+    assert r['estado']['pode']['recuperar'] is False
+    with pytest.raises(svc.BloqueioPgdasd):                     # já guardados: não paga de novo
+        svc.recuperar_documentos(contexto(svc), cliente=cliente(FakeSerpro()))

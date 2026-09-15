@@ -223,6 +223,13 @@ class _CacheToken:
 CACHE_TOKEN = _CacheToken()
 
 
+def chave_token(setting) -> str:
+    """Identifica as credenciais: trocou chave/certificado/contador → token novo."""
+    return hashlib.sha256(
+        f'{setting.serpro_consumer_key}|{setting.contador_cnpj}|{setting.certificado_path}'
+        .encode('utf-8')).hexdigest()
+
+
 def transporte_requests(url: str, headers: Dict[str, str], payload: Dict[str, Any],
                         timeout, contexto: str):
     """Transporte real (com o log sanitizado já usado pelo sistema)."""
@@ -251,10 +258,7 @@ class SerproPgdasdClient:
         if self._gerar_headers:
             return self._gerar_headers(setting)
         from app.services.serpro_das_service import SerproDasService
-        chave = hashlib.sha256(
-            f'{setting.serpro_consumer_key}|{setting.contador_cnpj}|{setting.certificado_path}'
-            .encode('utf-8')).hexdigest()
-        return CACHE_TOKEN.obter(chave, lambda: SerproDasService()._get_headers(setting))
+        return SerproDasService()._get_headers(setting)     # já usa CACHE_TOKEN
 
     def _payload(self, setting, cnpj: str, servico: Servico, dados: Dict[str, Any]):
         if self._montar_payload:
@@ -286,8 +290,10 @@ class SerproPgdasdClient:
             try:
                 headers = self._headers(setting)
             except Exception as exc:
-                resultado.erro = f'Falha ao autenticar na SERPRO: {exc}'
-                resultado.erro_rede = True
+                from app.services.serpro_erros import ErroAntesDoEnvio
+                local = isinstance(exc, ErroAntesDoEnvio)
+                resultado.erro = str(exc) if local else f'Falha ao autenticar na SERPRO: {exc}'
+                resultado.erro_rede = not local
                 self._auditar(resultado, servico, operacao, company, cnpj, pa, usuario,
                               hash_pedido, tentativa, cobravel=False)
                 return resultado

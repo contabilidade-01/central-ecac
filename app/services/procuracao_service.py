@@ -185,13 +185,25 @@ class ProcuracaoService:
 
     @staticmethod
     def registrar_erro(company, servico: str, erro: Any) -> Dict[str, Any]:
-        """Guarda o erro EXATO e decide se trava as chamadas pagas."""
+        """Guarda o erro EXATO e decide se trava as chamadas pagas.
+
+        Erro local (`ErroAntesDoEnvio`: configuração, recurso não implementado) é
+        guardado, mas NÃO conta para a trava — a requisição nem saiu, então não diz
+        nada sobre a procuração da empresa (correção de 15/09/2026).
+        """
+        from app.services.serpro_erros import ErroAntesDoEnvio
         with _LOCK:
             dados = ProcuracaoService.carregar()
             registro = ProcuracaoService._registro(dados, company)
             detalhe = ProcuracaoService.detalhar_erro(erro)
             detalhe["servico"] = servico
             detalhe["em"] = _agora()
+
+            if isinstance(erro, ErroAntesDoEnvio):
+                detalhe["local"] = True
+                registro["ultimo_erro"] = detalhe
+                ProcuracaoService.salvar(dados)
+                return detalhe
 
             registro["ultimo_erro"] = detalhe
             registro["ultimo_erro_em"] = detalhe["em"]

@@ -152,6 +152,9 @@ def create_app() -> Flask:
 
     with app.app_context():
         from app import models  # noqa: F401
+        # DESVIO INTENCIONAL (18o) — tabelas da integração com o portal do cliente, FORA
+        # de models.py (regra 3). Importadas antes do create_all para nascerem juntas.
+        from app import integracao_models  # noqa: F401
         db.create_all()
         run_migrations()
         unlock_stale_processing()
@@ -203,6 +206,12 @@ def create_app() -> Flask:
     # acao ligada e nenhuma chamada a SERPRO. Pedido do Jean em 15/09/2026.
     from app.routes.escritorio import escritorio_bp
     app.register_blueprint(escritorio_bp)
+
+    # DESVIO INTENCIONAL (18o) — API interna para o portal do cliente (nescon-clientes):
+    # pendências em JSON, emissão de guia com PDF guardado e fila de reprocessamento.
+    # Autenticada por token próprio (INTEGRACAO_TOKEN), ver app/security.py.
+    from app.routes.interno_routes import interno_bp
+    app.register_blueprint(interno_bp, url_prefix='/api/interno')
 
     from app.scheduler import iniciar as iniciar_agendador
     iniciar_agendador(app)

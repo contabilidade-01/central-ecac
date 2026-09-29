@@ -81,6 +81,17 @@ def _ciclo(app) -> None:
                     if esta_vencida(config):
                         logger.info('[SCHEDULER] disparando %s', modulo)
                         executar_modulo(modulo)
+
+                # DESVIO INTENCIONAL (18o) — fila de reprocessamento por empresa (pedidos
+                # do portal do cliente: "regere daqui a N dias úteis"). Mesmas travas do
+                # lote; roda DEPOIS dos módulos para não concorrer com o lote mensal.
+                try:
+                    from app.services import fila_reprocessamento_service as fila
+                    resultado = fila.drenar()
+                    if resultado.get('executados') or resultado.get('adiados'):
+                        logger.info('[FILA] reprocessamento: %s', resultado)
+                except Exception:
+                    logger.exception('[FILA] erro ao drenar a fila de reprocessamento')
         except Exception:
             logger.exception('[SCHEDULER] erro no ciclo de verificação')
 

@@ -53,6 +53,15 @@ def executar_agora(modulo: str):
     return jsonify(executar_modulo(modulo))
 
 
+@agendamento_bp.get('/api/agendamento/fila')
+def listar_fila():
+    """DESVIO 18 — pedidos de reprocessamento por empresa (vindos do portal do cliente)."""
+    from app.services import fila_reprocessamento_service as fila
+    itens = fila.listar(apenas_pendentes=request.args.get('pendentes') in ('1', 'true'),
+                        limite=100)
+    return jsonify({'success': True, 'itens': itens})
+
+
 @agendamento_bp.post('/api/agendamento/limite')
 def salvar_limite():
     payload = request.get_json(silent=True) or {}
@@ -99,6 +108,14 @@ PAGINA = """
   </div>
 
   <div id="modulos"></div>
+
+  <div class="card">
+    <h3>Reprocessamentos pedidos pelo portal do cliente</h3>
+    <p class="desc">Quando o cliente recalcula uma guia pelo portal, o portal pede para
+       regerar a situação fiscal daquela empresa alguns dias úteis depois (para conferir
+       o pagamento). Cada item é <b>uma consulta paga</b>, sujeita às mesmas travas.</p>
+    <div id="fila" class="rodape">Carregando…</div>
+  </div>
 
 <script>
 let DADOS = null;
@@ -159,13 +176,22 @@ async function carregar() {
           <label>Hora</label>
           <input type="time" id="hora-${m.modulo}" value="${m.hora || '03:00'}">
         </div>
+        <div id="campo-util-${m.modulo}">
+          <label>Se cair em fim de semana/feriado</label>
+          <select id="dia-util-${m.modulo}">
+            <option value="1" ${m.ajustar_dia_util ? 'selected' : ''}>adiar para o próximo dia útil</option>
+            <option value="0" ${m.ajustar_dia_util ? '' : 'selected'}>rodar no dia mesmo</option>
+          </select>
+        </div>
         <button class="primario" onclick="salvar('${m.modulo}')">Salvar</button>
         <button class="perigo" onclick="executar('${m.modulo}')"
                 ${m.em_execucao ? 'disabled' : ''}>Executar agora</button>
       </div>
       ${m.checkpoint ? `
         <div class="aviso" style="margin-top:12px">
-          <b>⚠ Lote interrompido pelo teto de gasto</b> em ${dataBR(m.checkpoint.em)}.<br>
+          <b>⚠ ${m.checkpoint.interrompido_por === 'em_andamento'
+                ? (m.em_execucao ? 'Lote em execução' : 'Lote interrompido (o processo caiu no meio)')
+                : 'Lote interrompido pelo teto de gasto'}</b> — ${dataBR(m.checkpoint.em)}.<br>
           ${m.checkpoint.concluidas.length} empresa(s) já processada(s) ·
           <b>${m.checkpoint.pendentes.length} pendente(s)</b>.<br>
           A próxima execução <b>continua de onde parou</b> — as já feitas não são
@@ -180,12 +206,32 @@ async function carregar() {
     </div>`).join('');
 
   DADOS.modulos.forEach(m => alternar(m.modulo));
+  carregarFila();
+}
+
+async function carregarFila() {
+  try {
+    const d = await (await fetch('/api/agendamento/fila')).json();
+    const itens = d.itens || [];
+    if (!itens.length) { document.getElementById('fila').textContent = 'Nenhum pedido.'; return; }
+    document.getElementById('fila').innerHTML =
+      '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+      '<tr><th align="left">CNPJ</th><th align="left">Motivo</th><th align="left">Agendado</th>' +
+      '<th align="left">Situação</th><th align="left">Resultado</th></tr>' +
+      itens.map(i => `<tr>
+        <td>${i.cnpj}</td><td>${texto(i.motivo)}</td><td>${texto(i.agendado_para)}</td>
+        <td>${i.pendente ? 'pendente' : (i.sucesso ? 'feito' : 'falhou')}${i.tentativas ? ` (${i.tentativas} tent.)` : ''}</td>
+        <td>${texto(i.resultado)}</td></tr>`).join('') + '</table>';
+  } catch (e) {
+    document.getElementById('fila').textContent = 'Não foi possível carregar a fila.';
+  }
 }
 
 function alternar(modulo) {
   const freq = document.getElementById(`freq-${modulo}`).value;
   document.getElementById(`campo-mes-${modulo}`).style.display = freq === 'mensal' ? '' : 'none';
   document.getElementById(`campo-semana-${modulo}`).style.display = freq === 'semanal' ? '' : 'none';
+  document.getElementById(`campo-util-${modulo}`).style.display = freq === 'mensal' ? '' : 'none';
 }
 
 async function salvar(modulo) {
@@ -195,6 +241,7 @@ async function salvar(modulo) {
     dia_mes: parseInt(document.getElementById(`dia-mes-${modulo}`).value, 10),
     dia_semana: parseInt(document.getElementById(`dia-semana-${modulo}`).value, 10),
     hora: document.getElementById(`hora-${modulo}`).value,
+    ajustar_dia_util: document.getElementById(`dia-util-${modulo}`).value === '1',
   };
   const r = await fetch(`/api/agendamento/${modulo}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

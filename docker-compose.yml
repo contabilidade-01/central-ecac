@@ -28,6 +28,10 @@ services:
       SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-1}
       SCHEDULER_INTERVALO_S: ${SCHEDULER_INTERVALO_S:-300}
       LIMITE_GASTO_MENSAL: ${LIMITE_GASTO_MENSAL:-0}
+      # Integração com o portal do cliente (nescon-clientes) — ver .env.example
+      INTEGRACAO_TOKEN: ${INTEGRACAO_TOKEN:-}
+      INTEGRACAO_MAX_EMISSOES_DIA: ${INTEGRACAO_MAX_EMISSOES_DIA:-3}
+      INTEGRACAO_MAX_REPROC_MES: ${INTEGRACAO_MAX_REPROC_MES:-2}
 
     volumes:
       # ÚNICO volume que importa: banco, PDFs, certificados e logs.

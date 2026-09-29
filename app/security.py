@@ -42,7 +42,7 @@ from datetime import timedelta
 from flask import (Response, jsonify, redirect, render_template_string, request,
                    session, url_for)
 
-from app.services import permissoes, usuarios_service
+from app.services import integracao_token, permissoes, usuarios_service
 from app.ui import CSS, SELO
 
 CAMINHOS_LIVRES = ('/healthz', '/login', '/logout', '/primeiro-acesso',
@@ -178,6 +178,19 @@ def registrar_seguranca(app) -> None:
         if caminho in CAMINHOS_LIVRES:
             return None
 
+        # DESVIO INTENCIONAL (18o) — `/api/interno/*` é máquina-a-máquina (portal do
+        # cliente). Vale SÓ o token do cabeçalho; sessão e Basic não abrem essas rotas, e
+        # o token não abre nenhuma outra. Vem ANTES da checagem de credencial de usuário
+        # porque a integração não depende de haver alguém cadastrado.
+        if integracao_token.caminho_interno(caminho):
+            if not integracao_token.habilitado():
+                return jsonify({'success': False,
+                                'message': 'Integração desligada: defina INTEGRACAO_TOKEN.'}), 503
+            if not integracao_token.token_valido(request.headers.get(integracao_token.CABECALHO)):
+                app.logger.warning('[INTEGRACAO] token recusado em %s (%s)', caminho, _ip())
+                return jsonify({'success': False, 'message': 'Token de integração inválido.'}), 401
+            return None
+
         if not usuarios_service.configurado():
             if caminho.startswith('/api/'):
                 return jsonify({'success': False,
@@ -262,6 +275,8 @@ def registrar_seguranca(app) -> None:
             # `/api/me` descreve o PRÓPRIO usuário (inclusive a lista de empresas
             # permitidas). Passar o filtro aqui seria filtrar a permissão com ela mesma.
             if request.path == '/api/me':
+                return resposta
+            if integracao_token.caminho_interno(request.path):
                 return resposta
 
             usuario = usuario_atual()

@@ -319,7 +319,7 @@ class SerproDasService:
     ) -> Dict[str, Any]:
         """
         Monta payload para DAS MEI.
-        Obs: data_consolidacao nao eh utilizado para MEI (seguindo exe).
+        Obs: o exe nao usava data_consolidacao para MEI; aqui e opcional (DESVIO 18).
 
         Bytecode linhas 784-822.
         """
@@ -328,7 +328,17 @@ class SerproDasService:
         if len(periodo_apuracao) != 6:
             raise ValueError('Período de apuração inválido. Use o formato AAAAMM, exemplo: 202405')
 
-        dados = {'periodoApuracao': periodo_apuracao}
+        dados: Dict[str, Any] = {'periodoApuracao': periodo_apuracao}
+
+        # DESVIO INTENCIONAL (18o): o exe nunca mandava dataConsolidacao para o MEI, então
+        # DAS MEI vencido saía com o vencimento original (impagável). A documentação do
+        # PGMEI/GERARDASPDF21 aceita o campo, opcional, no mesmo formato do PGDAS-D. Só é
+        # enviado quando alguém pede explicitamente — o comportamento padrão continua o
+        # do exe. ⚠️ Validar em produção com uma competência vencida antes de liberar
+        # para o portal do cliente.
+        consolidacao = self._data_consolidacao_aceita(data_consolidacao) if data_consolidacao else ''
+        if consolidacao:
+            dados['dataConsolidacao'] = consolidacao
 
         return self.montar_payload_emitir(
             setting=setting,
@@ -454,6 +464,29 @@ class SerproDasService:
         if not setting:
             raise ValueError('Configurações da aplicação não encontradas')
 
+        pdf_bytes, _detalhe = self.emitir_pdf_detalhado(
+            contribuinte_numero=contribuinte_numero,
+            periodo_apuracao=periodo_apuracao,
+            tipo_das=tipo_das,
+            data_consolidacao=data_consolidacao,
+        )
+        return pdf_bytes
+
+    def emitir_pdf_detalhado(
+        self,
+        contribuinte_numero: str,
+        periodo_apuracao: str,
+        tipo_das: str = 'simples',
+        data_consolidacao: Optional[str] = None,
+    ) -> tuple[bytes, Dict[str, Any]]:
+        """Como `emitir_pdf`, mas devolve também o `detalhamento` da SERPRO
+        (número do documento, vencimento, valores) — DESVIO 18: é o que permite guardar a
+        guia e reaproveitá-la sem nova chamada paga. `emitir_pdf` continua com a
+        assinatura do exe."""
+        setting = AppSetting.query.first()
+        if not setting:
+            raise ValueError('Configurações da aplicação não encontradas')
+
         tipo_das = str(tipo_das or 'simples').strip().lower()
 
         if tipo_das == 'mei':
@@ -461,6 +494,7 @@ class SerproDasService:
                 setting=setting,
                 contribuinte_numero=contribuinte_numero,
                 periodo_apuracao=periodo_apuracao,
+                data_consolidacao=data_consolidacao,
             )
         else:
             payload = self.montar_payload_simples(
@@ -472,11 +506,31 @@ class SerproDasService:
 
         response_json = self.emitir(setting=setting, payload=payload)
         pdf_base64 = self.extrair_pdf_base64(response_json)
+        detalhe = self.extrair_detalhamento(response_json)
+        # Também fica no objeto: quem chama `emitir_pdf` (assinatura do exe) lê daqui.
+        self.ultimo_detalhamento = detalhe
 
         try:
-            return base64.b64decode(pdf_base64)
+            return base64.b64decode(pdf_base64), detalhe
         except Exception:
             raise Exception('PDF retornado pela SERPRO não está em base64 válido')
+
+    @staticmethod
+    def extrair_detalhamento(response_json: Dict[str, Any]) -> Dict[str, Any]:
+        """`detalhamento` do primeiro item de `dados` (ou {} se não vier)."""
+        dados = response_json.get('dados')
+        if isinstance(dados, str):
+            try:
+                dados = json.loads(dados)
+            except Exception:
+                return {}
+        item = dados[0] if isinstance(dados, list) and dados else dados
+        if not isinstance(item, dict):
+            return {}
+        det = item.get('detalhamento')
+        if isinstance(det, list):
+            det = det[0] if det else {}
+        return det if isinstance(det, dict) else {}
 
     def montar_payload_dctfweb(
         self,

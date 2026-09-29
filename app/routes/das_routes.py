@@ -152,6 +152,18 @@ def _registrar_emissao(endpoint: str, company) -> None:
         current_app.logger.exception("Falha ao registrar custo da emissão %s", endpoint)
 
 
+def _guardar_emissao(company, cnpj: str, tipo: str, pa: str, pdf_bytes: bytes, detalhe: dict,
+                     data_consolidacao: str | None, categoria: str | None = None) -> None:
+    """DESVIO 18 — guarda PDF + evento em `das_emissoes`. Best-effort: nunca derruba a rota."""
+    try:
+        from app.services import das_emissao_service
+        das_emissao_service.registrar_emissao_avulsa(
+            company, cnpj, tipo, pa, pdf_bytes, detalhe or {}, data_consolidacao,
+            origem="escritorio", categoria=categoria)
+    except Exception:
+        current_app.logger.exception("Falha ao guardar a guia emitida (%s %s)", tipo, cnpj)
+
+
 def _set_das_batch_job(job_id: str, **kwargs) -> None:
     with DAS_BATCH_LOCK:
         if job_id not in DAS_BATCH_JOBS:
@@ -348,15 +360,19 @@ def emitir_das_simples():
             return _erro(bloqueio, 409)
 
         service = SerproDasService()
+        consolidacao = _only_digits(data_consolidacao) if data_consolidacao else None
         pdf_bytes = service.emitir_pdf(
             contribuinte_numero=contribuinte_numero,
             periodo_apuracao=periodo_apuracao,
-            data_consolidacao=_only_digits(data_consolidacao) if data_consolidacao else None,
+            data_consolidacao=consolidacao,
             tipo_das="simples",
         )
         if not pdf_bytes:
             return _erro("PDF não retornado pela SERPRO", 500)
         _registrar_emissao("PGDASD/GERARDAS12", company)
+        # DESVIO 18: guarda o PDF e o evento de emissão (reaproveitamento + portal).
+        _guardar_emissao(company, contribuinte_numero, "SN", periodo_apuracao, pdf_bytes,
+                         getattr(service, "ultimo_detalhamento", None), consolidacao)
         return _pdf_response(pdf_bytes, f"DAS_{contribuinte_numero}_{periodo_apuracao}.pdf")
     except Exception as e:
         return _falha_emissao(e)
@@ -388,6 +404,8 @@ def emitir_das_mei():
         if not pdf_bytes:
             return _erro("PDF não retornado pela SERPRO", 500)
         _registrar_emissao("PGMEI/GERARDASPDF21", company)
+        _guardar_emissao(company, contribuinte_numero, "MEI", periodo_apuracao, pdf_bytes,
+                         getattr(service, "ultimo_detalhamento", None), None)
         return _pdf_response(pdf_bytes, f"DAS_MEI_{contribuinte_numero}_{periodo_apuracao}.pdf")
     except Exception as e:
         return _falha_emissao(e)
@@ -459,6 +477,9 @@ def emitir_darf_dctfweb():
         if not pdf_bytes:
             return _erro("PDF não retornado pela SERPRO", 500)
         _registrar_emissao("DCTFWEB/GERARGUIA31", company)
+        _guardar_emissao(company, contribuinte_numero, "DCTFWEB",
+                         _only_digits(competencia or ano_pa or "")[:6].ljust(6, "0"),
+                         pdf_bytes, {}, None, categoria=str(categoria))
 
         if str(categoria) == "GERAL_13o_SALARIO":
             sufixo = _only_digits(ano_pa or competencia or "")[:4]

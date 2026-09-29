@@ -20,6 +20,19 @@ sem você decidir.
 (a cada 15 dias contados da última execução) ou `mensal` (escolhe o dia, 1 a 28 — acima
 de 28 não existe em todo mês). O horário também é configurável.
 
+**Mensal + "adiar para o próximo dia útil"** (18º desvio, padrão ligado para situação
+fiscal): dia 25 num sábado roda na segunda; em feriado nacional, no dia seguinte. Os
+feriados vêm de `services/calendario_util.py`, sem dependência externa.
+
+**Retomada após queda do processo** (18º desvio): o lote grava o progresso **antes de
+cada empresa**. Se o container reiniciar no meio, a execução seguinte continua da
+empresa que faltava — nenhuma é consultada (nem cobrada) duas vezes.
+
+**Fila de reprocessamento por empresa** (18º desvio): o portal do cliente pede "regere
+esta empresa daqui a N dias úteis" quando o cliente recalcula a guia. O agendador drena
+a fila a cada ciclo, depois dos módulos, com as mesmas travas. Lista na tela
+`/agendamento`. Ver `docs/INTEGRACAO_NESCON.md`.
+
 ## 2. Como funciona por dentro
 
 Uma thread do próprio processo (`app/scheduler.py`) acorda a cada 5 minutos e pergunta

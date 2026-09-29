@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from app.config import DB_PATH
+from app.services.calendario_util import proximo_dia_util
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,8 @@ MODULOS: Dict[str, Dict[str, Any]] = {
         'descricao': 'Processa o relatório de cada empresa. É o que faz um débito pago '
                      'sumir do painel.',
         'custo': 'pago (1 emissão + 1 consulta por empresa)',
-        'padrao': {'ativo': True, 'frequencia': FREQ_MENSAL, 'dia_mes': 25, 'hora': '03:00'},
+        'padrao': {'ativo': True, 'frequencia': FREQ_MENSAL, 'dia_mes': 25, 'hora': '03:00',
+                   'ajustar_dia_util': True},
     },
     'caixa_postal': {
         'titulo': 'Caixa postal do e-CAC',
@@ -158,11 +160,20 @@ def proxima_execucao(config: Dict[str, Any], referencia: Optional[datetime] = No
 
     if frequencia == FREQ_MENSAL:
         dia_mes = int(config.get('dia_mes', 25))
-        candidato = _horario_do_dia(date(agora.year, agora.month, dia_mes), hora)
+        # DESVIO 18: "ajustar para o próximo dia útil" — dia 25 num sábado vira segunda
+        # (ou o dia seguinte ao feriado). Contar "N-ésimo dia útil" seria mais difícil de
+        # explicar e de testar; o que importa é rodar depois do vencimento do DAS (20).
+        ajustar = bool(config.get('ajustar_dia_util'))
+
+        def _dia(ano: int, mes: int) -> datetime:
+            base = date(ano, mes, dia_mes)
+            return _horario_do_dia(proximo_dia_util(base) if ajustar else base, hora)
+
+        candidato = _dia(agora.year, agora.month)
         if candidato <= agora:
             ano = agora.year + (1 if agora.month == 12 else 0)
             mes = 1 if agora.month == 12 else agora.month + 1
-            candidato = _horario_do_dia(date(ano, mes, dia_mes), hora)
+            candidato = _dia(ano, mes)
         return candidato
 
     if frequencia == FREQ_SEMANAL:
@@ -227,10 +238,11 @@ def atualizar_modulo(modulo: str, novos: Dict[str, Any]) -> Dict[str, Any]:
     with _LOCK:
         dados = carregar()
         config = dados['modulos'][modulo]
-        for chave in ('ativo', 'frequencia', 'dia_mes', 'dia_semana', 'hora'):
+        for chave in ('ativo', 'frequencia', 'dia_mes', 'dia_semana', 'hora', 'ajustar_dia_util'):
             if chave in novos:
                 config[chave] = novos[chave]
         config['ativo'] = bool(config.get('ativo'))
+        config['ajustar_dia_util'] = bool(config.get('ajustar_dia_util'))
 
         erro = validar(config)
         if erro:
@@ -255,6 +267,7 @@ def resumo() -> Dict[str, Any]:
             'dia_mes': config.get('dia_mes'),
             'dia_semana': config.get('dia_semana'),
             'hora': config.get('hora'),
+            'ajustar_dia_util': bool(config.get('ajustar_dia_util')),
             'ultima_execucao': config.get('ultima_execucao'),
             'ultimo_resultado': config.get('ultimo_resultado'),
             'proxima_execucao': (proxima_execucao(config).isoformat()
@@ -374,8 +387,8 @@ def _lote_com_retomada(modulo: str, processar) -> Dict[str, Any]:
     if retomada:
         # só as que faltavam, preservando a ordem original
         empresas = [c for c in empresas if c.id in set(pendentes_ids)]
-        logger.info('[AGENDA] %s retomando de onde parou: %s empresas pendentes',
-                    modulo, len(empresas))
+        logger.info('[AGENDA] %s retomando de onde parou (%s): %s empresas pendentes',
+                    modulo, anterior.get('interrompido_por', '?'), len(empresas))
 
     total = len(empresas)
     concluidas = list(anterior.get('concluidas') or [])
@@ -407,6 +420,18 @@ def _lote_com_retomada(modulo: str, processar) -> Dict[str, Any]:
                 'pendentes': len(restantes),
                 'retomada': retomada,
             }
+
+        # DESVIO 18 (correção da revisão de 29/09/2026): o checkpoint só existia para o
+        # teto. Se o container caísse no meio do lote (redeploy, OOM), a execução seguinte
+        # repetia a carteira inteira — e pagava de novo pelas empresas já consultadas.
+        # Agora o progresso é gravado ANTES de cada empresa; a retomada segue dali.
+        _gravar_checkpoint(modulo, {
+            'interrompido_por': 'em_andamento',
+            'em': _agora().isoformat(),
+            'motivo': 'lote em execução',
+            'concluidas': concluidas,
+            'pendentes': [c.id for c in empresas[indice:]],
+        })
 
         try:
             sucesso = processar(company)

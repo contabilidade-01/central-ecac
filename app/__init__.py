@@ -136,6 +136,8 @@ def create_app() -> Flask:
                 or path in ('/login', '/logout', '/primeiro-acesso', '/definir-senha')
                 # DESVIO INTENCIONAL (11o): tela de restauracao de dados.
                 or path == '/restaurar'
+                # DESVIO INTENCIONAL (19o): contatos de WhatsApp.
+                or path == '/contatos'
                 # DESVIO INTENCIONAL (13o): administracao de usuarios e acessos.
                 or path == '/usuarios'
                 # Telas server-side de filtros e relatorios.
@@ -212,6 +214,11 @@ def create_app() -> Flask:
     # Autenticada por token próprio (INTEGRACAO_TOKEN), ver app/security.py.
     from app.routes.interno_routes import interno_bp
     app.register_blueprint(interno_bp, url_prefix='/api/interno')
+
+    # DESVIO INTENCIONAL (19o) — tela /contatos: WhatsApp de cada empresa, verificação e
+    # envio pela uazapi (porte do portal nescon-clientes). Pedido do Jean em 30/09/2026.
+    from app.routes.contatos import contatos_bp
+    app.register_blueprint(contatos_bp)
 
     from app.scheduler import iniciar as iniciar_agendador
     iniciar_agendador(app)

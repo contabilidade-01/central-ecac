@@ -34,7 +34,7 @@ verdade, não funcionavam.
 
 ---
 
-## Os 18 desvios intencionais
+## Os 19 desvios intencionais
 
 | # | O quê | Por quê | Onde |
 |---|---|---|---|
@@ -57,6 +57,8 @@ verdade, não funcionavam.
 | 17 | Área **Escritório** (`/escritorio`) no visual do Integra Contador | o Jean usa no dia a dia as telas de escritório do Integra Contador. **Sem dados mockados** nas listas (cadastro + memória). **Funcional:** Ler XML NFe (`/escritorio/xml/nfe`), tabela NCM×CST (`/escritorio/ncm`), Lançamentos (`/escritorio/simples/lancamentos`) lendo/gravando `escritorio_lancamentos`. **Transmitir** faz Calcular → Enviar/Retificar → Consultar → Gerar DAS pela SERPRO (`PGDASD` TRANSDECLARACAO11/CONSDECLARACAO13/GERARDAS12) com pré-voo grátis, confirmação de custo, hash do cálculo + `indicadorComparacao`, estado INCERTO após timeout (sem retry de negócio), trava por empresa/PA, token em cache, auditoria em `escritorio_serpro_chamadas` + `api_usage_logs` e PDF do DAS guardado/reaproveitado. Correções 15/09 fora do Escritório: procurador PF falha antes do envio (`serpro_erros.ErroAntesDoEnvio`, não trava procuração), token A1 em cache no `SerproDasService`, `/api/das/*` checa teto/procuração e registra custo. Testes: `tests/test_escritorio_pgdasd.py`. Tabelas em `app/escritorio_models.py`, **fora** de `models.py` (regra 3). Handoff: `docs/HANDOFF-ESCRITORIO.md` | `routes/escritorio.py`, `templates/escritorio/`, `escritorio_models.py`, `services/escritorio_ncm.py`, `services/escritorio_lancamentos.py`, `services/escritorio_pgdasd.py`, `services/serpro_pgdasd_client.py`, `services/serpro_erros.py`, `routes/das_routes.py`, `services/permissoes.py`, `app/__init__.py` |
 
 | 18 | Integração com o portal do cliente (`/api/interno/*`) | o cliente precisa ser avisado do que deve e recalcular a guia sozinho; quem fala com ele é o portal nescon-clientes (dono do contato, do WhatsApp e do histórico). Este sistema só **fornece pendências em JSON**, **emite guia com PDF guardado** (reaproveitada sem custo; limite por dia) e aceita **pedido de reprocessamento por empresa** em N dias úteis. Token próprio (`INTEGRACAO_TOKEN`), tabelas em `app/integracao_models.py` (regra 3). Correções que vieram junto: checkpoint por empresa no lote (retoma após queda do processo sem pagar de novo), "ajustar para o próximo dia útil" no agendamento mensal, `dataConsolidacao` opcional no DAS MEI. Ver `docs/INTEGRACAO_NESCON.md`. Testes: `tests/test_integracao_interno.py` | `routes/interno_routes.py`, `services/pendencias_service.py`, `services/das_emissao_service.py`, `services/fila_reprocessamento_service.py`, `services/calendario_util.py`, `services/integracao_token.py`, `security.py`, `agendamento_service.py`, `scheduler.py` |
+
+| 19 | WhatsApp (uazapi) e tela `/contatos` | o escritório quer mandar guia/aviso pelo WhatsApp **direto daqui**, com as MESMAS regras do portal nescon-clientes (mesma instância): porte fiel de `uazapi.js`, `whatsappNumero.js`, `whatsappDestino.js`, `janelaEnvio.js` e do teto/retry de `alertasEnvio.js`. Só número cadastrado em `contatos_empresa` (ou do escritório) recebe; janela 08–19h em dia útil; teto por hora; retentativa; tudo em `whatsapp_envios`. Diferença única: PDF por bytes (base64), porque o arquivo mora no volume daqui. Ver `docs/WHATSAPP.md`. Testes: `tests/test_whatsapp_contatos.py` | `services/uazapi_service.py`, `services/whatsapp_numero.py`, `services/janela_envio.py`, `services/contatos_service.py`, `routes/contatos.py`, `integracao_models.py`, `permissoes.py` |
 
 ### Detalhe do 16º — por que a leitura vinha errada
 

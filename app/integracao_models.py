@@ -66,3 +66,57 @@ class FilaReprocessamento(db.Model):
     sucesso = db.Column(db.Boolean, nullable=True)
     resultado = db.Column(db.Text, nullable=True)
     relatorio_id = db.Column(db.Integer, nullable=True)            # relatório gerado pela execução
+
+
+class ContatoEmpresa(db.Model):
+    """Contato de WhatsApp/e-mail de uma empresa — 19o desvio (envio pelo próprio sistema).
+
+    O exe não tinha contato nenhum (era um operador só, na própria máquina). `companies`
+    não pode ganhar coluna (regra 3), então o contato mora aqui, uma linha por empresa.
+
+    `whatsapp` é o número de envio; `whatsapp_2` um segundo (sócio). O envio usa o
+    PRIMEIRO válido, na ordem — mesma regra do `celularSql` do portal.
+    `verificado_status`: 'ok' (formato válido e, se a uazapi respondeu, existe no
+    WhatsApp), 'invalido' (formato), 'inexistente' (a uazapi diz que não é WhatsApp),
+    'pendente' (nunca verificado).
+    """
+    __tablename__ = 'contatos_empresa'
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, nullable=False, unique=True, index=True)
+    cnpj = db.Column(db.String(14), nullable=False, index=True)
+    whatsapp = db.Column(db.String(20), nullable=True)
+    whatsapp_2 = db.Column(db.String(20), nullable=True)
+    email = db.Column(db.String(200), nullable=True)
+    responsavel = db.Column(db.String(120), nullable=True)
+    ativo = db.Column(db.Boolean, nullable=False, default=True)     # False = não recebe nada
+    origem = db.Column(db.String(20), nullable=False, default='manual')  # manual | importado
+    observacao = db.Column(db.String(500), nullable=True)
+    verificado_status = db.Column(db.String(20), nullable=False, default='pendente')
+    verificado_motivo = db.Column(db.String(300), nullable=True)
+    verificado_em = db.Column(db.DateTime, nullable=True)
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    atualizado_por = db.Column(db.String(120), nullable=True)
+
+
+class WhatsappEnvio(db.Model):
+    """Toda mensagem que saiu (ou tentou sair) pela uazapi a partir deste sistema.
+
+    Porte da ideia de `alert_sends`/`alert_failures` do portal: prova do que foi mandado,
+    para quem, quando e por quê — e o que falhou, com o motivo legível.
+    """
+    __tablename__ = 'whatsapp_envios'
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, nullable=True, index=True)
+    numero = db.Column(db.String(20), nullable=True, index=True)
+    tipo = db.Column(db.String(12), nullable=False, default='texto')   # texto | documento
+    contexto = db.Column(db.String(40), nullable=False, default='manual')  # teste | das_mei | parcela | ...
+    texto = db.Column(db.Text, nullable=True)
+    nome_arquivo = db.Column(db.String(200), nullable=True)
+    status = db.Column(db.String(12), nullable=False, default='enviado')  # enviado | falhou | bloqueado
+    erro = db.Column(db.String(500), nullable=True)
+    mensagem_id = db.Column(db.String(120), nullable=True)
+    tentativas = db.Column(db.Integer, nullable=False, default=1)
+    enviado_por = db.Column(db.String(120), nullable=True)
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)

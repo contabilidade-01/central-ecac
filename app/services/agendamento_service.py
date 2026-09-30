@@ -77,6 +77,8 @@ MODULOS: Dict[str, Dict[str, Any]] = {
 _LOCK = threading.Lock()
 #: impede duas execuções simultâneas do mesmo módulo
 _EM_EXECUCAO: Dict[str, bool] = {}
+#: DESVIO 19 — o que aconteceu na execução em curso, para o aviso interno ao escritório
+_ULTIMO_LOTE: Dict[str, Dict[str, list]] = {}
 
 
 def _agora() -> datetime:
@@ -292,12 +294,15 @@ def _empresas_liberadas() -> List[Any]:
     from app.services.procuracao_service import ProcuracaoService
 
     liberadas = []
+    puladas = []
     for company in Company.query.filter_by(ativo=True).order_by(Company.id.asc()).all():
         pode, motivo = ProcuracaoService.pode_gastar(company)
         if pode:
             liberadas.append(company)
         else:
+            puladas.append(company)
             logger.info('[AGENDA] empresa_id=%s pulada: %s', company.id, motivo)
+    _ULTIMO_LOTE.setdefault('_atual', {})['puladas'] = puladas
     return liberadas
 
 
@@ -349,6 +354,7 @@ def executar_modulo(modulo: str) -> Dict[str, Any]:
         }
 
     _EM_EXECUCAO[modulo] = True
+    _ULTIMO_LOTE['_atual'] = {'puladas': [], 'falhas': []}
     inicio = _agora()
     try:
         if modulo == 'situacao_fiscal':
@@ -366,6 +372,17 @@ def executar_modulo(modulo: str) -> Dict[str, Any]:
     resultado['duracao_s'] = round((_agora() - inicio).total_seconds(), 1)
     registrar_execucao(modulo, resultado)
     logger.info('[AGENDA] %s concluído: %s', modulo, resultado)
+
+    # DESVIO 19 — aviso interno ao escritório (sai na janela diurna, pela fila).
+    try:
+        from app.services import avisos_internos
+        lote = _ULTIMO_LOTE.pop('_atual', {})
+        avisos_internos.enfileirar(
+            avisos_internos.aviso_fim_de_lote(modulo, MODULOS[modulo]['titulo'], resultado,
+                                              falhas=lote.get('falhas'), puladas=lote.get('puladas')),
+            contexto=f'lote_{modulo}')
+    except Exception:
+        logger.exception('[AGENDA] não enfileirou o aviso interno')
     return resultado
 
 
@@ -443,6 +460,7 @@ def _lote_com_retomada(modulo: str, processar) -> Dict[str, Any]:
             ok += 1
         else:
             falhas += 1
+            _ULTIMO_LOTE.setdefault('_atual', {}).setdefault('falhas', []).append(company)
         concluidas.append(company.id)
 
     _gravar_checkpoint(modulo, None)

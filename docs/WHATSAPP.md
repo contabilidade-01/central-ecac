@@ -93,3 +93,13 @@ r = uazapi.enviar('34 99999-8888', 'segue a guia', company_id=12, contexto='das_
 ```bash
 python -m pytest tests/test_whatsapp_contatos.py -q
 ```
+
+## Avisos internos ao escritório (o uso deste módulo)
+
+`app/services/avisos_internos.py`: ao fim de cada lote (situação fiscal, parcelamentos)
+o escritório recebe um WhatsApp com o resultado — empresas ok, falhas (com nomes),
+puladas por procuração, lote interrompido pelo teto — e a fila de reprocessamento avisa
+falha definitiva ou teto. O aviso entra numa fila em arquivo
+(`<DATA_DIR>/instance/avisos_internos.json`) e sai na próxima passagem do agendador
+**dentro da janela diurna**: o lote roda de madrugada, o aviso chega de manhã.
+Destino: `ESCRITORIO_WHATSAPP`, senão `ADMIN_WHATSAPP`. Sem os dois, fica só no log.

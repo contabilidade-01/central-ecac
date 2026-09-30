@@ -90,8 +90,26 @@ def _ciclo(app) -> None:
                     resultado = fila.drenar()
                     if resultado.get('executados') or resultado.get('adiados'):
                         logger.info('[FILA] reprocessamento: %s', resultado)
+                    # DESVIO 19 — falha definitiva ou teto na fila vira aviso ao escritório
+                    if resultado.get('falhas') or resultado.get('teto'):
+                        from app.services import avisos_internos
+                        definitivas = [f"{i['cnpj']}: {i['resultado']}" for i in fila.listar(limite=50)
+                                       if i['sucesso'] is False and i['executado_em']
+                                       and str(i['executado_em'])[:10] == str(fila.hoje_brasil())]
+                        texto = avisos_internos.aviso_fila(resultado, definitivas)
+                        if texto:
+                            avisos_internos.enfileirar(texto, contexto='fila_reproc')
                 except Exception:
                     logger.exception('[FILA] erro ao drenar a fila de reprocessamento')
+
+                # DESVIO 19 — avisos internos ao escritório saem só na janela diurna
+                try:
+                    from app.services import avisos_internos
+                    saida = avisos_internos.drenar()
+                    if saida.get('enviados'):
+                        logger.info('[AVISOS] %s aviso(s) interno(s) enviado(s)', saida['enviados'])
+                except Exception:
+                    logger.exception('[AVISOS] erro ao enviar avisos internos')
         except Exception:
             logger.exception('[SCHEDULER] erro no ciclo de verificação')
 

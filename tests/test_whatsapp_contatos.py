@@ -274,3 +274,58 @@ def test_tela_contatos_abre_e_menu_tem_o_item(ambiente):
     assert r.status_code == 200 and 'Contatos e WhatsApp' in r.get_data(as_text=True)
     menu = http.get('/api/me').get_json()['menu']
     assert any(i.get('url') == '/contatos' for grupo in menu for i in grupo['itens'])
+
+
+# ------------------------------------------------------------ avisos internos
+def test_fim_de_lote_enfileira_aviso_e_fila_sai_na_janela(ambiente, monkeypatch):
+    app, _http, falsa, ids = ambiente
+    from app.services import agendamento_service as ag
+    from app.services import avisos_internos
+    monkeypatch.setenv('ESCRITORIO_WHATSAPP', '11 94862-6605')
+    if avisos_internos.caminho().exists():
+        avisos_internos.caminho().unlink()
+
+    with app.app_context():
+        from app.models import Company
+
+        # ALFA ok, BETA falha → o aviso lista a BETA
+        def processar(company):
+            return company.id == ids['A']
+        monkeypatch.setattr(ag, '_executar_situacao_fiscal',
+                            lambda: ag._lote_com_retomada('situacao_fiscal', processar))
+        resultado = ag.executar_modulo('situacao_fiscal')
+        assert resultado['falhas'] == 1
+
+        fila = avisos_internos.pendentes()
+        assert len(fila) == 1 and fila[0]['contexto'] == 'lote_situacao_fiscal'
+        assert 'Concluído: 1 empresa(s) ok · 1 falha(s)' in fila[0]['texto']
+        assert 'Falharam (1): BETA' in fila[0]['texto']
+
+        # fora da janela nada sai; dentro, vai para o número do escritório (passa pela trava)
+        from app.services import uazapi_service as uazapi
+        monkeypatch.setattr(uazapi, 'pode_enviar_agora', lambda: False)
+        import app.services.janela_envio as je
+        monkeypatch.setattr(je, 'pode_enviar_agora', lambda agora=None: False)
+        assert avisos_internos.drenar() == {'enviados': 0, 'pendentes': 1}
+        monkeypatch.setattr(je, 'pode_enviar_agora', lambda agora=None: True)
+        monkeypatch.setattr(uazapi, 'pode_enviar_agora', lambda: True)
+        assert avisos_internos.drenar() == {'enviados': 1, 'pendentes': 0}
+        enviado = [c for c in falsa.chamadas if c['caminho'] == '/send/text'][-1]['corpo']
+        assert enviado['number'] == '5511948626605' and 'Central e-CAC' in enviado['text']
+
+        # sem número do escritório: só log, nada na fila
+        monkeypatch.delenv('ESCRITORIO_WHATSAPP')
+        monkeypatch.delenv('ADMIN_WHATSAPP')
+        assert avisos_internos.enfileirar('x') is False
+        assert Company.query.count() == 2
+
+
+def test_textos_de_aviso():
+    from app.services import avisos_internos
+    teto = avisos_internos.aviso_fim_de_lote('situacao_fiscal', 'Situação fiscal', {
+        'success': False, 'interrompido_por': 'teto_de_gasto', 'message': 'teto mensal atingido',
+        'processadas': 3, 'pendentes': 7})
+    assert 'INTERROMPIDO pelo teto' in teto and '7 pendente(s)' in teto
+    assert avisos_internos.aviso_fila({'teto': False}, []) is None
+    fila = avisos_internos.aviso_fila({'teto': True, 'motivo': 'R$ 100 de R$ 100'}, ['111: SERPRO fora'])
+    assert 'Parou pelo teto' in fila and 'Desistiu' in fila

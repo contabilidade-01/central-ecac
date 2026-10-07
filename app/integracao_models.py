@@ -103,3 +103,24 @@ class MeiGuiaSelecionada(db.Model):
     marcado_por = db.Column(db.String(120), nullable=True)
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow,
                               nullable=False)
+
+
+class MeiEnvio(db.Model):
+    """Envio da guia MEI ao cliente pelo WhatsApp (feito pelo Nescon Clientes).
+
+    O Nescon é dono do contato, da janela e do teto de envio; aqui fica o que ele respondeu,
+    para o painel mostrar enviadas, na fila e falhas. `external_ref` é o que torna o envio
+    idempotente do outro lado.
+    """
+    __tablename__ = 'mei_envios'
+    __table_args__ = (db.UniqueConstraint('company_id', 'competencia', name='uq_mei_envio'),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, nullable=False, index=True)
+    competencia = db.Column(db.String(6), nullable=False, index=True)
+    external_ref = db.Column(db.String(120), nullable=False)
+    status = db.Column(db.String(20), nullable=False)    # enviada|na_fila|falhou|sem_whatsapp|ignorada|sem_cadastro|erro_rede
+    motivo = db.Column(db.String(300), nullable=True)
+    enviado_por = db.Column(db.String(120), nullable=True)
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow,
+                              nullable=False)

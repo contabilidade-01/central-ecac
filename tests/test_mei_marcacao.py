@@ -140,3 +140,46 @@ def test_pagina_mei_abre(ambiente):
     app, _, _ = ambiente
     r = app.test_client().get('/mei', headers=AUTH)
     assert r.status_code == 200 and b'MEI' in r.data
+
+
+CNPJ_TESTE = '51996948000180'
+
+
+def test_envio_via_nescon_registra_status_e_nao_repete(ambiente, monkeypatch):
+    app, mei_id, _ = ambiente
+    from app.integracao_models import DasEmissao, MeiEnvio, MeiGuiaSelecionada
+    from app.models import Company
+    from app.services import das_emissao_service as svc, mei_service, nescon_service
+    _limpar_selecoes()
+    MeiEnvio.query.delete()
+    empresa = Company(razao_social='EMPRESA TESTE MEI', cnpj=CNPJ_TESTE, ativo=True)
+    db.session.add(empresa)
+    db.session.commit()
+    mei_service.definir(empresa.id, True)
+    monkeypatch.setattr(svc, '_bloqueio_custo', lambda c: None)
+    monkeypatch.setattr(svc, '_chamar_serpro',
+                        lambda *a: (b'%PDF-1.4 teste', {'valores': {'total': 71.6}}))
+    enviados = []
+    monkeypatch.setattr(nescon_service, 'configurado', lambda: True)
+    monkeypatch.setattr(nescon_service, 'enviar_guia',
+                        lambda cnpj, comp, pdf, ref, **kw: enviados.append((cnpj, comp, ref, kw)) or
+                        {'status': 'enviada', 'motivo': None})
+    c = app.test_client()
+    c.put('/api/mei/selecao', headers=AUTH, json={
+        'company_id': empresa.id, 'competencia': '202609', 'pagar': True,
+        'data_pagamento': '2099-01-10'})
+    c.post('/api/mei/gerar', headers=AUTH, json={'competencia': '202609'})
+    r = c.post('/api/mei/enviar', headers=AUTH, json={'competencia': '202609'})
+    assert r.get_json()['resultados'][0]['status'] == 'enviada'
+    assert enviados[0][0] == CNPJ_TESTE and enviados[0][1] == '202609'
+    assert MeiEnvio.query.filter_by(company_id=empresa.id).first().status == 'enviada'
+    c.post('/api/mei/enviar', headers=AUTH, json={'competencia': '202609'})
+    assert len(enviados) == 1                       # já enviada: não repete
+    c.post('/api/mei/enviar', headers=AUTH, json={'competencia': '202609', 'forcar': True})
+    assert len(enviados) == 2 and enviados[1][3]['forcar'] is True
+
+
+def test_envio_sem_nescon_configurado_avisa(ambiente):
+    app, _, _ = ambiente
+    r = app.test_client().post('/api/mei/enviar', headers=AUTH, json={'competencia': '202609'})
+    assert r.status_code == 503

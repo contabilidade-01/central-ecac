@@ -9,9 +9,9 @@ from datetime import date, datetime
 from flask import Blueprint, jsonify, render_template_string, request
 
 from app.extensions import db
-from app.integracao_models import DasEmissao, MeiGuiaSelecionada
+from app.integracao_models import DasEmissao, MeiEnvio, MeiGuiaSelecionada
 from app.models import Company
-from app.services import mei_service
+from app.services import mei_service, nescon_service
 from app.services.das_emissao_service import EmissaoBloqueada, emitir
 from app.ui import CSS, FIM, lateral
 
@@ -52,6 +52,7 @@ def _linhas(competencia: str):
         return []
     marcas = {m.company_id: m for m in MeiGuiaSelecionada.query.filter_by(
         competencia=competencia).all()}
+    envios = {e.company_id: e for e in MeiEnvio.query.filter_by(competencia=competencia).all()}
     linhas = []
     for c in Company.query.filter(Company.id.in_(ids)).order_by(Company.razao_social.asc()):
         m = marcas.get(c.id)
@@ -61,6 +62,8 @@ def _linhas(competencia: str):
             'pagar': bool(m), 'status': m.status if m else None,
             'erro': m.erro if m else None, 'data_pagamento': m.data_pagamento if m else None,
             'das_emissao_id': m.das_emissao_id if m else None,
+            'envio': envios[c.id].status if c.id in envios else None,
+            'envio_motivo': envios[c.id].motivo if c.id in envios else None,
         })
     return linhas
 
@@ -146,6 +149,70 @@ def api_gerar():
     return jsonify({'success': True, 'resultados': resultados})
 
 
+@mei_bp.get('/api/mei/vinculo')
+def api_vinculo():
+    """Cada MEI está cadastrado no Nescon Clientes e tem WhatsApp válido? Sem custo SERPRO."""
+    if not nescon_service.configurado():
+        return jsonify({'success': False,
+                        'message': 'Nescon não configurado (NESCON_API_URL e NESCON_INTERNAL_TOKEN).'}), 503
+    saida = []
+    for c in Company.query.filter(Company.id.in_(mei_service.ids_mei())).order_by(Company.razao_social):
+        v = nescon_service.vinculo(c.cnpj)
+        saida.append({'company_id': c.id, 'vinculada': bool(v.get('vinculada')),
+                      'whatsapp_valido': bool(v.get('whatsapp_valido')),
+                      'motivo': v.get('motivo') if v.get('status') != 'erro_rede' else v.get('motivo')})
+    return jsonify({'success': True, 'vinculos': saida})
+
+
+@mei_bp.post('/api/mei/enviar')
+def api_enviar():
+    """Envia pelo WhatsApp (via Nescon) as guias já geradas. Corpo: {competencia, company_ids?,
+    forcar?}. Quem já foi enviada não vai de novo, a não ser com `forcar` (reenvio de falha)."""
+    from app.services.das_emissao_service import ler_pdf
+    dados = request.get_json(silent=True) or {}
+    try:
+        competencia = _competencia_ok(dados.get('competencia'))
+    except ValueError as exc:
+        return jsonify({'success': False, 'message': str(exc)}), 400
+    if not nescon_service.configurado():
+        return jsonify({'success': False,
+                        'message': 'Nescon não configurado (NESCON_API_URL e NESCON_INTERNAL_TOKEN).'}), 503
+    _, nome = _admin_e_nome()
+    forcar = bool(dados.get('forcar'))
+    ids = {int(i) for i in (dados.get('company_ids') or []) if str(i).isdigit()}
+    resultados = []
+    q = MeiGuiaSelecionada.query.filter_by(competencia=competencia, status='gerada')
+    for marca in q.all():
+        if ids and marca.company_id not in ids:
+            continue
+        company = db.session.get(Company, marca.company_id)
+        emissao = db.session.get(DasEmissao, marca.das_emissao_id) if marca.das_emissao_id else None
+        if not company or not emissao or not mei_service.e_mei(company.id):
+            continue
+        envio = MeiEnvio.query.filter_by(company_id=company.id, competencia=competencia).first()
+        if envio and envio.status in ('enviada', 'na_fila') and not forcar:
+            continue
+        pdf = ler_pdf(emissao)
+        if not pdf:
+            r = {'status': 'falhou', 'motivo': 'PDF da guia indisponível no disco'}
+        else:
+            ref = f'mei:{company.cnpj}:{competencia}:{emissao.id}'
+            r = nescon_service.enviar_guia(
+                company.cnpj, competencia, pdf, ref, vencimento=emissao.vencimento,
+                valor=emissao.valor_total, forcar=forcar)
+        status = r.get('status') or ('enviada' if r.get('ok') else 'falhou')
+        if not envio:
+            envio = MeiEnvio(company_id=company.id, competencia=competencia,
+                             external_ref=f'mei:{company.cnpj}:{competencia}:{emissao.id}')
+            db.session.add(envio)
+        envio.external_ref = f'mei:{company.cnpj}:{competencia}:{emissao.id}'
+        envio.status, envio.motivo = status, (r.get('motivo') or None) and str(r.get('motivo'))[:300]
+        envio.enviado_por = nome[:120] or None
+        db.session.commit()
+        resultados.append({'company_id': company.id, 'status': status, 'motivo': envio.motivo})
+    return jsonify({'success': True, 'resultados': resultados})
+
+
 @mei_bp.get('/api/mei/<int:emissao_id>/pdf')
 def api_pdf(emissao_id: int):
     from flask import Response
@@ -193,9 +260,12 @@ PAGINA = """<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
  <label>Competência <input id="comp" type="month"></label>
  <label>Data de pagamento <input id="data" type="date"></label>
  <button onclick="gerar()">Gerar guias marcadas</button>
+ <button onclick="enviar(false)">Enviar por WhatsApp</button>
+ <button onclick="enviar(true)" title="Reenvia as que falharam">Reenviar falhas</button>
+ <button onclick="vinculo()">Verificar vínculo no Nescon</button>
  <span id="msg" style="color:var(--suave)"></span>
 </div>
-<table><thead><tr><th>Pagar</th><th>Empresa</th><th>CNPJ</th><th>Situação</th><th>Guia</th></tr></thead><tbody id="corpo"></tbody></table>
+<table><thead><tr><th>Pagar</th><th>Empresa</th><th>CNPJ</th><th>Situação</th><th>Guia</th><th>Envio</th><th>Vínculo</th></tr></thead><tbody id="corpo"></tbody></table>
 <div class="linha" id="admin" style="margin-top:18px">
  <select id="cand"></select><button onclick="incluir()">Incluir como MEI (admin)</button>
 </div>
@@ -212,11 +282,15 @@ async function carregar(){
  $('corpo').innerHTML=d.empresas.map(e=>`<tr><td><input type="checkbox" ${e.pagar?'checked':''} onchange="marcar(${e.company_id},this.checked)"></td>
  <td>${esc(e.razao_social)}</td><td>${esc(e.cnpj)}</td>
  <td>${e.status?`<span class="tag ${e.status}">${e.status}</span>`:''} ${esc(e.erro)}</td>
- <td>${e.das_emissao_id?`<a href="/api/mei/${e.das_emissao_id}/pdf" target="_blank">PDF</a>`:''}</td></tr>`).join('')||'<tr><td colspan=5>Nenhum MEI cadastrado.</td></tr>';
+ <td>${e.das_emissao_id?`<a href="/api/mei/${e.das_emissao_id}/pdf" target="_blank">PDF</a>`:''}</td>
+ <td>${e.envio?`<span class="tag ${e.envio=='enviada'?'gerada':(e.envio=='na_fila'?'pendente':'erro')}">${esc(e.envio)}</span> ${esc(e.envio_motivo)}`:''}</td>
+ <td id="v${e.company_id}"></td></tr>`).join('')||'<tr><td colspan=7>Nenhum MEI cadastrado.</td></tr>';
  $('cand').innerHTML=d.candidatas.map(c=>`<option value="${c.company_id}">${esc(c.razao_social)}</option>`).join('');
 }
 async function marcar(id,pagar){const r=await api('PUT','/api/mei/selecao',{company_id:id,competencia:comp(),pagar,data_pagamento:$('data').value});$('msg').textContent=r.success?'':r.message;carregar();}
 async function gerar(){$('msg').textContent='Gerando…';const r=await api('POST','/api/mei/gerar',{competencia:comp(),data_pagamento:$('data').value});$('msg').textContent=r.success?`${r.resultados.length} guia(s) processada(s).`:r.message;carregar();}
+async function enviar(forcar){$('msg').textContent='Enviando…';const r=await api('POST','/api/mei/enviar',{competencia:comp(),forcar});$('msg').textContent=r.success?`${r.resultados.length} envio(s) tentado(s).`:r.message;carregar();}
+async function vinculo(){$('msg').textContent='Consultando o Nescon…';const r=await api('GET','/api/mei/vinculo');if(!r.success){$('msg').textContent=r.message;return;}$('msg').textContent='';r.vinculos.forEach(v=>{const el=$('v'+v.company_id);if(el)el.innerHTML=v.vinculada&&v.whatsapp_valido?'<span class="tag gerada">ok</span>':'<span class="tag erro">'+esc(v.vinculada?'sem WhatsApp válido':'não cadastrado')+'</span> '+esc(v.motivo);});}
 async function incluir(){const id=$('cand').value;if(!id)return;const r=await api('PUT','/api/mei/empresa/'+id,{eh_mei:true});$('msg').textContent=r.success?'':r.message;carregar();}
 const h=new Date();$('comp').value=h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0');$('comp').onchange=carregar;carregar();
 </script></body></html>"""

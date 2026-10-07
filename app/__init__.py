@@ -143,6 +143,7 @@ def create_app() -> Flask:
                 or path == '/relatorios'
                 # DESVIO INTENCIONAL (17o): area Escritorio (telas modeladas no
                 # visual do Integra Contador), servida pelo Flask.
+                or path == '/mei'
                 or path == '/escritorio'
                 or path.startswith('/escritorio/')):
             return None
@@ -206,6 +207,10 @@ def create_app() -> Flask:
     # acao ligada e nenhuma chamada a SERPRO. Pedido do Jean em 15/09/2026.
     from app.routes.escritorio import escritorio_bp
     app.register_blueprint(escritorio_bp)
+
+    # Seção MEI: quem é MEI, guias que o empresário quer pagar e geração só dessas.
+    from app.routes.mei_routes import mei_bp
+    app.register_blueprint(mei_bp)
 
     # DESVIO INTENCIONAL (18o) — API interna para o portal do cliente (nescon-clientes):
     # pendências em JSON, emissão de guia com PDF guardado e fila de reprocessamento.

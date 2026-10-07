@@ -82,3 +82,24 @@ class EmpresaMei(db.Model):
     eh_mei = db.Column(db.Boolean, nullable=False, default=True)
     definido_por = db.Column(db.String(120), nullable=True)
     definido_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class MeiGuiaSelecionada(db.Model):
+    """Guia de MEI que o empresário quer pagar (competência marcada na tela /mei).
+
+    Só se paga chamada da SERPRO para guia marcada aqui: é o que mantém o custo baixo.
+    Fica fora de `models.py` (regra 3).
+    """
+    __tablename__ = 'mei_guias_selecionadas'
+    __table_args__ = (db.UniqueConstraint('company_id', 'competencia', name='uq_mei_guia'),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, nullable=False, index=True)
+    competencia = db.Column(db.String(6), nullable=False, index=True)    # AAAAMM
+    data_pagamento = db.Column(db.String(8), nullable=True)               # AAAAMMDD (consolidação)
+    status = db.Column(db.String(12), nullable=False, default='pendente')  # pendente | gerada | erro
+    das_emissao_id = db.Column(db.Integer, nullable=True)
+    erro = db.Column(db.String(300), nullable=True)
+    marcado_por = db.Column(db.String(120), nullable=True)
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow,
+                              nullable=False)

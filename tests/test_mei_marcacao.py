@@ -75,3 +75,68 @@ def test_rota_marcar_mei(ambiente):
                        headers={'Authorization': 'Basic dGVzdGU6dGVzdGU='})
     assert resp.status_code == 200, resp.get_data(as_text=True)
     assert mei_service.e_mei(mei_id)
+
+
+AUTH = {'Authorization': 'Basic dGVzdGU6dGVzdGU='}
+
+
+def _limpar_selecoes():
+    from app.integracao_models import DasEmissao, MeiGuiaSelecionada
+    MeiGuiaSelecionada.query.delete()
+    DasEmissao.query.delete()
+    db.session.commit()
+
+
+def test_so_gera_guia_marcada(ambiente, monkeypatch):
+    app, mei_id, sn_id = ambiente
+    from app.integracao_models import MeiGuiaSelecionada
+    from app.services import das_emissao_service as svc, mei_service
+    from app.models import Company
+    _limpar_selecoes()
+    outro = Company(razao_social='GAMA MEI', cnpj='11555666000100', ativo=True)
+    db.session.add(outro)
+    db.session.commit()
+    mei_service.definir(mei_id, True)
+    mei_service.definir(outro.id, True)
+
+    chamadas = []
+    monkeypatch.setattr(svc, '_bloqueio_custo', lambda c: None)
+
+    def falso(tipo, cnpj, pa, categoria, consolidacao):
+        chamadas.append((cnpj, pa, consolidacao))
+        return b'%PDF-1.4 teste', {'valores': {'total': 71.6}}
+
+    monkeypatch.setattr(svc, '_chamar_serpro', falso)
+    c = app.test_client()
+    amanha = '2099-01-10'
+    r = c.put('/api/mei/selecao', headers=AUTH, json={
+        'company_id': mei_id, 'competencia': '202609', 'pagar': True, 'data_pagamento': amanha})
+    assert r.status_code == 200, r.get_data(as_text=True)
+    r = c.post('/api/mei/gerar', headers=AUTH, json={'competencia': '202609'})
+    assert r.status_code == 200
+    assert [x[0] for x in chamadas] == ['11222333000181']   # só a marcada
+    assert chamadas[0][2] == '20990110'
+    assert MeiGuiaSelecionada.query.filter_by(company_id=mei_id).first().status == 'gerada'
+    # rodar de novo não paga outra vez
+    c.post('/api/mei/gerar', headers=AUTH, json={'competencia': '202609'})
+    assert len(chamadas) == 1
+
+
+def test_selecao_recusa_nao_mei_e_data_passada(ambiente):
+    app, mei_id, sn_id = ambiente
+    from app.services import mei_service
+    _limpar_selecoes()
+    mei_service.definir(mei_id, True)
+    c = app.test_client()
+    r = c.put('/api/mei/selecao', headers=AUTH, json={
+        'company_id': sn_id, 'competencia': '202609', 'pagar': True})
+    assert r.status_code == 409
+    r = c.put('/api/mei/selecao', headers=AUTH, json={
+        'company_id': mei_id, 'competencia': '202609', 'pagar': True, 'data_pagamento': '2020-01-01'})
+    assert r.status_code == 400
+
+
+def test_pagina_mei_abre(ambiente):
+    app, _, _ = ambiente
+    r = app.test_client().get('/mei', headers=AUTH)
+    assert r.status_code == 200 and b'MEI' in r.data

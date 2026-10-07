@@ -119,6 +119,11 @@ class ReportService:
         if not company:
             return ProcessResult(False, 'Empresa não encontrada', company_id)
 
+        # MEI não gasta relatório de situação fiscal: só as guias em aberto (admin marca).
+        from app.services.mei_service import e_mei
+        if e_mei(company_id):
+            return ProcessResult(False, 'Empresa MEI: fora da busca de relatórios', company_id)
+
         now = datetime.now()
 
         # Já existe um protocolo em espera para esta empresa

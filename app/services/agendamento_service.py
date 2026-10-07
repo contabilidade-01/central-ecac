@@ -291,8 +291,13 @@ def _empresas_liberadas() -> List[Any]:
     from app.models import Company
     from app.services.procuracao_service import ProcuracaoService
 
+    from app.services.mei_service import ids_mei
+
+    mei = ids_mei()
     liberadas = []
     for company in Company.query.filter_by(ativo=True).order_by(Company.id.asc()).all():
+        if company.id in mei:
+            continue
         pode, motivo = ProcuracaoService.pode_gastar(company)
         if pode:
             liberadas.append(company)

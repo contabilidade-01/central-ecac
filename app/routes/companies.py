@@ -11,10 +11,13 @@ companies_bp = Blueprint('companies', __name__)
 
 @companies_bp.get('')
 def list_companies():
+    from app.services.mei_service import ids_mei
+    mei = ids_mei()
     items = Company.query.order_by(Company.razao_social.asc()).all()
     return jsonify([
         {
             'id': c.id,
+            'eh_mei': c.id in mei,
             'razao_social': c.razao_social,
             'cnpj': c.cnpj,
             'ativo': c.ativo,
@@ -66,6 +69,21 @@ def update_company(company_id: int):
 
     db.session.commit()
     return jsonify({'success': True})
+
+
+@companies_bp.put('/<int:company_id>/mei')
+def marcar_mei(company_id: int):
+    """Só o administrador diz se a empresa é MEI. MEI sai da busca de relatórios."""
+    from app.routes.escritorio import _e_admin, _nome_usuario
+    from app.services import mei_service
+
+    if not _e_admin():
+        return jsonify({'success': False, 'message': 'Só o administrador marca MEI'}), 403
+    if not db.session.get(Company, company_id):
+        return jsonify({'success': False, 'message': 'Empresa não encontrada'}), 404
+    data = request.get_json(silent=True) or {}
+    marca = mei_service.definir(company_id, bool(data.get('eh_mei')), _nome_usuario())
+    return jsonify({'success': True, 'eh_mei': marca.eh_mei})
 
 
 @companies_bp.delete('/<int:company_id>')

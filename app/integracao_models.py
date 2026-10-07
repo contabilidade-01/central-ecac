@@ -66,3 +66,61 @@ class FilaReprocessamento(db.Model):
     sucesso = db.Column(db.Boolean, nullable=True)
     resultado = db.Column(db.Text, nullable=True)
     relatorio_id = db.Column(db.Integer, nullable=True)            # relatório gerado pela execução
+
+
+class EmpresaMei(db.Model):
+    """Marca, por empresa, se ela é MEI. Quem define é o administrador.
+
+    Fica fora de `models.py` (regra 3). Empresa MEI **não entra** na busca de relatórios de
+    situação fiscal (lote, agendamento ou botão): o MEI é acompanhado só pelas guias em
+    aberto, para não pagar relatório à toa. Sem linha = não é MEI.
+    """
+    __tablename__ = 'empresas_mei'
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, nullable=False, unique=True, index=True)
+    eh_mei = db.Column(db.Boolean, nullable=False, default=True)
+    definido_por = db.Column(db.String(120), nullable=True)
+    definido_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class MeiGuiaSelecionada(db.Model):
+    """Guia de MEI que o empresário quer pagar (competência marcada na tela /mei).
+
+    Só se paga chamada da SERPRO para guia marcada aqui: é o que mantém o custo baixo.
+    Fica fora de `models.py` (regra 3).
+    """
+    __tablename__ = 'mei_guias_selecionadas'
+    __table_args__ = (db.UniqueConstraint('company_id', 'competencia', name='uq_mei_guia'),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, nullable=False, index=True)
+    competencia = db.Column(db.String(6), nullable=False, index=True)    # AAAAMM
+    data_pagamento = db.Column(db.String(8), nullable=True)               # AAAAMMDD (consolidação)
+    status = db.Column(db.String(12), nullable=False, default='pendente')  # pendente | gerada | erro
+    das_emissao_id = db.Column(db.Integer, nullable=True)
+    erro = db.Column(db.String(300), nullable=True)
+    marcado_por = db.Column(db.String(120), nullable=True)
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow,
+                              nullable=False)
+
+
+class MeiEnvio(db.Model):
+    """Envio da guia MEI ao cliente pelo WhatsApp (feito pelo Nescon Clientes).
+
+    O Nescon é dono do contato, da janela e do teto de envio; aqui fica o que ele respondeu,
+    para o painel mostrar enviadas, na fila e falhas. `external_ref` é o que torna o envio
+    idempotente do outro lado.
+    """
+    __tablename__ = 'mei_envios'
+    __table_args__ = (db.UniqueConstraint('company_id', 'competencia', name='uq_mei_envio'),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, nullable=False, index=True)
+    competencia = db.Column(db.String(6), nullable=False, index=True)
+    external_ref = db.Column(db.String(120), nullable=False)
+    status = db.Column(db.String(20), nullable=False)    # enviada|na_fila|falhou|sem_whatsapp|ignorada|sem_cadastro|erro_rede
+    motivo = db.Column(db.String(300), nullable=True)
+    enviado_por = db.Column(db.String(120), nullable=True)
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow,
+                              nullable=False)

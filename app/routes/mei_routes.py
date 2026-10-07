@@ -274,24 +274,35 @@ PAGINA = """<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 const $=id=>document.getElementById(id);
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const comp=()=> $('comp').value.replace('-','');
-async function api(m,u,b){const r=await fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});return r.json();}
+async function api(m,u,b){
+ try{
+  const r=await fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});
+  const t=await r.text();let j;
+  try{j=JSON.parse(t);}catch(e){return {success:false,message:'Resposta inesperada do servidor (HTTP '+r.status+'). Entre de novo no sistema ou avise o suporte.'};}
+  if(j.success===undefined)j.success=r.ok;
+  if(!r.ok&&!j.message)j.message='Erro HTTP '+r.status;
+  return j;
+ }catch(e){return {success:false,message:'Sem conexão com o servidor: '+e.message};}
+}
+function aviso(t,erro){const m=$('msg');m.textContent=t||'';m.style.cssText=erro?'color:var(--erro-tx);background:var(--erro-bg);padding:6px 10px;border-radius:8px':'color:var(--suave)';}
+const ROTULO={pendente:'marcada, falta gerar',gerada:'gerada',erro:'erro',enviada:'enviada',na_fila:'na fila',falhou:'falhou',sem_whatsapp:'sem WhatsApp',ignorada:'ignorada',sem_cadastro:'sem cadastro',erro_rede:'sem rede'};
 async function carregar(){
  if(!comp()){return;}
  const d=await api('GET','/api/mei/empresas?competencia='+comp());
- if(!d.success){$('msg').textContent=d.message;return;}
+ if(!d.success){aviso(d.message,true);return;}
  $('corpo').innerHTML=d.empresas.map(e=>`<tr><td><input type="checkbox" ${e.pagar?'checked':''} onchange="marcar(${e.company_id},this.checked)"></td>
  <td>${esc(e.razao_social)}</td><td>${esc(e.cnpj)}</td>
- <td>${e.status?`<span class="tag ${e.status}">${e.status}</span>`:''} ${esc(e.erro)}</td>
+ <td>${e.status?`<span class="tag ${e.status}">${ROTULO[e.status]||esc(e.status)}</span>`:''} ${esc(e.erro)}</td>
  <td>${e.das_emissao_id?`<a href="/api/mei/${e.das_emissao_id}/pdf" target="_blank">PDF</a>`:''}</td>
- <td>${e.envio?`<span class="tag ${e.envio=='enviada'?'gerada':(e.envio=='na_fila'?'pendente':'erro')}">${esc(e.envio)}</span> ${esc(e.envio_motivo)}`:''}</td>
+ <td>${e.envio?`<span class="tag ${e.envio=='enviada'?'gerada':(e.envio=='na_fila'?'pendente':'erro')}">${ROTULO[e.envio]||esc(e.envio)}</span> ${esc(e.envio_motivo)}`:''}</td>
  <td id="v${e.company_id}"></td></tr>`).join('')||'<tr><td colspan=7>Nenhum MEI cadastrado.</td></tr>';
  $('cand').innerHTML=d.candidatas.map(c=>`<option value="${c.company_id}">${esc(c.razao_social)}</option>`).join('');
 }
-async function marcar(id,pagar){const r=await api('PUT','/api/mei/selecao',{company_id:id,competencia:comp(),pagar,data_pagamento:$('data').value});$('msg').textContent=r.success?'':r.message;carregar();}
-async function gerar(){$('msg').textContent='Gerando…';const r=await api('POST','/api/mei/gerar',{competencia:comp(),data_pagamento:$('data').value});$('msg').textContent=r.success?`${r.resultados.length} guia(s) processada(s).`:r.message;carregar();}
-async function enviar(forcar){$('msg').textContent='Enviando…';const r=await api('POST','/api/mei/enviar',{competencia:comp(),forcar});$('msg').textContent=r.success?`${r.resultados.length} envio(s) tentado(s).`:r.message;carregar();}
-async function vinculo(){$('msg').textContent='Consultando o Nescon…';const r=await api('GET','/api/mei/vinculo');if(!r.success){$('msg').textContent=r.message;return;}$('msg').textContent='';r.vinculos.forEach(v=>{const el=$('v'+v.company_id);if(el)el.innerHTML=v.vinculada&&v.whatsapp_valido?'<span class="tag gerada">ok</span>':'<span class="tag erro">'+esc(v.vinculada?'sem WhatsApp válido':'não cadastrado')+'</span> '+esc(v.motivo);});}
-async function incluir(){const id=$('cand').value;if(!id)return;const r=await api('PUT','/api/mei/empresa/'+id,{eh_mei:true});$('msg').textContent=r.success?'':r.message;carregar();}
+async function marcar(id,pagar){const r=await api('PUT','/api/mei/selecao',{company_id:id,competencia:comp(),pagar,data_pagamento:$('data').value});aviso(r.success?'':r.message,!r.success);carregar();}
+async function gerar(){aviso('Gerando…');const r=await api('POST','/api/mei/gerar',{competencia:comp(),data_pagamento:$('data').value});aviso(r.success?`${r.resultados.length} guia(s) processada(s).`:r.message,!r.success);carregar();}
+async function enviar(forcar){aviso('Enviando…');const r=await api('POST','/api/mei/enviar',{competencia:comp(),forcar});aviso(r.success?`${r.resultados.length} envio(s) tentado(s).`:r.message,!r.success);carregar();}
+async function vinculo(){aviso('Consultando o Nescon…');const r=await api('GET','/api/mei/vinculo');if(!r.success){aviso(r.message,true);return;}aviso(r.vinculos.length?'Vínculo verificado.':'Nenhum MEI para verificar: inclua a empresa como MEI primeiro.');r.vinculos.forEach(v=>{const el=$('v'+v.company_id);if(el)el.innerHTML=v.vinculada&&v.whatsapp_valido?'<span class="tag gerada">ok</span>':'<span class="tag erro">'+esc(v.vinculada?'sem WhatsApp válido':'não cadastrado')+'</span> '+esc(v.motivo);});}
+async function incluir(){const id=$('cand').value;if(!id)return;const r=await api('PUT','/api/mei/empresa/'+id,{eh_mei:true});aviso(r.success?'':r.message,!r.success);carregar();}
 const h=new Date();$('comp').value=h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0');$('comp').onchange=carregar;carregar();
 </script></body></html>"""
 

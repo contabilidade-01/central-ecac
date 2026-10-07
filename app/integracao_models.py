@@ -66,3 +66,19 @@ class FilaReprocessamento(db.Model):
     sucesso = db.Column(db.Boolean, nullable=True)
     resultado = db.Column(db.Text, nullable=True)
     relatorio_id = db.Column(db.Integer, nullable=True)            # relatório gerado pela execução
+
+
+class EmpresaMei(db.Model):
+    """Marca, por empresa, se ela é MEI. Quem define é o administrador.
+
+    Fica fora de `models.py` (regra 3). Empresa MEI **não entra** na busca de relatórios de
+    situação fiscal (lote, agendamento ou botão): o MEI é acompanhado só pelas guias em
+    aberto, para não pagar relatório à toa. Sem linha = não é MEI.
+    """
+    __tablename__ = 'empresas_mei'
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, nullable=False, unique=True, index=True)
+    eh_mei = db.Column(db.Boolean, nullable=False, default=True)
+    definido_por = db.Column(db.String(120), nullable=True)
+    definido_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

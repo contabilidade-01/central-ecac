@@ -68,6 +68,7 @@ class SerproDasService:
 
     # Constantes do bytecode (linhas 92-109)
     EMITIR_URL = 'https://gateway.apiserpro.serpro.gov.br/integra-contador/v1/Emitir'
+    CONSULTAR_URL = 'https://gateway.apiserpro.serpro.gov.br/integra-contador/v1/Consultar'
 
     ID_SISTEMA_SIMPLES = 'PGDASD'
     ID_SERVICO_SIMPLES = 'GERARDAS12'
@@ -440,7 +441,8 @@ class SerproDasService:
             raise Exception(f'Resposta da SERPRO não retornou item válido. Mensagens: {mensagens}')
 
         # Buscar PDF em item: 'pdf' ou 'PDFByteArrayBase64'
-        pdf_base64 = item.get('pdf') or item.get('PDFByteArrayBase64')
+        # PARCSN/PARCMEI/PERT/RELP (GERARDAS16x...) devolvem `docArrecadacaoPdfB64`.
+        pdf_base64 = item.get('pdf') or item.get('PDFByteArrayBase64') or item.get('docArrecadacaoPdfB64')
 
         if not pdf_base64:
             mensagens = response_json.get('mensagens') or []
@@ -539,9 +541,14 @@ class SerproDasService:
         categoria: str,
         competencia: Optional[str] = None,
         ano_pa: Optional[str] = None,
+        data_acolhimento: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Monta payload para DCTFWEB (DARF).
+
+        DESVIO 19: `data_acolhimento` (AAAAMMDD) vira `dataAcolhimentoProposta` — a data de
+        pagamento pretendida; multa e juros saem calculados até ela (guia vencida de INSS
+        recalculada, uma DARF por competência com todos os códigos, como no e-CAC).
 
         Bytecode linhas 1185-1303.
         """
@@ -569,6 +576,12 @@ class SerproDasService:
 
             dados['anoPA'] = ano_limpo
 
+        acolhimento = self._only_digits(data_acolhimento or '')
+        if acolhimento:
+            if len(acolhimento) != 8:
+                raise ValueError('Data de pagamento inválida (AAAAMMDD).')
+            dados['dataAcolhimentoProposta'] = int(acolhimento)
+
         return self.montar_payload_emitir(
             setting=setting,
             contribuinte_numero=contribuinte_numero,
@@ -584,6 +597,7 @@ class SerproDasService:
         categoria: str,
         competencia: Optional[str] = None,
         ano_pa: Optional[str] = None,
+        data_acolhimento: Optional[str] = None,
     ) -> bytes | None:
         """
         Orquestra emissao DCTFWEB (DARF): get_setting, montar_payload, emitir, extrair_pdf, b64decode.
@@ -600,6 +614,7 @@ class SerproDasService:
             categoria=categoria,
             competencia=competencia,
             ano_pa=ano_pa,
+            data_acolhimento=data_acolhimento,
         )
 
         response_json = self.emitir(setting=setting, payload=payload)
@@ -609,3 +624,68 @@ class SerproDasService:
             return base64.b64decode(pdf_base64)
         except Exception:
             raise Exception('PDF retornado pela SERPRO não está em base64 válido')
+
+
+# ---------------------------------------------------------------- DESVIO 19: parcelas
+def _post_integra(url: str, setting: AppSetting, payload: Dict[str, Any], contexto: str,
+                  timeout: int = 120) -> Dict[str, Any]:
+    """POST no gateway (Consultar/Emitir) com o mesmo retry de token de `emitir`."""
+    service = SerproDasService(timeout=timeout)
+    numero = (payload.get('contribuinte') or {}).get('numero', '')
+    headers = service._get_headers(setting, contribuinte_numero=numero)
+    response = serpro_post(url, headers=headers, json_payload=payload, context=contexto, timeout=timeout)
+    if response.status_code in (401, 403):
+        from app.services.serpro_pgdasd_client import CACHE_TOKEN
+        CACHE_TOKEN.invalidar()
+        if SerproProcuradorService.enabled(setting):
+            SerproProcuradorService(setting).invalidate_authorization_token()
+        headers = service._get_headers(setting, contribuinte_numero=numero)
+        response = serpro_post(url, headers=headers, json_payload=payload,
+                               context=f'{contexto}_retry', timeout=timeout)
+    texto = response.text or ''
+    if response.status_code != 200:
+        raise SerproApiError(_mensagem_serpro(texto, response.status_code), status_code=response.status_code)
+    try:
+        corpo = response.json()
+    except Exception:
+        raise Exception('Resposta da SERPRO não está em JSON válido')
+    if 'dados' in corpo:
+        corpo['dados'] = service._decode_json_if_needed(corpo['dados'])
+    return corpo
+
+
+def consultar_parcelas_para_gerar(contribuinte_numero: str, id_sistema: str, id_servico: str) -> Dict[str, Any]:
+    """PARCELASPARAGERAR (Consultar, sem `dados`). Devolve o corpo da SERPRO."""
+    setting = AppSetting.query.first()
+    if not setting:
+        raise ValueError('Configurações da aplicação não encontradas')
+    service = SerproDasService()
+    payload = service.montar_payload_emitir(
+        setting=setting, contribuinte_numero=contribuinte_numero,
+        id_sistema=id_sistema, id_servico=id_servico, versao_sistema='1.0', dados={})
+    # sem dados: a SERPRO espera string vazia, não "{}"
+    pedido = payload.get('pedidoDados')
+    if isinstance(pedido, dict) and pedido.get('dados') == '{}':
+        pedido['dados'] = ''
+    return _post_integra(SerproDasService.CONSULTAR_URL, setting, payload, f'parcelas_{id_servico}')
+
+
+def emitir_pdf_parcela(contribuinte_numero: str, id_sistema: str, id_servico: str, parcela: str) -> bytes:
+    """GERARDAS16x/20x/... (Emitir) com `parcelaParaEmitir` = AAAAMM."""
+    setting = AppSetting.query.first()
+    if not setting:
+        raise ValueError('Configurações da aplicação não encontradas')
+    service = SerproDasService()
+    parcela = service._only_digits(parcela)
+    if len(parcela) != 6:
+        raise ValueError('Parcela inválida (AAAAMM).')
+    payload = service.montar_payload_emitir(
+        setting=setting, contribuinte_numero=contribuinte_numero,
+        id_sistema=id_sistema, id_servico=id_servico, versao_sistema='1.0',
+        dados={'parcelaParaEmitir': parcela})
+    corpo = _post_integra(SerproDasService.EMITIR_URL, setting, payload, f'parcela_{id_servico}')
+    pdf_b64 = service.extrair_pdf_base64(corpo)
+    try:
+        return base64.b64decode(pdf_b64)
+    except Exception:
+        raise Exception('PDF retornado pela SERPRO não está em base64 válido')

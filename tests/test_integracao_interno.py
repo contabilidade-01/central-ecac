@@ -42,10 +42,10 @@ def ambiente():
     app = create_app()
     app.config['TESTING'] = True
     with app.app_context():
-        from app.integracao_models import DasEmissao, FilaReprocessamento
+        from app.integracao_models import DasEmissao, FilaReprocessamento, ParcelasConsulta
         from app.models import (ApiUsageLog, Company, DebitoRelatorio, PendenciaRelatorio,
                                 RelatorioSitFiscal)
-        for modelo in (DasEmissao, FilaReprocessamento, ApiUsageLog, DebitoRelatorio,
+        for modelo in (DasEmissao, FilaReprocessamento, ParcelasConsulta, ApiUsageLog, DebitoRelatorio,
                        PendenciaRelatorio, RelatorioSitFiscal, Company):
             modelo.query.delete()
         a = Company(razao_social='ALFA', cnpj=CNPJ_A, ativo=True)
@@ -201,12 +201,84 @@ def test_download_do_pdf_respeita_o_cnpj(ambiente, monkeypatch):
     assert http.get(f'/api/interno/das/{emissao_id}/pdf').status_code == 401
 
 
-def test_dctfweb_recusa_data_de_consolidacao(ambiente):
+def test_dctfweb_aceita_data_de_pagamento_e_recusa_passada(ambiente, monkeypatch):
     _app, http, _ = ambiente
+    chamadas = []
+    _serpro_falsa(monkeypatch, chamadas)
     r = http.post('/api/interno/das/emitir', json={'cnpj': CNPJ_A, 'tipo': 'DCTFWEB',
                                                    'periodo_apuracao': '202607',
                                                    'data_consolidacao': '20991230'}, headers=TOKEN)
-    assert r.status_code == 400 and 'fale com o escritório' in r.get_json()['message']
+    assert r.status_code == 200, r.get_json()
+    assert chamadas[-1] == {'tipo': 'DCTFWEB', 'cnpj': CNPJ_A, 'pa': '202607', 'consolidacao': '20991230'}
+    passada = http.post('/api/interno/das/emitir', json={'cnpj': CNPJ_A, 'tipo': 'DCTFWEB',
+                                                         'periodo_apuracao': '202607',
+                                                         'data_consolidacao': '20200101'}, headers=TOKEN)
+    assert passada.status_code == 400 and len(chamadas) == 1
+
+
+def test_payload_dctfweb_leva_data_de_acolhimento(ambiente):
+    from app.models import AppSetting
+    from app.services.serpro_das_service import SerproDasService
+    s = AppSetting(contador_cnpj='35736034000123')
+    p = SerproDasService().montar_payload_dctfweb(setting=s, contribuinte_numero=CNPJ_A,
+                                                   categoria='GERAL_MENSAL', competencia='202604',
+                                                   data_acolhimento='20261022')
+    import json as _json
+    dados = _json.loads(p['pedidoDados']['dados'])
+    assert dados == {'categoria': 'GERAL_MENSAL', 'anoPA': '2026', 'mesPA': '04',
+                     'dataAcolhimentoProposta': 20261022}
+
+
+def test_inss_em_atraso_tem_recalculo(ambiente):
+    from app.services.pendencias_service import GUIA_POR_TIPO
+    assert GUIA_POR_TIPO['INSS'] == 'DCTFWEB'
+
+
+def test_parcelas_consulta_paga_uma_vez_por_dia_e_emissao_exige_parcela_consultada(ambiente, monkeypatch):
+    app, http, _ = ambiente
+    from app.services import parcelas_service
+    consultas = []
+
+    def consultar_falso(cnpj, sistema, servico):
+        consultas.append((cnpj, sistema, servico))
+        return {'dados': '{"listaParcelas": [{"parcela": 202609, "valor": 211.72}, {"parcela": 202610, "valor": 210.5}]}',
+                'mensagens': []}
+
+    import app.services.serpro_das_service as sds
+    monkeypatch.setattr(sds, 'consultar_parcelas_para_gerar', consultar_falso)
+    chamadas = []
+    _serpro_falsa(monkeypatch, chamadas)
+
+    # antes de consultar: emissão bloqueada, sem chamada
+    r0 = http.post('/api/interno/das/emitir', json={'cnpj': CNPJ_A, 'tipo': 'PARC_SN',
+                                                    'periodo_apuracao': '202609'}, headers=TOKEN)
+    assert r0.status_code == 409 and not chamadas
+
+    assert http.get(f'/api/interno/parcelas/{CNPJ_A}?tipo=PARC_SN', headers=TOKEN).get_json()['consultado'] is False
+    r1 = http.post('/api/interno/parcelas/consultar', json={'cnpj': CNPJ_A, 'tipo': 'PARC_SN'}, headers=TOKEN)
+    j1 = r1.get_json()
+    assert r1.status_code == 200 and j1['reuso'] is False
+    assert j1['parcelas'] == [{'parcela': '202609', 'valor': 211.72}, {'parcela': '202610', 'valor': 210.5}]
+    r2 = http.post('/api/interno/parcelas/consultar', json={'cnpj': CNPJ_A, 'tipo': 'PARC_SN'}, headers=TOKEN)
+    assert r2.get_json()['reuso'] is True and len(consultas) == 1
+    assert consultas[0][1:] == ('PARCSN', 'PARCELASPARAGERAR162')
+
+    # parcela que não consta → bloqueada; a que consta → emite; data de pagamento recusada
+    assert http.post('/api/interno/das/emitir', json={'cnpj': CNPJ_A, 'tipo': 'PARC_SN',
+                                                      'periodo_apuracao': '202512'}, headers=TOKEN).status_code == 409
+    assert http.post('/api/interno/das/emitir', json={'cnpj': CNPJ_A, 'tipo': 'PARC_SN', 'periodo_apuracao': '202609',
+                                                      'data_consolidacao': '20991230'}, headers=TOKEN).status_code == 400
+    ok = http.post('/api/interno/das/emitir', json={'cnpj': CNPJ_A, 'tipo': 'PARC_SN',
+                                                    'periodo_apuracao': '202609'}, headers=TOKEN)
+    assert ok.status_code == 200, ok.get_json()
+    assert chamadas == [{'tipo': 'PARC_SN', 'cnpj': CNPJ_A, 'pa': '202609', 'consolidacao': None}]
+
+
+def test_parcelas_le_variacoes_da_resposta():
+    from app.services.parcelas_service import _parcelas_do_corpo
+    assert _parcelas_do_corpo({'dados': {'listaParcelas': [{'parcela': '202601', 'valor': '10.5'}]}}) == \
+        [{'parcela': '202601', 'valor': 10.5}]
+    assert _parcelas_do_corpo({'dados': ''}) == []
 
 
 def test_empresa_desconhecida_nao_emite(ambiente):

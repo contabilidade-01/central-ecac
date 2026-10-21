@@ -124,3 +124,24 @@ class MeiEnvio(db.Model):
     enviado_por = db.Column(db.String(120), nullable=True)
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow,
                               nullable=False)
+
+
+class ParcelasConsulta(db.Model):
+    """Resultado de `PARCELASPARAGERAR` (parcelas de parcelamento que podem ser emitidas).
+
+    A consulta é PAGA. Guardar o resultado serve para:
+    * **não pagar duas vezes no mesmo dia** — o painel lê daqui;
+    * **não emitir parcela que não existe** — a emissão só aceita parcela que consta na
+      última consulta (evita chamada paga com competência digitada errada).
+    """
+    __tablename__ = 'parcelas_consultas'
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, nullable=False, index=True)
+    cnpj = db.Column(db.String(14), nullable=False, index=True)
+    tipo = db.Column(db.String(10), nullable=False)          # PARC_SN | PARC_MEI | PERT_SN | ...
+    consultado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    parcelas_json = db.Column(db.Text, nullable=True)        # [{"parcela": "AAAAMM", "valor": 1.23}]
+    mensagem = db.Column(db.String(500), nullable=True)      # recusa/mensagem da SERPRO
+    solicitado_por = db.Column(db.String(120), nullable=True)
+    custo_estimado = db.Column(db.Float, nullable=True)

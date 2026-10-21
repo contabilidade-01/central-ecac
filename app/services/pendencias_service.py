@@ -34,7 +34,7 @@ from app.models import Company, DebitoRelatorio, PendenciaRelatorio, RelatorioSi
 GUIA_POR_TIPO = {
     'SN': 'SN',            # PGDASD/GERARDAS12 com dataConsolidacao
     'MEI': 'MEI',          # PGMEI/GERARDASPDF21
-    'INSS': 'DCTFWEB',     # DCTFWEB/GERARGUIA31 — só competência corrente (sem data)
+    'INSS': 'DCTFWEB',     # DCTFWEB/GERARGUIA31 + dataAcolhimentoProposta (desvio 19)
 }
 
 _RE_PA_MES = re.compile(r'^(\d{2})/(\d{4})$')
@@ -129,8 +129,9 @@ def _serializar_debito(debito: DebitoRelatorio, hoje: date) -> Dict[str, Any]:
         'valido': not motivos,
         'motivos': motivos,
         'guia': GUIA_POR_TIPO.get(tipo),
-        # SN e MEI aceitam data de consolidação; a DARF da DCTFWeb só sai por competência.
-        'recalculo_disponivel': tipo in ('SN', 'MEI'),
+        # SN e MEI: dataConsolidacao; INSS: uma DARF da DCTFWeb por competência com
+        # dataAcolhimentoProposta (desvio 19) — junta todos os códigos (1082, 1099…).
+        'recalculo_disponivel': tipo in ('SN', 'MEI', 'INSS'),
     }
 
 

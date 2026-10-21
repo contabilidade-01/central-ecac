@@ -34,11 +34,17 @@ from app.services.pendencias_service import hoje_brasil
 
 logger = logging.getLogger(__name__)
 
-TIPOS = ('SN', 'MEI', 'DCTFWEB')
+from app.services.parcelamentos_serpro_service import PARCELAMENTO_TYPES
+
+#: DESVIO 19: parcela de parcelamento é emitida pelo mesmo caminho (mesmas travas);
+#: `periodo_apuracao` = parcela (AAAAMM).
+TIPOS_PARCELA = tuple(PARCELAMENTO_TYPES.keys())
+TIPOS = ('SN', 'MEI', 'DCTFWEB') + TIPOS_PARCELA
 ENDPOINT_POR_TIPO = {
     'SN': 'PGDASD/GERARDAS12',
     'MEI': 'PGMEI/GERARDASPDF21',
     'DCTFWEB': 'DCTFWEB/GERARGUIA31',
+    **{t: f"{c['pdf']['idSistema']}/{c['pdf']['idServico']}" for t, c in PARCELAMENTO_TYPES.items()},
 }
 
 
@@ -165,8 +171,13 @@ def _chamar_serpro(tipo: str, cnpj: str, pa: str, categoria: Optional[str],
             categoria=categoria or 'GERAL_MENSAL',
             competencia=pa,
             ano_pa=pa[:4],
+            data_acolhimento=data_consolidacao,
         )
         return pdf or b'', {}
+    if tipo in TIPOS_PARCELA:
+        from app.services.serpro_das_service import emitir_pdf_parcela
+        cfg = PARCELAMENTO_TYPES[tipo]['pdf']
+        return emitir_pdf_parcela(cnpj, cfg['idSistema'], cfg['idServico'], pa), {}
     return service.emitir_pdf_detalhado(
         contribuinte_numero=cnpj,
         periodo_apuracao=pa,
@@ -191,13 +202,20 @@ def emitir(cnpj: str, tipo: str, periodo_apuracao: str, data_consolidacao: Optio
         raise EmissaoBloqueada(f'Tipo de guia inválido: {tipo}.', 400)
     if len(pa) != 6:
         raise EmissaoBloqueada('Informe a competência no formato AAAAMM.', 400)
+    hoje_txt = hoje_brasil().strftime('%Y%m%d')
     if tipo == 'DCTFWEB':
-        categoria = categoria or 'GERAL_MENSAL'
+        # Competência 13 (relatório traz '13/AAAA') é a DCTFWeb do 13º salário.
+        categoria = categoria or ('GERAL_13o_SALARIO' if pa[4:] == '13' else 'GERAL_MENSAL')
         if categoria not in ('GERAL_MENSAL', 'GERAL_13o_SALARIO'):
             raise EmissaoBloqueada('Categoria inválida para DCTFWeb.', 400)
+        # DESVIO 19: data de pagamento vai como dataAcolhimentoProposta (multa/juros até ela).
+        if consolidacao and consolidacao < hoje_txt:
+            raise EmissaoBloqueada('A data de pagamento não pode ser anterior a hoje.', 400)
+    elif tipo in TIPOS_PARCELA:
+        categoria = None
         if consolidacao:
-            raise EmissaoBloqueada('A DARF da DCTFWeb não aceita data de consolidação pela API. '
-                                   'Guia vencida de INSS: fale com o escritório.', 400)
+            raise EmissaoBloqueada('Parcela de parcelamento não aceita data de pagamento: a Receita '
+                                   'calcula a parcela para o mês da emissão.', 400)
     else:
         categoria = None
 
@@ -206,6 +224,11 @@ def emitir(cnpj: str, tipo: str, periodo_apuracao: str, data_consolidacao: Optio
         raise EmissaoBloqueada('Empresa não cadastrada no Central e-CAC.', 404)
     if not company.ativo:
         raise EmissaoBloqueada('Empresa inativa no Central e-CAC.', 409)
+    if tipo in TIPOS_PARCELA:
+        from app.services import parcelas_service
+        if not parcelas_service.parcela_consta(cnpj, tipo, pa):
+            raise EmissaoBloqueada('Esta parcela não consta na última consulta de parcelas. '
+                                   'Consulte as parcelas antes de emitir.', 409)
 
     # 1) guia guardada e válida → sem custo
     if not forcar:
@@ -253,7 +276,9 @@ def emitir(cnpj: str, tipo: str, periodo_apuracao: str, data_consolidacao: Optio
         company_id=company.id, cnpj=cnpj, tipo=tipo, periodo_apuracao=pa, categoria=categoria,
         data_consolidacao=consolidacao,
         numero_documento=numero if detalhe.get('numeroDocumento') else None,
-        vencimento=_aaaammdd(detalhe.get('dataVencimento')) or consolidacao,
+        # Parcela sem vencimento na resposta: vale só hoje para reaproveitar (conservador).
+        vencimento=(_aaaammdd(detalhe.get('dataVencimento')) or consolidacao
+                    or (hoje_txt if tipo in TIPOS_PARCELA else None)),
         valor_total=(float(valores['total']) if valores.get('total') is not None else None),
         pdf_local_path=caminho, origem=origem, solicitado_por=solicitado_por,
         custo_estimado=custo, detalhe_json=json.dumps(detalhe, ensure_ascii=False)[:20000] or None,

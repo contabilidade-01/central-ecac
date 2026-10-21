@@ -33,6 +33,7 @@ from flask import Blueprint, Response, jsonify, request
 from app.services import fila_reprocessamento_service as fila
 from app.services import das_emissao_service as emissao
 from app.services import pendencias_service as pend
+from app.services import parcelas_service
 from app.extensions import db
 from app.integracao_models import DasEmissao
 
@@ -123,6 +124,34 @@ def emitir_guia():
         'emissao': emissao.serializar(registro, reuso=reuso),
         'pdf_url': f'/api/interno/das/{registro.id}/pdf',
     })
+
+
+@interno_bp.get('/parcelas/<cnpj>')
+def parcelas_guardadas(cnpj: str):
+    """Última consulta de parcelas de um tipo — custo zero."""
+    tipo = str(request.args.get('tipo') or 'PARC_SN').upper()
+    if tipo not in parcelas_service.TIPOS:
+        return _erro(f'Tipo de parcelamento inválido: {tipo}.', 400)
+    return jsonify({'success': True, 'tipos': {t: parcelas_service.rotulo(t) for t in parcelas_service.TIPOS},
+                    **parcelas_service.serializar(parcelas_service.ultima(cnpj, tipo))})
+
+
+@interno_bp.post('/parcelas/consultar')
+def parcelas_consultar():
+    """Consulta paga (a do dia é reaproveitada). `{cnpj, tipo, forcar?, solicitado_por?}`."""
+    corpo = request.get_json(silent=True) or {}
+    try:
+        r = parcelas_service.consultar(
+            cnpj=corpo.get('cnpj'), tipo=corpo.get('tipo') or 'PARC_SN', forcar=bool(corpo.get('forcar')),
+            solicitado_por=(str(corpo.get('solicitado_por'))[:120] if corpo.get('solicitado_por') else None))
+    except parcelas_service.ConsultaBloqueada as exc:
+        return _erro(str(exc), exc.status)
+    except Exception as exc:
+        from app.services.serpro_das_service import SerproApiError
+        if isinstance(exc, SerproApiError):
+            return _erro(str(exc), 400 if 400 <= exc.status_code < 500 else 502)
+        return _erro(f'Falha na consulta: {exc}', 502)
+    return jsonify({'success': True, **r})
 
 
 @interno_bp.get('/das/emissoes')

@@ -41,6 +41,8 @@ Os dois sistemas rodam em projetos Easypanel separados: `localhost` de um não �
 | GET | `/das/<id>/pdf?cnpj=` | 0 | PDF guardado; `cnpj` diferente do da emissão → 403 |
 | POST | `/reprocessar` | agenda (pago quando rodar) | `{cnpj, dias_uteis: 5, motivo, origem}` |
 | GET | `/reprocessamentos?cnpj=&pendentes=1` | 0 | fila |
+| GET | `/parcelas/<cnpj>?tipo=PARC_SN` | 0 | última consulta de parcelas |
+| POST | `/parcelas/consultar` | **pago** (ou 0 se já consultado hoje) | `{cnpj, tipo, forcar?, solicitado_por?}` |
 
 ### O que cada débito traz
 
@@ -68,7 +70,9 @@ Os dois sistemas rodam em projetos Easypanel separados: `localhost` de um não �
 |---|---|---|
 | DAS Simples (`SN`) | `PGDASD/GERARDAS12` + `dataConsolidacao` | sim |
 | DAS MEI (`MEI`) | `PGMEI/GERARDASPDF21` + `dataConsolidacao` (opcional, desvio 18) | ⚠️ **validar em produção** com uma competência vencida antes de liberar no portal |
-| DARF DCTFWeb (`DCTFWEB`) | `DCTFWEB/GERARGUIA31` por competência | **não** — a API não aceita data; a rota recusa `data_consolidacao` e o portal manda o cliente falar com o escritório |
+| DARF DCTFWeb (`DCTFWEB`) | `DCTFWEB/GERARGUIA31` por competência + `dataAcolhimentoProposta` (desvio 19): **uma DARF com todos os códigos** (1082, 1099…) | sim — data de pagamento ≥ hoje; ⚠️ validar em produção com uma competência vencida |
+| Parcela de parcelamento (`PARC_SN`, `PARC_MEI`, `PERT_*`, `RELP_*`) | `POST /parcelas/consultar` (`PARCELASPARAGERAR`, paga, 1×/dia reaproveitada) e depois `/das/emitir` com `periodo_apuracao` = parcela (`GERARDAS16x…`) | a Receita calcula para o mês da emissão; só emite parcela que consta na última consulta |
+| PGFN (SISPAR) | não existe no Integra Contador | emitir no Regularize |
 
 ### Travas antes de pagar
 

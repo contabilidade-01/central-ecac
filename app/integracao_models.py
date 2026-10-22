@@ -145,3 +145,23 @@ class ParcelasConsulta(db.Model):
     mensagem = db.Column(db.String(500), nullable=True)      # recusa/mensagem da SERPRO
     solicitado_por = db.Column(db.String(120), nullable=True)
     custo_estimado = db.Column(db.Float, nullable=True)
+
+
+class ConfirmacaoSitfis(db.Model):
+    """"Confirmar pendências": relatório de situação fiscal pedido NA HORA para uma empresa,
+    antes de o escritório mandar o alerta ao cliente (desvio 20). Uma linha por pedido.
+
+    Chamada paga (~R$ 0,32). Travas: procuração, teto mensal, limite diário por empresa
+    (`INTEGRACAO_MAX_CONFIRMACOES_DIA`, padrão 2) e um pedido por vez por empresa.
+    """
+    __tablename__ = 'confirmacoes_sitfis'
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, nullable=False, index=True)
+    cnpj = db.Column(db.String(14), nullable=False, index=True)
+    iniciado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    concluido_em = db.Column(db.DateTime, nullable=True)
+    sucesso = db.Column(db.Boolean, nullable=True)
+    mensagem = db.Column(db.String(500), nullable=True)
+    relatorio_id = db.Column(db.Integer, nullable=True)
+    solicitado_por = db.Column(db.String(120), nullable=True)

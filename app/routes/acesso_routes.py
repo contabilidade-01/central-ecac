@@ -244,7 +244,7 @@ def montar_pagina(link: AcessoLink, company: Company) -> Dict[str, Any]:
 # captcha — mostra o recorte do desafio e repassa os toques do cliente.
 def _fgts_resumo(link: AcessoLink, company: Company) -> Dict[str, Any]:
     from app.services import fgts_pedidos_service as fgts
-    if not fgts.habilitado():
+    if not fgts.liberado_para(company.cnpj):
         return {'habilitado': False}
     aberto = fgts.pedido_aberto(company.cnpj)
     consulta = fgts.ultima_consulta_hoje(company.cnpj)

@@ -114,6 +114,14 @@ def test_pagina_mostra_fgts_so_quando_ligado(ambiente, monkeypatch):
     r = http.post('/api/interno/acesso-links', json={'cnpj': CNPJ_A}, headers=TOKEN).get_json()
     assert r['fgts'] is True
     assert http.get(f'/api/acesso/{token}').get_json()['fgts']['habilitado'] is True
+    # Piloto com outro CNPJ: esta empresa não vê nem consegue pedir.
+    monkeypatch.setenv('FGTS_DIGITAL_CNPJS', CNPJ_B)
+    assert http.get(f'/api/acesso/{token}').get_json()['fgts'] == {'habilitado': False}
+    assert http.post(f'/api/acesso/{token}/fgts/pedidos', json={'acao': 'consultar'}).status_code == 503
+    assert http.post('/api/interno/acesso-links', json={'cnpj': CNPJ_A}, headers=TOKEN).get_json()['fgts'] is False
+    monkeypatch.setenv('FGTS_DIGITAL_CNPJS', f'{CNPJ_B}, 36.298.150/0001-70')
+    assert http.get(f'/api/acesso/{token}').get_json()['fgts']['habilitado'] is True
+    monkeypatch.delenv('FGTS_DIGITAL_CNPJS')
     monkeypatch.setenv('FGTS_DIGITAL_HABILITADO', '0')
     assert http.get(f'/api/acesso/{token}').get_json()['fgts'] == {'habilitado': False}
     r = http.post(f'/api/acesso/{token}/fgts/pedidos', json={'acao': 'consultar'})

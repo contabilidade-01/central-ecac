@@ -312,7 +312,7 @@ def criar_acesso_link():
     return jsonify({'success': True, 'link': links.serializar(link),
                     'url': links.url_do_link(link.token, _base_publica()),
                     # A página do link tem a seção FGTS (desvio 22)? O AtendeChat cita no texto.
-                    'fgts': fgts.habilitado()})
+                    'fgts': fgts.liberado_para(company.cnpj)})
 
 
 @interno_bp.get('/acesso-links')

@@ -48,6 +48,7 @@ O robô **nunca** tenta resolver o captcha sozinho.
 | Variável | Padrão | Para quê |
 |---|---|---|
 | `FGTS_DIGITAL_HABILITADO` | `0` | liga a seção FGTS na página do link |
+| `FGTS_DIGITAL_CNPJS` | vazio | piloto: só esses CNPJs (vírgula) veem o FGTS; vazio = todos |
 | `FGTS_MAX_PEDIDOS_DIA` | `6` | pedidos por link por dia |
 | `FGTS_CAPTCHA_TIMEOUT_S` | `300` | tempo para o cliente resolver o captcha |
 | `FGTS_ESCOLHA_TIMEOUT_S` | `240` | tempo da sessão aberta esperando o cliente marcar os meses |
@@ -78,7 +79,8 @@ O robô **nunca** tenta resolver o captcha sozinho.
 
 ## Antes de ligar em produção
 
-1. `FGTS_DIGITAL_HABILITADO=1` e implantar.
+1. `FGTS_DIGITAL_HABILITADO=1` e `FGTS_DIGITAL_CNPJS=36298150000170` (piloto) e implantar.
 2. Abrir o link de **uma** empresa com procuração (ex.: J F DA SILVA), consultar, emitir
    um mês e conferir o PDF com o que o portal mostra.
-3. Se o login falhar, olhar `<DATA_DIR>/fgts/_diagnostico/` (print da tela).
+3. Deu certo: apagar `FGTS_DIGITAL_CNPJS` para abrir a todos.
+4. Se o login falhar, olhar `<DATA_DIR>/fgts/_diagnostico/` (print da tela).

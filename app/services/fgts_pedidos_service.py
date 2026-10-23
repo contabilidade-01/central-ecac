@@ -54,6 +54,16 @@ def habilitado() -> bool:
     return os.getenv('FGTS_DIGITAL_HABILITADO', '0').strip().lower() in ('1', 'true', 'sim')
 
 
+def liberado_para(cnpj: str) -> bool:
+    """Piloto: com `FGTS_DIGITAL_CNPJS` (lista separada por vírgula) só esses CNPJs veem
+    o FGTS no link; vazio = todos. Serve para validar com uma empresa antes de abrir."""
+    if not habilitado():
+        return False
+    lista = {''.join(ch for ch in c if ch.isdigit()) for c in os.getenv('FGTS_DIGITAL_CNPJS', '').split(',')}
+    lista.discard('')
+    return not lista or cnpj in lista
+
+
 def max_pedidos_dia() -> int:
     try:
         return max(1, int(os.getenv('FGTS_MAX_PEDIDOS_DIA', '6')))
@@ -120,7 +130,7 @@ def pedidos_hoje_do_link(link_id: int) -> int:
 def criar(*, company_id: int, cnpj: str, acao: str, competencia: Any = None,
           link_id: Optional[int] = None, origem: str = 'link',
           solicitado_por: Optional[str] = None) -> FgtsPedido:
-    if not habilitado():
+    if not liberado_para(cnpj):
         raise PedidoRecusado('O FGTS por aqui ainda não está ligado. Fale com o escritório.', 503)
     if acao not in ACOES:
         raise PedidoRecusado('Ação inválida.')

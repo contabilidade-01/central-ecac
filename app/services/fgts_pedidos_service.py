@@ -130,7 +130,10 @@ def pedidos_hoje_do_link(link_id: int) -> int:
 def criar(*, company_id: int, cnpj: str, acao: str, competencia: Any = None,
           link_id: Optional[int] = None, origem: str = 'link',
           solicitado_por: Optional[str] = None) -> FgtsPedido:
-    if not liberado_para(cnpj):
+    # Link do cliente: respeita o piloto por CNPJ. Escritório (AtendeChat, sem link):
+    # basta o robô estar ligado — é assim que se valida antes de abrir o link.
+    liberado = liberado_para(cnpj) if link_id is not None else habilitado()
+    if not liberado:
         raise PedidoRecusado('O FGTS por aqui ainda não está ligado. Fale com o escritório.', 503)
     if acao not in ACOES:
         raise PedidoRecusado('Ação inválida.')

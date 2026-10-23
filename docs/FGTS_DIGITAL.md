@@ -75,7 +75,9 @@ O robô **nunca** tenta resolver o captcha sozinho.
 | `GET /api/acesso/<token>/fgts/pedidos/<id>/captcha.jpg` | recorte do desafio |
 | `POST /api/acesso/<token>/fgts/pedidos/<id>/captcha/toque` `{x, y}` | toque do cliente (0..1) |
 | `GET /api/acesso/<token>/fgts/pedidos/<id>/pdf/<n>` | GFD |
-| `GET /api/interno/fgts/estado`, `GET /api/interno/fgts/pedidos?cnpj=` | para o AtendeChat/escritório |
+| `GET /api/interno/fgts/estado`, `GET /api/interno/fgts/pedidos?cnpj=` | saúde do robô e últimos pedidos |
+| `POST /api/interno/fgts/pedidos` `{cnpj, acao, competencias?, solicitado_por}` | **escritório** (AtendeChat) pede — vale com o robô ligado, mesmo fora do piloto do link |
+| `GET /api/interno/fgts/pedidos/<id>?cnpj=` · `POST …/escolha` · `GET …/captcha.jpg?cnpj=` · `POST …/captcha/toque` · `GET …/pdf/<n>?cnpj=` | mesmo fluxo da página, CNPJ sempre conferido com o do pedido |
 
 ## Antes de ligar em produção
 

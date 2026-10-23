@@ -24,6 +24,12 @@ Por isso NÃO existe aqui e-mail, telefone nem envio de mensagem. Só:
   GET  /api/interno/reprocessamentos?cnpj=&pendentes=1
   GET  /api/interno/fgts/estado                                robô do FGTS Digital (desvio 22)
   GET  /api/interno/fgts/pedidos?cnpj=                         pedidos ao robô e andamento
+  POST /api/interno/fgts/pedidos                               escritório pede consulta/emissão
+  GET  /api/interno/fgts/pedidos/<id>?cnpj=                    andamento (CNPJ conferido)
+  POST /api/interno/fgts/pedidos/<id>/escolha                  meses escolhidos na sessão aberta
+  GET  /api/interno/fgts/pedidos/<id>/captcha.jpg?cnpj=        recorte do captcha
+  POST /api/interno/fgts/pedidos/<id>/captcha/toque            toque (0..1)
+  GET  /api/interno/fgts/pedidos/<id>/pdf/<n>?cnpj=            GFD
   POST /api/interno/acesso-links                               link sem senha servido AQUI (desvio 21)
   GET  /api/interno/acesso-links?cnpj=
   POST /api/interno/acesso-links/revogar
@@ -358,3 +364,110 @@ def fgts_pedidos():
     return jsonify({'success': True, 'total': len(itens),
                     'pedidos': [{**fgts.serializar(p), 'cnpj': p.cnpj, 'origem': p.origem}
                                 for p in itens]})
+
+
+def _fgts_pedido_do_cnpj(pedido_id: int):
+    """Pedido + CNPJ conferido: o chamador SEMPRE manda o CNPJ do vínculo (o AtendeChat
+    tira do cadastro do contato); pedido de outra empresa = 404."""
+    from app.integracao_models import FgtsPedido
+    cnpj = ''.join(ch for ch in (request.args.get('cnpj') or
+                                 (request.get_json(silent=True) or {}).get('cnpj') or '') if ch.isdigit())
+    pedido = db.session.get(FgtsPedido, pedido_id)
+    if not cnpj or not pedido or pedido.cnpj != cnpj:
+        return None
+    return pedido
+
+
+def _fgts_json(pedido):
+    from app.services import fgts_pedidos_service as fgts
+    return {**fgts.serializar(pedido, base_pdf=f'/api/interno/fgts/pedidos/{pedido.id}/pdf'),
+            'cnpj': pedido.cnpj, 'origem': pedido.origem}
+
+
+@interno_bp.post('/fgts/pedidos')
+def fgts_criar_pedido():
+    """Escritório pede ao robô: `{cnpj, acao: consultar}` ou `{cnpj, acao: emitir,
+    competencias: [AAAAMM…]}` (meses da consulta de hoje). Retoma o pedido aberto."""
+    from app.services import fgts_pedidos_service as fgts
+    corpo = request.get_json(silent=True) or {}
+    company = pend.empresa_por_cnpj(corpo.get('cnpj'))
+    if not company:
+        return _erro('Empresa não cadastrada.', 404)
+    if not company.ativo:
+        return _erro('Empresa inativa no Central e-CAC.', 409)
+    origem = str(corpo.get('origem') or 'atendechat')[:20]
+    try:
+        pedido = fgts.criar(company_id=company.id, cnpj=company.cnpj,
+                            acao=str(corpo.get('acao') or 'consultar'),
+                            competencia=corpo.get('competencias') or corpo.get('competencia'),
+                            link_id=None, origem=origem,
+                            solicitado_por=str(corpo.get('solicitado_por') or origem)[:120])
+    except fgts.PedidoRecusado as exc:
+        return _erro(str(exc), exc.status)
+    return jsonify({'success': True, 'pedido': _fgts_json(pedido)})
+
+
+@interno_bp.get('/fgts/pedidos/<int:pedido_id>')
+def fgts_ver_pedido(pedido_id: int):
+    pedido = _fgts_pedido_do_cnpj(pedido_id)
+    if not pedido:
+        return _erro('Pedido não encontrado.', 404)
+    return jsonify({'success': True, 'pedido': _fgts_json(pedido)})
+
+
+@interno_bp.post('/fgts/pedidos/<int:pedido_id>/escolha')
+def fgts_escolher(pedido_id: int):
+    from app.services import fgts_digital_robo, fgts_pedidos_service as fgts
+    pedido = _fgts_pedido_do_cnpj(pedido_id)
+    if not pedido:
+        return _erro('Pedido não encontrado.', 404)
+    try:
+        escolha = fgts.validar_escolha(pedido, (request.get_json(silent=True) or {}).get('competencias'))
+    except fgts.PedidoRecusado as exc:
+        return _erro(str(exc), exc.status)
+    fgts_digital_robo.robo().escolher(pedido.id, escolha)
+    return jsonify({'success': True, 'competencias': escolha})
+
+
+@interno_bp.get('/fgts/pedidos/<int:pedido_id>/captcha.jpg')
+def fgts_captcha_imagem(pedido_id: int):
+    from app.services import fgts_digital_robo
+    pedido = _fgts_pedido_do_cnpj(pedido_id)
+    if not pedido or pedido.status != 'aguardando_captcha':
+        return _erro('Nenhuma verificação pendente.', 404)
+    imagem = fgts_digital_robo.robo().captcha_imagem(pedido.id)
+    if not imagem:
+        return _erro('Carregando a verificação…', 202)
+    return Response(imagem, mimetype='image/jpeg', headers={'Cache-Control': 'no-store'})
+
+
+@interno_bp.post('/fgts/pedidos/<int:pedido_id>/captcha/toque')
+def fgts_captcha_toque_interno(pedido_id: int):
+    from app.services import fgts_digital_robo
+    pedido = _fgts_pedido_do_cnpj(pedido_id)
+    if not pedido or pedido.status != 'aguardando_captcha':
+        return _erro('Nenhuma verificação pendente.', 404)
+    corpo = request.get_json(silent=True) or {}
+    try:
+        fx, fy = float(corpo.get('x')), float(corpo.get('y'))
+    except (TypeError, ValueError):
+        return _erro('Toque inválido.')
+    if not fgts_digital_robo.robo().clicar_captcha(pedido.id, fx, fy):
+        return _erro('Toque inválido.')
+    return jsonify({'success': True})
+
+
+@interno_bp.get('/fgts/pedidos/<int:pedido_id>/pdf/<int:indice>')
+def fgts_pdf_interno(pedido_id: int, indice: int):
+    from app.services import fgts_pedidos_service as fgts
+    pedido = _fgts_pedido_do_cnpj(pedido_id)
+    if not pedido:
+        return _erro('Guia não encontrada.', 404)
+    caminho = fgts.caminho_pdf(pedido, indice)
+    if not caminho:
+        return _erro('Esta guia não está mais disponível. Gere novamente.', 410)
+    conteudo = caminho.read_bytes()
+    if not fgts.pdf_e_da_empresa(conteudo, pedido.cnpj):
+        return _erro('Guia não encontrada.', 404)
+    return Response(conteudo, mimetype='application/pdf',
+                    headers={'Content-Disposition': f'attachment; filename="FGTS_{pedido.cnpj}_{indice + 1}.pdf"'})

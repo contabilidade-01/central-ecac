@@ -478,3 +478,51 @@ def test_robo_sem_procuracao_da_erro_claro(ambiente, sem_fila, monkeypatch):
     assert p['status'] == 'erro' and 'procuração' in p['mensagem']
     assert any(e['situacao'] == 'erro' and e['chave'] == 'perfil' for e in p['etapas'])
     assert estado['downloads'] == 0 and robo._browser is None
+
+
+# ------------------------------------------------- rotas internas (AtendeChat/admin)
+def test_interno_escritorio_pede_acompanha_e_baixa_com_cnpj_conferido(ambiente, sem_fila, monkeypatch):
+    _app, http, _ = ambiente
+    # Piloto do link restrito a outra empresa: o escritório continua podendo pedir.
+    monkeypatch.setenv('FGTS_DIGITAL_CNPJS', CNPJ_B)
+    assert http.post('/api/interno/fgts/pedidos', json={'cnpj': CNPJ_A}).status_code == 401   # sem token
+    r = http.post('/api/interno/fgts/pedidos', json={'cnpj': CNPJ_A, 'acao': 'consultar',
+                                                     'solicitado_por': 'atendechat:jean'}, headers=TOKEN)
+    assert r.status_code == 200, r.get_json()
+    p = r.get_json()['pedido']
+    assert p['origem'] == 'atendechat' and p['status'] == 'fila' and sem_fila == [p['id']]
+    pid = p['id']
+    # CNPJ obrigatório e conferido
+    assert http.get(f'/api/interno/fgts/pedidos/{pid}', headers=TOKEN).status_code == 404
+    assert http.get(f'/api/interno/fgts/pedidos/{pid}?cnpj={CNPJ_B}', headers=TOKEN).status_code == 404
+    assert http.get(f'/api/interno/fgts/pedidos/{pid}?cnpj={CNPJ_A}', headers=TOKEN).status_code == 200
+    assert http.get(f'/api/interno/fgts/pedidos/{pid}/captcha.jpg?cnpj={CNPJ_A}', headers=TOKEN).status_code == 404
+
+    from app.integracao_models import FgtsPedido
+    from app.services import fgts_digital_robo, fgts_pedidos_service as svc
+    pedido = db.session.get(FgtsPedido, pid)
+    svc.gravar_resultado(pedido, {'competencias': [{'competencia': '202602', 'total': 359.93}]})
+    pedido.status = 'aguardando_escolha'
+    db.session.commit()
+    escolhas = []
+    monkeypatch.setattr(fgts_digital_robo.RoboFgts, 'escolher', lambda self, i, c: escolhas.append((i, c)))
+    assert http.post(f'/api/interno/fgts/pedidos/{pid}/escolha', json={'cnpj': CNPJ_B, 'competencias': ['202602']},
+                     headers=TOKEN).status_code == 404
+    assert http.post(f'/api/interno/fgts/pedidos/{pid}/escolha', json={'cnpj': CNPJ_A, 'competencias': ['202602']},
+                     headers=TOKEN).status_code == 200
+    assert escolhas == [(pid, ['202602'])]
+
+    (svc.pasta_pdfs(CNPJ_A) / 'g.pdf').write_bytes(GFD_A)
+    svc.gravar_resultado(pedido, {'guias': [{'arquivo': 'g.pdf', 'competencia': '202602', 'valor': 359.93}]})
+    pedido.status = 'concluido'
+    db.session.commit()
+    j = http.get(f'/api/interno/fgts/pedidos/{pid}?cnpj={CNPJ_A}', headers=TOKEN).get_json()['pedido']
+    assert j['guias'][0]['pdf_url'] == f'/api/interno/fgts/pedidos/{pid}/pdf/0'
+    r = http.get(f'/api/interno/fgts/pedidos/{pid}/pdf/0?cnpj={CNPJ_A}', headers=TOKEN)
+    assert r.status_code == 200 and r.data.startswith(b'%PDF')
+    assert http.get(f'/api/interno/fgts/pedidos/{pid}/pdf/0?cnpj={CNPJ_B}', headers=TOKEN).status_code == 404
+    # robô desligado: escritório também não pede
+    monkeypatch.setenv('FGTS_DIGITAL_HABILITADO', '0')
+    pedido.status = 'erro'
+    db.session.commit()
+    assert http.post('/api/interno/fgts/pedidos', json={'cnpj': CNPJ_A}, headers=TOKEN).status_code == 503

@@ -7,7 +7,7 @@ cliente no caminho. Ver `integracao_models.AcessoLink` para o modelo de seguran�
 Regras:
 * `obter_ou_criar` reaproveita um link da mesma empresa/origem que ainda valha ≥ 3 dias,
   para a mesma pessoa não receber um link diferente a cada mensagem.
-* `validar` só aceita token hex de 64 caracteres, não revogado, não vencido, de empresa
+* `validar` só aceita token hex de 24 (ou 64, antigos) caracteres, não revogado, não vencido, de empresa
   ativa. Token errado conta como tentativa falha do IP (mesmo bloqueio do login).
 * Limite de gerações por token por competência por dia (`LINK_GUIAS_MAX_GERACOES_DIA`,
   padrão 2) — além das travas de custo de `das_emissao_service.emitir` (procuração, teto
@@ -48,8 +48,14 @@ def max_geracoes_dia() -> int:
         return 2
 
 
+# 24 hex = 96 bits aleatórios: inviolável e curto. O token de 64 caracteres (primeira
+# versão) chegava CORTADO no WhatsApp do celular ao reconhecer o link; os antigos
+# continuam aceitos em `token_bem_formado`.
+TAMANHOS_TOKEN = (24, 64)
+
+
 def novo_token() -> str:
-    return secrets.token_hex(32)
+    return secrets.token_hex(12)
 
 
 def solicitante(token: str) -> str:
@@ -104,7 +110,7 @@ def obter_ou_criar(company: Company, origem: str = 'atendechat',
 
 def token_bem_formado(token: Any) -> str:
     tok = ''.join(ch for ch in str(token or '').lower() if ch in '0123456789abcdef')
-    return tok if len(tok) == 64 else ''
+    return tok if len(tok) in TAMANHOS_TOKEN else ''
 
 
 def validar(token: Any) -> Optional[AcessoLink]:

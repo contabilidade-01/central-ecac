@@ -109,7 +109,7 @@ def test_interno_cria_reaproveita_lista_e_revoga(ambiente):
     _app, http, _ = ambiente
     primeiro = _criar_link(http)
     token = primeiro['link']['token']
-    assert len(token) == 64 and all(c in '0123456789abcdef' for c in token)
+    assert len(token) == 24 and all(c in '0123456789abcdef' for c in token)
     assert primeiro['url'].endswith(f'/g/{token}')
     assert primeiro['link']['valido'] is True and primeiro['link']['origem'] == 'atendechat'
 
@@ -159,8 +159,13 @@ def test_token_errado_vencido_e_empresa_inativa_nao_abrem(ambiente):
     app, http, ids = ambiente
     r = http.get('/g/' + 'f' * 64)
     assert r.status_code == 404 and 'Link indisponível' in r.get_data(as_text=True)
+    assert http.get('/g/' + 'f' * 24).status_code == 404
+    assert http.get('/g/' + 'f' * 30).status_code == 404  # tamanho que não existe
     assert http.get('/api/acesso/nao-e-token').status_code == 404
     assert http.get('/g/qualquer-coisa').status_code == 404
+    # 5 tentativas erradas acima: zera o bloqueio do IP para seguir o teste
+    from app import security
+    security._TENTATIVAS.clear()
 
     token = _criar_link(http)['link']['token']
     from app.integracao_models import AcessoLink

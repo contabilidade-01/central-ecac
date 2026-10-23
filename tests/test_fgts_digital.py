@@ -354,7 +354,7 @@ render();
 </script>"""
 
 
-def _site_falso(captcha: bool, procuracoes=(CNPJ_A,)):
+def _site_falso(captcha: bool, procuracoes=(CNPJ_A,), expira_primeiro=False):
     """Handler de `context.route` imitando gov.br + FGTS Digital (estrutura real)."""
     estado = {'downloads': 0}
 
@@ -378,9 +378,11 @@ def _site_falso(captcha: bool, procuracoes=(CNPJ_A,)):
                 '<button style="width:100%;height:50px" onclick="parent.postMessage(\'ok\',\'*\')">Verificar</button>'))
         if host == 'sso.acesso.gov.br':
             alvo = 'https://fgtsdigital.sistema.gov.br/portal/acessogov?code=x'
+            expira = ("window._n=(window._n||0)+1;if(window._n===1){setTimeout(function(){f.remove();},1500);}"
+                      if expira_primeiro else "")
             js = (f"var f=document.createElement('iframe');f.src='https://newassets.hcaptcha.com/c';"
                   f"f.style.cssText='position:absolute;top:60px;left:400px;width:400px;height:580px';"
-                  f"document.body.appendChild(f);window.addEventListener('message',function(){{f.remove();"
+                  f"document.body.appendChild(f);{expira}window.addEventListener('message',function(){{f.remove();"
                   f"location='{alvo}'}});" if captcha else f"location='{alvo}';")
             return route.fulfill(**html('<h1>gov.br</h1><a href="#" onclick="' + js.replace('"', '&quot;')
                                         + 'return false">Seu certificado digital</a>'))
@@ -460,10 +462,10 @@ def _site_falso(captcha: bool, procuracoes=(CNPJ_A,)):
     return handler, estado
 
 
-def _robo_com_site(app, monkeypatch, captcha=False, procuracoes=(CNPJ_A,)):
+def _robo_com_site(app, monkeypatch, captcha=False, procuracoes=(CNPJ_A,), expira_primeiro=False):
     from app.services import fgts_digital_robo as mod
     monkeypatch.setenv('FGTS_CHROMIUM_PATH', CHROMIUM)
-    handler, estado = _site_falso(captcha, procuracoes)
+    handler, estado = _site_falso(captcha, procuracoes, expira_primeiro)
     robo = mod.RoboFgts(app)
     monkeypatch.setattr(robo, '_certificado', lambda: (None, None))
     monkeypatch.setattr(robo, '_ao_criar_contexto', lambda ctx: ctx.route('**/*', handler))
@@ -694,3 +696,29 @@ def test_certificado_pfx_vira_pem_em_memoria():
     assert pem['key'].startswith(b'-----BEGIN PRIVATE KEY-----')
     with pytest.raises(FalhaRobo):
         pfx_para_pem(pfx, 'errada')
+
+
+
+@navegador
+def test_robo_reabre_o_captcha_quando_ele_expira(ambiente, sem_fila, monkeypatch):
+    """hCaptcha sem resposta fecha sozinho (~2 min) e a tela volta ao login: o robô tem
+    de clicar de novo em "Seu certificado digital" e mostrar outro desafio (23/10/2026)."""
+    app, http, _ = ambiente
+    token = _link(http)
+    robo, _ = _robo_com_site(app, monkeypatch, captcha=True, expira_primeiro=True)
+    pid = http.post(f'/api/acesso/{token}/fgts/pedidos', json={'acao': 'consultar'}).get_json()['pedido']['id']
+    t = _rodar(app, robo, pid)
+    _esperar(http, token, pid, lambda p: p['aguardando_captcha'] or p['status'] == 'erro')
+    # 1º desafio expira sozinho; o robô volta a pedir o captcha (2º desafio).
+    time.sleep(2.5)
+    p = _esperar(http, token, pid, lambda p: p['aguardando_captcha'] or p['status'] == 'erro', segundos=30)
+    assert p['aguardando_captcha'], p['mensagem']
+    fim = time.time() + 10
+    while time.time() < fim and http.get(f'/api/acesso/{token}/fgts/pedidos/{pid}/captcha.jpg').status_code != 200:
+        time.sleep(0.3)
+    assert http.post(f'/api/acesso/{token}/fgts/pedidos/{pid}/captcha/toque', json={'x': .5, 'y': .95}).status_code == 200
+    p = _esperar(http, token, pid, lambda p: p['status'] in ('aguardando_escolha', 'erro'))
+    assert p['status'] == 'aguardando_escolha', p['mensagem']
+    monkeypatch.setenv('FGTS_ESCOLHA_TIMEOUT_S', '1')
+    _esperar(http, token, pid, lambda p: p['status'] in ('concluido', 'erro'), segundos=40)
+    t.join(30)

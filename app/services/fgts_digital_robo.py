@@ -420,21 +420,31 @@ class RoboFgts:
             page.get_by_role('button', name=re.compile('Entrar com GOV.BR', re.I)).click()
             page.wait_for_url(re.compile(r'sso\.acesso\.gov\.br|fgtsdigital'), timeout=30_000)
         limite = time.time() + _int_env('FGTS_LOGIN_TIMEOUT_S', 60)
-        clicou_cert = False
+        ultimo_clique = 0.0          # 0 = ainda não clicou em "Seu certificado digital"
+        rodadas = 0
         while time.time() < limite:
             if self._no_portal():
                 self._logado = True
                 return
             if self._captcha_visivel():
                 extras['teve_captcha'] = True
+                rodadas += 1
                 self._esperar_captcha(pedido)
+                # O desafio sumiu: ou passou (o gov.br segue para o certificado) ou
+                # EXPIROU (o hCaptcha fecha sozinho depois de ~2 min sem resposta e a
+                # tela volta ao login — visto na VPS em 23/10/2026). No 2º caso o laço
+                # abaixo clica de novo em "Seu certificado digital" e abre outro desafio.
+                ultimo_clique = time.time()
                 limite = time.time() + _int_env('FGTS_LOGIN_TIMEOUT_S', 60)
                 continue
-            if 'sso.acesso.gov.br/login' in page.url and not clicou_cert:
+            parado_no_login = 'sso.acesso.gov.br/login' in page.url
+            if parado_no_login and (not ultimo_clique or time.time() - ultimo_clique > 10):
+                if rodadas >= _int_env('FGTS_CAPTCHA_RODADAS', 3):
+                    raise FalhaRobo('A verificação de segurança do gov.br não foi concluída. Peça de novo.')
                 alvo = page.get_by_text('Seu certificado digital', exact=True)
                 if alvo.count():
                     alvo.first.click()
-                    clicou_cert = True
+                    ultimo_clique = time.time()
             page.wait_for_timeout(800)
         self._salvar_print(f'login_{pedido.id}')
         raise FalhaRobo('Não foi possível entrar no gov.br agora. Tente de novo em alguns minutos.')

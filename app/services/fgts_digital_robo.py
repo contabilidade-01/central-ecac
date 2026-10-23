@@ -114,6 +114,27 @@ def _msg_guias(guias: List[Dict[str, Any]]) -> str:
     return f'{len(guias)} guia(s) emitida(s): R$ {valor}'
 
 
+def pfx_para_pem(pfx: bytes, senha: str) -> Dict[str, bytes]:
+    """Certificado A1 → {'cert': PEM (com a cadeia), 'key': PEM}, só em memória.
+
+    O .pfx das ACs brasileiras costuma vir com criptografia LEGADA (RC2/3DES); o motor
+    do Playwright (Node/OpenSSL 3) recusa: "Unsupported TLS certificate... deprecated by
+    OpenSSL" (visto na VPS em 23/10/2026). A biblioteca `cryptography` lê esse formato,
+    então convertemos aqui. Nada é gravado em disco; o arquivo do volume não muda.
+    """
+    from cryptography.hazmat.primitives.serialization import (Encoding, NoEncryption,
+                                                              PrivateFormat, pkcs12)
+    try:
+        chave, cert, cadeia = pkcs12.load_key_and_certificates(pfx, (senha or '').encode())
+    except ValueError:
+        raise FalhaRobo('Não consegui abrir o certificado do escritório (senha?). Fale com o escritório.')
+    if chave is None or cert is None:
+        raise FalhaRobo('O certificado do escritório está incompleto. Fale com o escritório.')
+    cert_pem = cert.public_bytes(Encoding.PEM) + b''.join(c.public_bytes(Encoding.PEM) for c in (cadeia or []))
+    key_pem = chave.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+    return {'cert': cert_pem, 'key': key_pem}
+
+
 class RoboFgts:
     def __init__(self, app):
         self.app = app
@@ -330,7 +351,7 @@ class RoboFgts:
             headless=os.getenv('FGTS_HEADLESS', '1') != '0',
             executable_path=os.getenv('FGTS_CHROMIUM_PATH') or None,
             args=['--disable-dev-shm-usage', '--no-sandbox'])
-        certificados = [{'origin': ORIGEM_CERTIFICADO, 'pfx': pfx, 'passphrase': senha}] if pfx else []
+        certificados = [{'origin': ORIGEM_CERTIFICADO, **pfx_para_pem(pfx, senha)}] if pfx else []
         self._context = self._browser.new_context(
             client_certificates=certificados,
             locale='pt-BR', timezone_id='America/Sao_Paulo',

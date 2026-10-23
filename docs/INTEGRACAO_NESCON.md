@@ -64,7 +64,8 @@ guia recalculada **aqui**, sem o portal do cliente no caminho. O portal continua
 |---|---|
 | `GET /g/<token>` | página para celular: empresa, data do relatório, débitos **válidos e em atraso** com "vou pagar em [data]" + **Gerar guia atualizada**; a vencer com data opcional; **Outra competência** (tipo + mês + data) para a guia que ainda não está no relatório — venceu depois dele ou foi declarada depois; avisos de parcelamento/PGFN/omissão |
 | `GET /api/acesso/<token>` | JSON da página |
-| `POST /api/acesso/<token>/guias` `{debito_id, data_pagamento?}` ou `{tipo: SN\|MEI\|DCTFWEB, competencia: AAAAMM, data_pagamento?}` | emite pelo `emitir` (mesmas travas: procuração, teto, reuso); `origem='link'`, `solicitado_por='link:<token curto>'`. Tipos livres: MEI → só DAS MEI; demais → SN e INSS (inclusive 13º); competência do mês atual até 36 meses atrás |
+| `POST /api/acesso/<token>/parcelas/consultar` `{tipo}` | consulta paga das parcelas (a do dia é reaproveitada); tipos: os marcados no cadastro + os que o relatório cita |
+| `POST /api/acesso/<token>/guias` `{debito_id, data_pagamento?}`, `{tipo: SN\|MEI\|DCTFWEB, competencia: AAAAMM, data_pagamento?}` ou `{tipo: PARC_SN…, parcela: AAAAMM}` | emite pelo `emitir` (mesmas travas: procuração, teto, reuso); `origem='link'`, `solicitado_por='link:<token curto>'`. Tipos livres: MEI → só DAS MEI; demais → SN e INSS (inclusive 13º); competência do mês atual até 36 meses atrás |
 | `GET /api/acesso/<token>/guias/<id>/pdf` | PDF inline; só emissão da empresa do token |
 
 Segurança: token de 12 bytes (24 hex — o de 64 chegava cortado no WhatsApp do celular; os antigos seguem válidos), escopo só guias daquela empresa, vence sozinho

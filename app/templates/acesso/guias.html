@@ -98,16 +98,67 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
         dados.a_vencer.forEach(function (d) { h += cartaoDebito(d, false); });
       }
       var extras = [];
-      if (dados.parcelamento) extras.push('Consta um parcelamento em andamento. Parcelas em atraso: fale com o escritório.');
-      if (dados.pgfn) extras.push('Há inscrição na Dívida Ativa (PGFN). Esse caso a gente trata junto com você.');
+      if (dados.parcelamento && !(dados.parcelamentos || []).length) extras.push('Consta um parcelamento em andamento. Parcelas em atraso: fale com o escritório.');
+      if (dados.pgfn) extras.push('Dívida Ativa (PGFN): ' + (dados.pgfn_texto || 'consta inscrição') + (/NEGOCIAD/i.test(dados.pgfn_texto || '') ? '' : '. Esse caso a gente trata junto com você.'));
       if (dados.omissoes) extras.push('Há declaração em falta na Receita. O escritório está cuidando.');
       if (extras.length) h += '<div class="cartao aviso">' + extras.map(esc).join('<br>') + '</div>';
     }
+    h += cartoesParcelamento();
     h += cartaoOutra();
     h += '<p class="aviso">Se já pagou, desconsidere: o pagamento leva alguns dias para aparecer na Receita. Até '
       + dados.max_geracoes_dia + ' guias por dia por competência.</p>';
     raiz.className = '';
     raiz.innerHTML = h;
+  }
+
+  // Parcelas de parcelamento (PARCSN, PERT, RELP…): a Receita calcula a parcela do mês;
+  // a lista vem da última consulta (paga, uma por dia).
+  function cartoesParcelamento() {
+    var lista = dados.parcelamentos || [];
+    if (!lista.length) return '';
+    var h = '<h2>Parcelamento</h2>';
+    if (dados.parcelamento_texto) h += '<div class="cartao aviso">' + esc(dados.parcelamento_texto) + '</div>';
+    lista.forEach(function (p) { h += cartaoParcelamento(p); });
+    return h;
+  }
+
+  function cartaoParcelamento(p) {
+    var h = '<div class="cartao debito parcelamento" data-tipo="' + esc(p.tipo) + '">'
+      + '<div class="linha"><span class="rotulo">' + esc(p.rotulo) + '</span></div>';
+    if (p.consultado && p.parcelas.length) {
+      h += '<div class="meta">Parcelas que podem ser geradas (consulta de ' + esc(p.consultado_em || '') + '):</div>';
+      p.parcelas.forEach(function (q) {
+        h += '<div class="acoes"><span>' + esc(q.competencia) + (q.valor != null ? ' · ' + brl(q.valor) : '') + '</span>'
+          + '<button type="button" data-acao="gerar-parcela" data-parcela="' + esc(q.parcela) + '">Gerar guia da parcela</button></div>';
+      });
+    } else if (p.consultado) {
+      h += '<div class="meta">A última consulta (' + esc(p.consultado_em || '') + ') não trouxe parcela para gerar' + (p.mensagem ? ': ' + esc(p.mensagem) : '.') + '</div>';
+    } else {
+      h += '<div class="meta">As parcelas ainda não foram consultadas na Receita.</div>';
+    }
+    if (!p.hoje) {
+      h += '<div class="acoes"><button type="button" data-acao="consultar-parcelas">' + (p.consultado ? 'Atualizar parcelas na Receita' : 'Consultar parcelas na Receita') + '</button></div>';
+    }
+    return h + '<div class="saida"></div></div>';
+  }
+
+  function consultarParcelas(cartao) {
+    var tipo = cartao.getAttribute('data-tipo');
+    var botao = cartao.querySelector('button[data-acao=consultar-parcelas]');
+    var saida = cartao.querySelector('.saida');
+    botao.disabled = true; botao.textContent = 'Consultando…'; saida.innerHTML = '';
+    fetch(api + '/parcelas/consultar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo: tipo }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j.success) {
+          saida.innerHTML = '<div class="erro">' + esc(res.j.message || 'Não foi possível consultar agora.') + '</div>';
+          botao.disabled = false; botao.textContent = 'Consultar parcelas na Receita';
+          return;
+        }
+        dados.parcelamentos = (dados.parcelamentos || []).map(function (p) { return p.tipo === tipo ? res.j.parcelamento : p; });
+        cartao.outerHTML = cartaoParcelamento(res.j.parcelamento);
+      })
+      .catch(function () { saida.innerHTML = '<div class="erro">Sem conexão. Tente de novo.</div>'; botao.disabled = false; });
   }
 
   var MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -129,13 +180,15 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
       + '<div class="saida"></div></div>';
   }
 
-  function gerar(cartao, outra) {
-    var botao = cartao.querySelector('button[data-acao]');
+  function gerar(cartao, outra, botaoParcela) {
+    var botao = botaoParcela || cartao.querySelector('button[data-acao]');
     var rotuloBotao = botao.textContent;
     var data = cartao.querySelector('input[type=date]');
     var saida = cartao.querySelector('.saida');
     var corpo = { data_pagamento: data ? data.value : null };
-    if (outra) {
+    if (botaoParcela) {
+      corpo = { tipo: cartao.getAttribute('data-tipo'), parcela: botaoParcela.getAttribute('data-parcela') };
+    } else if (outra) {
       var tipo = cartao.querySelector('select[data-campo=tipo]').value;
       var comp = cartao.querySelector('select[data-campo=competencia]').value;
       if (comp === '13') { tipo = 'DCTFWEB'; comp = dados.hoje.slice(0, 4) + '13'; }
@@ -164,7 +217,10 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
   raiz.addEventListener('click', function (ev) {
     var b = ev.target.closest('button[data-acao]');
     if (!b) return;
-    gerar(b.closest('.debito'), b.getAttribute('data-acao') === 'gerar-outra');
+    var acao = b.getAttribute('data-acao');
+    if (acao === 'consultar-parcelas') return consultarParcelas(b.closest('.parcelamento'));
+    if (acao === 'gerar-parcela') return gerar(b.closest('.parcelamento'), false, b);
+    gerar(b.closest('.debito'), acao === 'gerar-outra');
   });
 
   fetch(api).then(function (r) { return r.json(); }).then(function (j) {

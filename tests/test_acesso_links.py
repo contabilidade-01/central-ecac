@@ -416,3 +416,61 @@ def test_link_antigo_de_64_nao_e_reaproveitado(ambiente):
     novo = _criar_link(http)['link']['token']
     assert len(novo) == 24 and novo != 'a' * 64
     assert _criar_link(http)['link']['token'] == novo  # e o novo, sim, é reaproveitado
+
+
+# ------------------------------------------------------------------ parcelamento
+def _parcelas_falsas(monkeypatch, consultas):
+    from app.services import serpro_das_service as sds
+
+    def consultar_falso(cnpj, sistema, servico):
+        consultas.append((cnpj, sistema, servico))
+        return {'dados': '{"listaParcelas": [{"parcela": 202609, "valor": 211.72}, {"parcela": 202610, "valor": 210.5}]}',
+                'mensagens': []}
+
+    monkeypatch.setattr(sds, 'consultar_parcelas_para_gerar', consultar_falso)
+
+
+def test_parcelamento_citado_no_relatorio_aparece_e_gera_parcela(ambiente, monkeypatch):
+    app, http, ids = ambiente
+    from app.models import PendenciaRelatorio, RelatorioSitFiscal
+    rel = RelatorioSitFiscal.query.filter_by(company_id=ids['A']).first()
+    db.session.add(PendenciaRelatorio(relatorio_id=rel.id, tipo='PARCELAMENTO', ano='2026',
+                                      meses_json=['SIMPLES NACIONAL - EM PARCELAMENTO · 2 parcela(s) em atraso']))
+    db.session.commit()
+    consultas, chamadas = [], []
+    _parcelas_falsas(monkeypatch, consultas)
+    _serpro_falsa(monkeypatch, chamadas)
+    token = _criar_link(http)['link']['token']
+
+    pagina = http.get(f'/api/acesso/{token}').get_json()
+    assert pagina['parcelamento'] is True and 'EM PARCELAMENTO' in pagina['parcelamento_texto']
+    assert [p['tipo'] for p in pagina['parcelamentos']] == ['PARC_SN']
+    assert pagina['parcelamentos'][0]['consultado'] is False
+
+    # consulta paga (uma por dia; a segunda reaproveita)
+    r = http.post(f'/api/acesso/{token}/parcelas/consultar', json={'tipo': 'PARC_SN'})
+    assert r.status_code == 200, r.get_json()
+    p = r.get_json()['parcelamento']
+    assert p['consultado'] and p['hoje'] and [q['competencia'] for q in p['parcelas']] == ['09/2026', '10/2026']
+    http.post(f'/api/acesso/{token}/parcelas/consultar', json={'tipo': 'PARC_SN'})
+    assert len(consultas) == 1
+    # tipo que a empresa não tem
+    assert http.post(f'/api/acesso/{token}/parcelas/consultar', json={'tipo': 'PERT_SN'}).status_code == 400
+
+    # gera a parcela que consta; parcela inexistente é recusada sem chamar a SERPRO
+    r = http.post(f'/api/acesso/{token}/guias', json={'tipo': 'PARC_SN', 'parcela': '202609'})
+    assert r.status_code == 200, r.get_json()
+    assert chamadas[-1] == {'tipo': 'PARC_SN', 'cnpj': CNPJ_A, 'pa': '202609', 'consolidacao': None}
+    r = http.post(f'/api/acesso/{token}/guias', json={'tipo': 'PARC_SN', 'parcela': '202612'})
+    assert r.status_code == 409 and len(chamadas) == 1
+
+
+def test_parcelamento_marcado_no_cadastro_aparece_mesmo_sem_relatorio(ambiente):
+    app, http, ids = ambiente
+    from app.models import Company
+    db.session.get(Company, ids['B']).consultar_parc_sn = True
+    db.session.commit()
+    token = _criar_link(http, cnpj=CNPJ_B)['link']['token']
+    pagina = http.get(f'/api/acesso/{token}').get_json()
+    assert [p['tipo'] for p in pagina['parcelamentos']] == ['PARC_SN']
+    assert pagina['relatorio'] is None

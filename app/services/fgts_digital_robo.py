@@ -101,6 +101,10 @@ def valor_br(texto: Optional[str]) -> Optional[float]:
         return None
 
 
+def _sem_query(url: str) -> str:
+    return (url or '').split('?')[0].split('#')[0]
+
+
 def db_commit() -> None:
     from app.extensions import db
     db.session.commit()
@@ -366,6 +370,14 @@ class RoboFgts:
         self._page = self._context.new_page()
         # Diálogo JS (alert/confirm) nunca trava o robô: fecha.
         self._page.on('dialog', lambda d: d.dismiss())
+        # Diagnóstico no log do container (EasyPanel): por onde o login passou e o que
+        # falhou na rede. Só host+caminho — a query do gov.br leva códigos de sessão.
+        self._page.on('framenavigated', lambda f: f == self._page.main_frame and logger.warning(
+            'FGTS nav: %s', _sem_query(f.url)))
+        self._page.on('requestfailed', lambda r: 'gov.br' in r.url and logger.warning(
+            'FGTS falhou: %s %s', _sem_query(r.url), r.failure))
+        self._page.on('response', lambda r: 'certificado.sso' in r.url and logger.warning(
+            'FGTS certificado: %s %s', r.status, _sem_query(r.url)))
         self._logado = False
         self._perfil_cnpj = None
 
@@ -439,15 +451,32 @@ class RoboFgts:
                 continue
             parado_no_login = 'sso.acesso.gov.br/login' in page.url
             if parado_no_login and (not ultimo_clique or time.time() - ultimo_clique > 10):
+                if rodadas:
+                    # Voltou ao login depois de um desafio: guarda o que o gov.br mostra.
+                    self._diagnosticar(pedido, extras, f'login_volta_{rodadas}')
                 if rodadas >= _int_env('FGTS_CAPTCHA_RODADAS', 3):
-                    raise FalhaRobo('A verificação de segurança do gov.br não foi concluída. Peça de novo.')
+                    raise FalhaRobo('O gov.br voltou para a tela de login depois da verificação '
+                                    f'({rodadas}x). Veja o diagnóstico abaixo; peça de novo.')
                 alvo = page.get_by_text('Seu certificado digital', exact=True)
                 if alvo.count():
                     alvo.first.click()
                     ultimo_clique = time.time()
             page.wait_for_timeout(800)
-        self._salvar_print(f'login_{pedido.id}')
+        self._diagnosticar(pedido, extras, 'login_timeout')
         raise FalhaRobo('Não foi possível entrar no gov.br agora. Tente de novo em alguns minutos.')
+
+    def _diagnosticar(self, pedido, extras: Dict[str, Any], nome: str) -> None:
+        """Print no volume + URL e o começo do texto visível no log e no pedido (o painel
+        do escritório mostra). Nunca leva query string nem campos de formulário."""
+        try:
+            url = _sem_query(self._page.url)
+            texto = ' '.join(self._texto().split())[:400]
+        except Exception:
+            url, texto = '?', ''
+        logger.warning('FGTS diagnóstico %s pedido=%s url=%s texto=%s', nome, pedido.id, url, texto)
+        extras['diagnostico'] = {'etapa': nome, 'url': url, 'texto': texto,
+                                 'quando': datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
+        self._salvar_print(f'{nome}_{pedido.id}')
 
     def _esperar_assentar(self) -> None:
         try:

@@ -722,3 +722,19 @@ def test_robo_reabre_o_captcha_quando_ele_expira(ambiente, sem_fila, monkeypatch
     monkeypatch.setenv('FGTS_ESCOLHA_TIMEOUT_S', '1')
     _esperar(http, token, pid, lambda p: p['status'] in ('concluido', 'erro'), segundos=40)
     t.join(30)
+
+
+def test_diagnostico_so_para_o_escritorio(ambiente, sem_fila):
+    _app, http, _ = ambiente
+    token = _link(http)
+    pid = http.post(f'/api/acesso/{token}/fgts/pedidos', json={'acao': 'consultar'}).get_json()['pedido']['id']
+    from app.integracao_models import FgtsPedido
+    from app.services import fgts_pedidos_service as svc
+    p = db.session.get(FgtsPedido, pid)
+    svc.gravar_resultado(p, {'diagnostico': {'etapa': 'login_volta_1', 'url': 'https://sso.acesso.gov.br/login',
+                                             'texto': 'Certificado inválido'}})
+    p.status = 'erro'
+    db.session.commit()
+    assert http.get(f'/api/acesso/{token}/fgts/pedidos/{pid}').get_json()['pedido']['diagnostico'] is None
+    j = http.get(f'/api/interno/fgts/pedidos/{pid}?cnpj={CNPJ_A}', headers=TOKEN).get_json()['pedido']
+    assert j['diagnostico']['texto'] == 'Certificado inválido'

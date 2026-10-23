@@ -12,9 +12,12 @@ Divisão de responsabilidades (decidida na revisão do plano de notificações):
 Por isso NÃO existe aqui e-mail, telefone nem envio de mensagem. Só:
 
   GET  /api/interno/ping
+  GET  /api/interno/empresas?busca=                            busca por razão social/CNPJ
+  GET  /api/interno/empresa/<cnpj>                             cadastro (MEI, parcelamentos)
   GET  /api/interno/pendencias?desde=AAAA-MM-DD[&cnpj=...]     pendências (custo zero)
   GET  /api/interno/pendencias/<cnpj>
-  POST /api/interno/das/emitir                                 guia (paga; reaproveita PDF)
+  POST /api/interno/das/emitir                                 guia (paga; reaproveita PDF;
+                                                               `apenas_reuso` nunca paga)
   GET  /api/interno/das/emissoes?cnpj=&desde=AAAA-MM-DD        eventos de emissão
   GET  /api/interno/das/<id>/pdf
   POST /api/interno/reprocessar                                regerar relatório em N dias úteis
@@ -64,6 +67,48 @@ def ping():
     })
 
 
+def _eh_mei(company_id: int) -> bool:
+    from app.integracao_models import EmpresaMei
+    marca = EmpresaMei.query.filter_by(company_id=company_id).first()
+    return bool(marca and marca.eh_mei)
+
+
+def _empresa_resumo(company) -> dict:
+    return {'company_id': company.id, 'cnpj': company.cnpj, 'razao_social': company.razao_social,
+            'ativo': bool(company.ativo), 'mei': _eh_mei(company.id)}
+
+
+@interno_bp.get('/empresas')
+def buscar_empresas():
+    """Busca para vincular contato → empresa no AtendeChat. Custo zero, até 20 itens."""
+    from app.models import Company
+    busca = (request.args.get('busca') or '').strip()
+    if len(busca) < 2:
+        return _erro('Digite ao menos 2 caracteres.')
+    digitos = ''.join(ch for ch in busca if ch.isdigit())
+    consulta = Company.query
+    if digitos and len(digitos) >= 2 and not any(ch.isalpha() for ch in busca):
+        consulta = consulta.filter(Company.cnpj.like(f'%{digitos}%'))
+    else:
+        termo = busca.replace('\\', '').replace('%', '').replace('_', '')
+        consulta = consulta.filter(Company.razao_social.ilike(f'%{termo}%'))
+    itens = consulta.order_by(Company.ativo.desc(), Company.razao_social).limit(20).all()
+    return jsonify({'success': True, 'total': len(itens), 'empresas': [_empresa_resumo(c) for c in itens]})
+
+
+@interno_bp.get('/empresa/<cnpj>')
+def empresa_cadastro(cnpj: str):
+    """Cadastro da empresa para a tela de guias: é MEI? quais parcelamentos acompanha?"""
+    from app.services.parcelamentos_serpro_service import PARCELAMENTO_TYPES
+    company = pend.empresa_por_cnpj(cnpj)
+    if not company:
+        return _erro('Empresa não cadastrada.', 404)
+    parcelamentos = [{'tipo': tipo, 'rotulo': parcelas_service.rotulo(tipo),
+                      'habilitado': bool(getattr(company, cfg.get('flag') or '', False))}
+                     for tipo, cfg in PARCELAMENTO_TYPES.items()]
+    return jsonify({'success': True, 'empresa': {**_empresa_resumo(company), 'parcelamentos': parcelamentos}})
+
+
 @interno_bp.get('/pendencias')
 def listar_pendencias():
     desde = _data(request.args.get('desde'))
@@ -109,6 +154,7 @@ def emitir_guia():
             solicitado_por=(str(corpo.get('solicitado_por'))[:120]
                             if corpo.get('solicitado_por') else None),
             forcar=bool(corpo.get('forcar')),
+            apenas_reuso=bool(corpo.get('apenas_reuso')),
         )
     except emissao.EmissaoBloqueada as exc:
         return _erro(str(exc), exc.status)

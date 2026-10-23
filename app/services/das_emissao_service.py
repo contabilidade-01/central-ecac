@@ -89,6 +89,40 @@ def _aaaammdd(valor: Any) -> Optional[str]:
     return d if len(d) == 8 else None
 
 
+_RE_PAGAR_ATE = re.compile(r'pagar\s+(?:este\s+documento\s+)?at[ée]\D{0,80}?(\d{2})/(\d{2})/(\d{4})',
+                           re.IGNORECASE | re.DOTALL)
+_RE_VENCIMENTO = re.compile(r'vencimento\D{0,80}?(\d{2})/(\d{2})/(\d{4})', re.IGNORECASE | re.DOTALL)
+_RE_VALOR_TOTAL = re.compile(r'valor\s+total(?:\s+do\s+documento)?\D{0,80}?(\d{1,3}(?:\.\d{3})*,\d{2})',
+                             re.IGNORECASE | re.DOTALL)
+
+
+def extrair_vencimento_valor(texto: str) -> Dict[str, Any]:
+    """'Pagar este documento até dd/mm/aaaa' e 'Valor Total do Documento 1.234,56' do texto
+    de um DARF/DAS. Devolve no formato do `detalhamento` do GERARDAS12 (o que achar)."""
+    saida: Dict[str, Any] = {}
+    texto = texto or ''
+    m = _RE_PAGAR_ATE.search(texto) or _RE_VENCIMENTO.search(texto)
+    if m:
+        saida['dataVencimento'] = f'{m.group(3)}{m.group(2)}{m.group(1)}'
+    m = _RE_VALOR_TOTAL.search(texto)
+    if m:
+        saida['valores'] = {'total': float(m.group(1).replace('.', '').replace(',', '.'))}
+    return saida
+
+
+def detalhe_do_pdf(pdf: bytes) -> Dict[str, Any]:
+    """Melhor esforço: nunca lança. PDF ilegível → {} (a guia sai sem valor/vencimento)."""
+    try:
+        import io
+        from PyPDF2 import PdfReader
+        leitor = PdfReader(io.BytesIO(pdf))
+        texto = '\n'.join((pagina.extract_text() or '') for pagina in leitor.pages[:2])
+        return extrair_vencimento_valor(texto)
+    except Exception:
+        logger.warning('[DAS] não foi possível ler vencimento/valor do PDF', exc_info=True)
+        return {}
+
+
 def _bloqueio_custo(company: Optional[Company]) -> Optional[str]:
     from app.services.limite_gasto_service import LimiteGastoService
     from app.services.procuracao_service import ProcuracaoService
@@ -189,8 +223,12 @@ def _chamar_serpro(tipo: str, cnpj: str, pa: str, categoria: Optional[str],
 def emitir(cnpj: str, tipo: str, periodo_apuracao: str, data_consolidacao: Optional[str] = None,
            categoria: Optional[str] = None, origem: str = 'interno',
            solicitado_por: Optional[str] = None, forcar: bool = False,
-           chamar=None) -> Tuple[DasEmissao, bool]:
-    """Devolve (emissão, reuso). Lança `EmissaoBloqueada` quando nada é enviado."""
+           chamar=None, apenas_reuso: bool = False) -> Tuple[DasEmissao, bool]:
+    """Devolve (emissão, reuso). Lança `EmissaoBloqueada` quando nada é enviado.
+
+    `apenas_reuso`: só serve guia já guardada e válida; se não houver, 402 sem chamar a
+    SERPRO (quem pede não tem permissão para gerar custo — ex.: atendente do AtendeChat).
+    """
     cnpj = _digits(cnpj)
     tipo = str(tipo or '').upper()
     pa = _digits(periodo_apuracao)
@@ -231,6 +269,8 @@ def emitir(cnpj: str, tipo: str, periodo_apuracao: str, data_consolidacao: Optio
                                    'Consulte as parcelas antes de emitir.', 409)
 
     # 1) guia guardada e válida → sem custo
+    if apenas_reuso:
+        forcar = False
     if not forcar:
         guardada = guia_valida_guardada(cnpj, tipo, pa, categoria, consolidacao)
         if guardada:
@@ -245,6 +285,9 @@ def emitir(cnpj: str, tipo: str, periodo_apuracao: str, data_consolidacao: Optio
             db.session.add(registro)
             db.session.commit()
             return registro, True
+    if apenas_reuso:
+        raise EmissaoBloqueada('Não há guia já gerada e válida para esta competência. Peça a '
+                               'quem tem permissão para gerar (recalcular) a guia.', 402)
 
     # 2) travas de custo
     bloqueio = _bloqueio_custo(company)
@@ -259,6 +302,9 @@ def emitir(cnpj: str, tipo: str, periodo_apuracao: str, data_consolidacao: Optio
     pdf, detalhe = (chamar or _chamar_serpro)(tipo, cnpj, pa, categoria, consolidacao)
     if not pdf:
         raise EmissaoBloqueada('PDF não retornado pela SERPRO.', 502)
+    if tipo == 'DCTFWEB' or tipo in TIPOS_PARCELA:
+        # A resposta não traz vencimento/valor; lê do próprio PDF (melhor esforço).
+        detalhe = {**detalhe_do_pdf(pdf), **(detalhe or {})}
 
     numero = str(detalhe.get('numeroDocumento') or '') or datetime.now().strftime('%Y%m%d%H%M%S')
     caminho = _salvar_pdf(cnpj, pa, f'{tipo}_{numero}.pdf', pdf)

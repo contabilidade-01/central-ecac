@@ -29,14 +29,19 @@ telefone nem envio de mensagem.
 Os dois sistemas rodam em projetos Easypanel separados: `localhost` de um não é o
 `localhost` do outro. Use a URL pública com HTTPS (ou coloque os dois na mesma rede).
 
+Outro consumidor da mesma API: o **AtendeChat** (envio da guia dentro da conversa do
+WhatsApp, sob demanda do atendente — `origem: atendechat`). Não muda nada do portal.
+
 ## Rotas (`/api/interno`, todas exigem o token)
 
 | Método | Rota | Custo | O que faz |
 |---|---|---|---|
 | GET | `/ping` | 0 | saúde + teto de gasto |
+| GET | `/empresas?busca=` | 0 | até 20 empresas por razão social ou CNPJ (vínculo contato → empresa no AtendeChat) |
+| GET | `/empresa/<cnpj>` | 0 | cadastro: razão social, ativa, é MEI, parcelamentos acompanhados |
 | GET | `/pendencias?desde=AAAA-MM-DD` | 0 | carteira ativa: último relatório de cada empresa, débitos classificados |
 | GET | `/pendencias/<cnpj>` | 0 | uma empresa |
-| POST | `/das/emitir` | **pago** (ou 0 se reaproveitar) | `{cnpj, tipo: SN\|MEI\|DCTFWEB, periodo_apuracao: AAAAMM, data_consolidacao?: AAAAMMDD, categoria?, origem, solicitado_por, forcar?}` |
+| POST | `/das/emitir` | **pago** (ou 0 se reaproveitar) | `{cnpj, tipo: SN\|MEI\|DCTFWEB, periodo_apuracao: AAAAMM, data_consolidacao?: AAAAMMDD, categoria?, origem, solicitado_por, forcar?, apenas_reuso?}` — `apenas_reuso: true` só devolve guia já guardada e válida; sem ela, **402 sem chamar a SERPRO** |
 | GET | `/das/emissoes?cnpj=&desde=` | 0 | eventos de emissão (o portal lê para saber que o cliente recalculou) |
 | GET | `/das/<id>/pdf?cnpj=` | 0 | PDF guardado; `cnpj` diferente do da emissão → 403 |
 | POST | `/reprocessar` | agenda (pago quando rodar) | `{cnpj, dias_uteis: 5, motivo, origem}` |
@@ -73,6 +78,10 @@ Os dois sistemas rodam em projetos Easypanel separados: `localhost` de um não �
 | DARF DCTFWeb (`DCTFWEB`) | `DCTFWEB/GERARGUIA31` por competência + `dataAcolhimentoProposta` (desvio 19): **uma DARF com todos os códigos** (1082, 1099…) | sim — data de pagamento ≥ hoje; ⚠️ validar em produção com uma competência vencida |
 | Parcela de parcelamento (`PARC_SN`, `PARC_MEI`, `PERT_*`, `RELP_*`) | `POST /parcelas/consultar` (`PARCELASPARAGERAR`, paga, 1×/dia reaproveitada) e depois `/das/emitir` com `periodo_apuracao` = parcela (`GERARDAS16x…`) | a Receita calcula para o mês da emissão; só emite parcela que consta na última consulta |
 | PGFN (SISPAR) | não existe no Integra Contador | emitir no Regularize |
+
+DARF DCTFWeb e parcela: a resposta da SERPRO não traz vencimento nem valor; o
+Central e-CAC lê "Pagar este documento até" e "Valor Total do Documento" do próprio PDF
+(melhor esforço; PDF ilegível sai sem esses campos).
 
 ### Travas antes de pagar
 

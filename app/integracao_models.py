@@ -173,7 +173,7 @@ class AcessoLink(db.Model):
     Pedido do Jean (23/10/2026): o AtendeChat manda ao cliente, dentro da conversa, um
     link para ele mesmo gerar a guia recalculada — sem passar pelo portal do cliente.
     Modelo de segurança (o mesmo que o portal já usa no `/g/` dele):
-    * token aleatório de 32 bytes (64 hex), não adivinhável;
+    * token aleatório de 12 bytes (24 hex; os primeiros tinham 64), não adivinhável;
     * escopo SÓ guias daquela empresa: a página não aceita CNPJ nem id de emissão vindos
       do navegador, e só emite competência que consta no próprio relatório;
     * vence sozinho (`LINK_GUIAS_DIAS`, padrão 35), revogável pelo escritório;

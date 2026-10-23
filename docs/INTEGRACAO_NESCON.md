@@ -67,7 +67,7 @@ guia recalculada **aqui**, sem o portal do cliente no caminho. O portal continua
 | `POST /api/acesso/<token>/guias` `{debito_id, data_pagamento?}` ou `{tipo: SN\|MEI\|DCTFWEB, competencia: AAAAMM, data_pagamento?}` | emite pelo `emitir` (mesmas travas: procuração, teto, reuso); `origem='link'`, `solicitado_por='link:<token curto>'`. Tipos livres: MEI → só DAS MEI; demais → SN e INSS (inclusive 13º); competência do mês atual até 36 meses atrás |
 | `GET /api/acesso/<token>/guias/<id>/pdf` | PDF inline; só emissão da empresa do token |
 
-Segurança: token de 32 bytes (64 hex), escopo só guias daquela empresa, vence sozinho
+Segurança: token de 12 bytes (24 hex — o de 64 chegava cortado no WhatsApp do celular; os antigos seguem válidos), escopo só guias daquela empresa, vence sozinho
 (`LINK_GUIAS_DIAS`, 35), revogável; a página nunca recebe CNPJ nem id de emissão de fora
 e só emite débito que consta no último relatório; token errado conta como tentativa do
 IP (5 → bloqueio de 5 min, como o login). Data de pagamento: hoje a +30 dias, dia útil.

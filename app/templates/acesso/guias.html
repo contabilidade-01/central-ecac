@@ -251,7 +251,7 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
   }
 
   function corpoFgts(consulta) {
-    var h = '<div class="meta">Consultamos o FGTS Digital da sua empresa e emitimos a guia com o valor atualizado para hoje.</div>';
+    var h = '<div class="meta">Consultamos o FGTS Digital da sua empresa e emitimos a guia com o valor atualizado para a data que você escolher.</div>';
     if (consulta && (consulta.status === 'concluido' || consulta.aguardando_escolha) && consulta.competencias.length) {
       h += listaCompetencias(consulta);
       if (consulta.aguardando_escolha) {
@@ -284,9 +284,24 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
         + esc(c.rotulo) + '</b>' + det + '</span><b>' + (c.total != null ? brl(c.total) : '') + '</b></label>';
     });
     h += '<div class="total"><span>Total em aberto</span><span>' + brl(p.total_em_aberto) + '</span></div>';
+    h += seletorData(p);
     h += '<div class="acoes"><button type="button" data-fgts="emitir-marcadas">Gerar guia(s) dos meses marcados</button>'
       + '<button type="button" data-fgts="marcar">Marcar/desmarcar todos</button></div>';
-    return h + '<p class="aviso">Cada mês sai numa guia (GFD) com vencimento hoje: o FGTS Digital calcula multa e juros até hoje.</p>';
+    return h + '<p class="aviso">Cada mês sai numa guia (GFD). O FGTS Digital calcula multa e juros até a data escolhida.</p>';
+  }
+
+  // Datas que o próprio FGTS Digital libera para vencimento (lidas na consulta).
+  function seletorData(p) {
+    var hojeIso = dados.hoje;
+    var lista = [hojeIso].concat((p.datas_permitidas || []).filter(function (d) { return d !== hojeIso; }));
+    var fmt = function (d) { return d.slice(8) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) + (d === hojeIso ? ' (hoje)' : ''); };
+    return '<div class="acoes"><label>Vou pagar em <select data-fgts-data>'
+      + lista.map(function (d) { return '<option value="' + d + '">' + fmt(d) + '</option>'; }).join('')
+      + '</select></label></div>';
+  }
+  function dataEscolhida() {
+    var s = caixaFgts().querySelector('select[data-fgts-data]');
+    return s ? s.value : null;
   }
 
   function marcadas() {
@@ -357,7 +372,7 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
     var alvo = caixaFgts().querySelector('.fgts-andamento');
     caixaFgts().querySelectorAll('button[data-fgts]').forEach(function (b) { b.disabled = true; });
     fetch(api + '/fgts/pedidos/' + fgtsPedido.id + '/escolha', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ competencias: lista }) })
+      body: JSON.stringify({ competencias: lista, data_pagamento: dataEscolhida() }) })
       .then(function (r) { return r.json(); })
       .then(function (j) { if (!j.success) alvo.insertAdjacentHTML('beforeend', '<div class="erro">' + esc(j.message) + '</div>'); })
       .catch(function () {});
@@ -383,7 +398,7 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
     var alvo = caixaFgts().querySelector('.fgts-andamento');
     alvo.innerHTML = '<p class="aviso">Enviando pedido…</p>';
     fetch(api + '/fgts/pedidos', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ acao: acao, competencias: comp || null }) })
+      body: JSON.stringify({ acao: acao, competencias: comp || null, data_pagamento: comp ? dataEscolhida() : null }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (res) {
         if (!res.ok || !res.j.success) { alvo.innerHTML = '<div class="erro">' + esc(res.j.message || 'Não foi possível pedir agora.') + '</div>'; return; }

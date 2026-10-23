@@ -49,6 +49,11 @@ logger = logging.getLogger(__name__)
 URL_SERVICOS = 'https://fgtsdigital.sistema.gov.br/portal/servicos'
 URL_PERFIL = 'https://fgtsdigital.sistema.gov.br/portal/escolhaPerfil'
 URL_GUIA_RAPIDA = 'https://fgtsdigital.sistema.gov.br/cobranca/#/gestao-guias/emissao-guia-rapida'
+URL_GUIA_PARAM = 'https://fgtsdigital.sistema.gov.br/cobranca/#/gestao-guias/emissao-guia-parametrizada'
+MESES_PT = {'janeiro': 1, 'fevereiro': 2, 'março': 3, 'marco': 3, 'abril': 4, 'maio': 5, 'junho': 6,
+            'julho': 7, 'agosto': 8, 'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12}
+RE_QTD_DEBITOS = re.compile(r'Quantidade de\s*D[ée]bitos de FGTS\s*(\d+)', re.I)
+RE_TOTAL_ITENS = re.compile(r'\bde\s+(\d+)\s+itens', re.I)
 ORIGEM_CERTIFICADO = 'https://certificado.sso.acesso.gov.br'
 
 RE_COMP = re.compile(r'\b(0[1-9]|1[0-2])/(20\d{2})\b')
@@ -114,7 +119,7 @@ class RoboFgts:
         self.app = app
         self.fila: 'queue.Queue[int]' = queue.Queue()
         self._cliques: 'queue.Queue[Tuple[int, float, float]]' = queue.Queue()
-        self._escolhas: 'queue.Queue[Tuple[int, List[str]]]' = queue.Queue()
+        self._escolhas: 'queue.Queue[Tuple[int, List[str], Optional[str]]]' = queue.Queue()
         self._thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
         # Estado do captcha (lido pelos threads HTTP; escrito só pelo thread do robô).
@@ -148,9 +153,9 @@ class RoboFgts:
         self._cliques.put((pedido_id, fx, fy))
         return True
 
-    def escolher(self, pedido_id: int, competencias: List[str]) -> None:
-        """Competências que o cliente escolheu na lista (já validadas pela rota)."""
-        self._escolhas.put((pedido_id, competencias))
+    def escolher(self, pedido_id: int, competencias: List[str], data_pagamento: Optional[str] = None) -> None:
+        """Meses (e a data de pagamento, AAAA-MM-DD) escolhidos — já validados pela rota."""
+        self._escolhas.put((pedido_id, competencias, data_pagamento))
 
     def estado(self) -> Dict[str, Any]:
         return {
@@ -217,26 +222,33 @@ class RoboFgts:
                 svc.atualizar(pedido, etapa='consultando')
                 competencias = self._consultar(pedido.cnpj)
                 extras['competencias'] = competencias
+                if competencias:
+                    # Dias que o FGTS Digital aceita como vencimento (Guia Parametrizada).
+                    extras['datas_permitidas'] = self._datas_permitidas(pedido.cnpj, competencias[0]['competencia'])
                 svc.gravar_resultado(pedido, extras)
                 if not competencias:
                     svc.atualizar(pedido, status='concluido', etapa='concluido',
                                   mensagem='Nenhum débito de FGTS em aberto no FGTS Digital.')
                     return
                 # Mesma sessão: espera o cliente escolher (um login, no máximo um captcha).
-                escolha = self._esperar_escolha(pedido)
+                escolha, data = self._esperar_escolha(pedido)
                 if not escolha:
                     svc.atualizar(pedido, status='concluido', etapa='concluido',
                                   mensagem=f'{len(competencias)} competência(s) com FGTS em aberto.')
                     return
                 pedido.competencia = escolha[0]
                 extras['escolha'] = escolha
+                extras['data_pagamento'] = data
                 svc.atualizar(pedido, status='executando', etapa='emitindo', mensagem='')
-                self._emitir_varias(pedido, escolha, extras)
+                self._emitir_varias(pedido, escolha, extras, data)
             else:
                 svc.atualizar(pedido, etapa='emitindo')
-                escolha = svc.resultado(pedido).get('escolha') or [pedido.competencia]
+                anterior = svc.resultado(pedido)
+                escolha = anterior.get('escolha') or [pedido.competencia]
+                data = anterior.get('data_pagamento')
                 extras['escolha'] = escolha
-                self._emitir_varias(pedido, escolha, extras)
+                extras['data_pagamento'] = data
+                self._emitir_varias(pedido, escolha, extras, data)
         except FalhaRobo as exc:
             svc.gravar_resultado(pedido, extras)
             svc.atualizar(pedido, status='erro', mensagem=str(exc))
@@ -250,7 +262,8 @@ class RoboFgts:
             self.captcha_pedido = None
             self.captcha_jpeg = None
 
-    def _emitir_varias(self, pedido, escolha: List[str], extras: Dict[str, Any]) -> None:
+    def _emitir_varias(self, pedido, escolha: List[str], extras: Dict[str, Any],
+                       data: Optional[str] = None) -> None:
         """Uma GFD por mês escolhido. Mês que falhar não derruba os outros: a guia dos
         demais sai e a falha aparece por mês na mensagem."""
         from app.services import fgts_pedidos_service as svc
@@ -259,7 +272,7 @@ class RoboFgts:
         extras['emitiu'] = True
         for aaaamm in escolha:
             try:
-                for g in self._emitir(pedido.cnpj, aaaamm):
+                for g in self._emitir(pedido.cnpj, aaaamm, data):
                     g['competencia'] = aaaamm
                     guias.append(g)
             except FalhaRobo as exc:
@@ -274,19 +287,19 @@ class RoboFgts:
             msg += ' Não saiu: ' + '; '.join(falhas)
         svc.atualizar(pedido, status='concluido', etapa='concluido', mensagem=msg)
 
-    def _esperar_escolha(self, pedido) -> List[str]:
+    def _esperar_escolha(self, pedido) -> Tuple[List[str], Optional[str]]:
         from app.services import fgts_pedidos_service as svc
         svc.atualizar(pedido, status='aguardando_escolha', etapa='consultando',
                       mensagem='Escolha a(s) competência(s) para gerar a guia.')
         limite = time.time() + _int_env('FGTS_ESCOLHA_TIMEOUT_S', 240)
         while time.time() < limite:
             try:
-                pid, lista = self._escolhas.get(timeout=1)
+                pid, lista, data = self._escolhas.get(timeout=1)
             except queue.Empty:
                 continue
             if pid == pedido.id and lista:
-                return lista
-        return []
+                return lista, data
+        return [], None
 
     # ------------------------------------------------------------------ navegador
     def _certificado(self) -> Tuple[bytes, str]:
@@ -629,7 +642,14 @@ class RoboFgts:
                 'total': valor_br(total.group(1)) if total else (composicao['total'] or None),
                 'grupos': grupos, 'composicao': composicao if linhas else None}
 
-    def _emitir(self, cnpj: str, aaaamm: str) -> List[Dict[str, Any]]:
+    def _emitir(self, cnpj: str, aaaamm: str, data: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Data de pagamento = hoje (ou vazia) → Guia Rápida. Outra data → Guia Parametrizada."""
+        from app.services.pendencias_service import hoje_brasil
+        if data and data != hoje_brasil().isoformat():
+            return self._emitir_parametrizada(cnpj, aaaamm, data)
+        return self._emitir_rapida(cnpj, aaaamm)
+
+    def _emitir_rapida(self, cnpj: str, aaaamm: str) -> List[Dict[str, Any]]:
         from app.services import fgts_pedidos_service as svc
         page = self._page
         self._abrir_guia_rapida(cnpj)
@@ -670,6 +690,148 @@ class RoboFgts:
         if len(guias) == 1 and guias[0]['valor'] is None:
             guias[0]['valor'] = detalhe['total']
         return guias
+
+    # ------------------------------------------------------- guia parametrizada
+    # Mapeada na tela em 23/10/2026: assistente em 4 passos — 1 Selecionar Débitos FGTS
+    # (filtro Competência Inicial/Final, tabela por trabalhador com "#selecionar-todos",
+    # 5 por página, "#btn-next-page", botão "Adicionar à guia" → resumo), 2 Consignado,
+    # 3 Definir Vencimento (campo "Vencimento da Guia" dd/mm/aaaa + calendário
+    # bs-datepicker: dia liberado = span[bsdatepickerdaydecorator] sem .disabled;
+    # data fora do limite é RECUSADA EM SILÊNCIO — o campo volta ao valor anterior),
+    # 4 Emitir Guia ("Vencimento da Guia: dd/mm/aaaa", tabela igual à da Guia Rápida).
+    def _visivel(self, nome: str):
+        return self._page.get_by_role('button', name=nome, exact=True).filter(visible=True)
+
+    def _ng_apos_rotulo(self, rotulo: str, valor: str) -> None:
+        page = self._page
+        campo = page.locator('label').filter(has_text=re.compile(r'^\s*' + rotulo + r'\b')).first \
+            .locator('xpath=following::ng-select[1]')
+        campo.click()
+        alvo = page.locator('.ng-option').filter(has_text=re.compile(r'^\s*' + re.escape(valor) + r'\s*$'))
+        if not alvo.count():
+            page.keyboard.press('Escape')
+            raise FalhaRobo(f'A competência {valor} não está mais em aberto no FGTS Digital.')
+        alvo.first.click()
+        page.wait_for_timeout(300)
+
+    def _param_selecionar(self, cnpj: str, aaaamm: str, todos: bool = True) -> None:
+        """Passo 1: filtra a competência e põe TODOS os débitos dela no resumo da guia."""
+        page = self._page
+        page.goto(URL_GUIA_PARAM, wait_until='domcontentloaded')
+        page.get_by_text('Emissão de Guia Parametrizada').first.wait_for()
+        self._esperar_assentar()
+        if not self._empregador_na_tela(cnpj):
+            raise FalhaRobo('O FGTS Digital abriu outra empresa. Nada foi emitido; tente de novo.')
+        comp = aaaamm_para_comp(aaaamm)
+        self._ng_apos_rotulo('Inicial', comp)
+        self._ng_apos_rotulo('Final', comp)
+        with page.expect_response(lambda r: '/guia-parametrizada/debitos?' in r.url, timeout=30_000):
+            page.get_by_role('button', name='Pesquisar', exact=True).click()
+        self._esperar_assentar()
+        if not page.locator('#selecionar-todos').count():
+            raise FalhaRobo(f'O FGTS Digital não listou débitos de {comp} na guia parametrizada.')
+        m = RE_TOTAL_ITENS.search(self._texto())
+        total = int(m.group(1)) if m else None
+        for _ in range(50):   # páginas de 5
+            page.locator('label[for="selecionar-todos"]').first.click()
+            page.wait_for_timeout(300)
+            self._visivel('Adicionar à guia').first.click()
+            page.wait_for_timeout(600)
+            if not todos:
+                break
+            prox = page.locator('#btn-next-page')
+            if not prox.count() or not prox.first.is_enabled():
+                break
+            prox.first.click()
+            self._esperar_assentar()
+        if todos and total is not None:
+            q = RE_QTD_DEBITOS.search(self._texto())
+            if not q or int(q.group(1)) != total:
+                self._salvar_print('param_resumo')
+                raise FalhaRobo(f'Não consegui pôr todos os débitos de {comp} na guia. Nada foi emitido.')
+
+    def _param_ir_vencimento(self) -> None:
+        """Passos 2 e 3: Avançar (consignado) → Avançar → tela Definir Vencimento."""
+        page = self._page
+        self._visivel('Avançar').first.click()
+        page.wait_for_timeout(1200)
+        self._visivel('Avançar').first.click()
+        self._campo_vencimento().wait_for()
+        self._esperar_assentar()
+
+    def _campo_vencimento(self):
+        return self._page.locator('label').filter(has_text='Vencimento da Guia').first \
+            .locator('xpath=following::input[1]')
+
+    def _datas_permitidas(self, cnpj: str, aaaamm: str) -> List[str]:
+        """Dias liberados no calendário do vencimento (AAAA-MM-DD). Só lê; não emite.
+        Falhou a leitura → lista vazia (a página oferece só "hoje", pela Guia Rápida)."""
+        page = self._page
+        try:
+            self._param_selecionar(cnpj, aaaamm, todos=False)
+            self._param_ir_vencimento()
+            page.locator('.fa-calendar-alt').filter(visible=True).first.click()
+            page.locator('bs-datepicker-container, .bs-datepicker').first.wait_for()
+            datas: List[str] = []
+            for _ in range(3):
+                cab = page.locator('.bs-datepicker-head button').all_inner_texts()
+                mes = next((MESES_PT[t.strip().lower()] for t in cab if t.strip().lower() in MESES_PT), None)
+                ano = next((int(t.strip()) for t in cab if t.strip().isdigit() and len(t.strip()) == 4), None)
+                if not mes or not ano:
+                    break
+                livres = page.locator('span[bsdatepickerdaydecorator]:not(.disabled):not(.is-other-month)')
+                dias = [int(t.strip()) for t in livres.all_inner_texts() if t.strip().isdigit()]
+                if not dias and datas:
+                    break
+                datas += [f'{ano:04d}-{mes:02d}-{d:02d}' for d in dias]
+                page.locator('.bs-datepicker-head button.next').first.click()
+                page.wait_for_timeout(300)
+            page.keyboard.press('Escape')
+            return sorted(set(datas))
+        except Exception:
+            logger.warning('FGTS: não li o calendário da guia parametrizada', exc_info=True)
+            self._salvar_print('calendario')
+            return []
+
+    def _emitir_parametrizada(self, cnpj: str, aaaamm: str, data: str) -> List[Dict[str, Any]]:
+        from app.services import fgts_pedidos_service as svc
+        page = self._page
+        dia = datetime.strptime(data, '%Y-%m-%d')
+        dia_br = dia.strftime('%d/%m/%Y')
+        self._param_selecionar(cnpj, aaaamm, todos=True)
+        self._param_ir_vencimento()
+        campo = self._campo_vencimento()
+        campo.click(click_count=3)
+        campo.press_sequentially(dia_br, delay=40)
+        campo.press('Tab')
+        try:
+            page.wait_for_response(lambda r: 'debitos-revisao' in r.url and f'dtPagamento={data}' in r.url,
+                                   timeout=20_000)
+        except Exception:
+            pass
+        self._esperar_assentar()
+        if campo.input_value() != dia_br:
+            raise FalhaRobo(f'O FGTS Digital não aceitou {dia_br} como vencimento. Escolha outra data da lista.')
+        self._visivel('Avançar').first.click()
+        page.get_by_text(re.compile(r'Vencimento da Guia:\s*' + re.escape(dia_br))).first.wait_for()
+        self._esperar_assentar()
+        if not self._empregador_na_tela(cnpj):
+            raise FalhaRobo('O FGTS Digital abriu outra empresa. Nada foi emitido; tente de novo.')
+        detalhe = self._detalhar(aaaamm, self._texto())
+        with page.expect_download(timeout=60_000) as baixa:
+            self._visivel('Emitir Guia').last.click()
+            self._confirmar_modal_se_houver()
+        nome = f'{aaaamm}_p_{datetime.now():%Y%m%d%H%M%S}.pdf'
+        destino = svc.pasta_pdfs(cnpj) / nome
+        baixa.value.save_as(str(destino))
+        conteudo = destino.read_bytes()
+        if not conteudo.startswith(b'%PDF') or not svc.pdf_e_da_empresa(conteudo, cnpj):
+            destino.unlink(missing_ok=True)
+            raise FalhaRobo('A guia baixada não confere com a empresa. Nada foi enviado; fale com o escritório.')
+        page.wait_for_timeout(800)
+        idents = RE_IDENT.findall(self._texto())
+        return [{'grupo': 'FGTS', 'vencimento': dia_br, 'arquivo': nome,
+                 'identificador': idents[0] if idents else None, 'valor': detalhe['total']}]
 
     def _confirmar_modal_se_houver(self) -> None:
         page = self._page

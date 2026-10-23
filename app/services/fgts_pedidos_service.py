@@ -17,6 +17,7 @@ Regras:
 from __future__ import annotations
 
 import json
+import re
 import logging
 import os
 from datetime import datetime, timedelta
@@ -129,7 +130,7 @@ def pedidos_hoje_do_link(link_id: int) -> int:
 
 def criar(*, company_id: int, cnpj: str, acao: str, competencia: Any = None,
           link_id: Optional[int] = None, origem: str = 'link',
-          solicitado_por: Optional[str] = None) -> FgtsPedido:
+          solicitado_por: Optional[str] = None, data_pagamento: Any = None) -> FgtsPedido:
     # Link do cliente: respeita o piloto por CNPJ. Escritório (AtendeChat, sem link):
     # basta o robô estar ligado — é assim que se valida antes de abrir o link.
     liberado = liberado_para(cnpj) if link_id is not None else habilitado()
@@ -145,8 +146,10 @@ def criar(*, company_id: int, cnpj: str, acao: str, competencia: Any = None,
         raise PedidoRecusado(f'Limite de {max_pedidos_dia()} pedidos de FGTS por dia. '
                              'Tente amanhã ou fale com o escritório.', 429)
     escolha: List[str] = []
+    data_ok: Optional[str] = None
     if acao == 'emitir':
         consulta = ultima_consulta_hoje(cnpj)
+        data_ok = validar_data(resultado(consulta) if consulta else {}, data_pagamento)
         validas = [c['competencia'] for c in resultado(consulta).get('competencias', [])] if consulta else []
         pedidas = competencia if isinstance(competencia, list) else [competencia]
         for c in pedidas:
@@ -164,7 +167,7 @@ def criar(*, company_id: int, cnpj: str, acao: str, competencia: Any = None,
                         competencia=competencia, status='fila', etapa='fila',
                         origem=origem[:20], solicitado_por=(solicitado_por or '')[:120] or None)
     if escolha:
-        gravar_resultado(pedido, {'escolha': escolha})
+        gravar_resultado(pedido, {'escolha': escolha, 'data_pagamento': data_ok})
     db.session.add(pedido)
     db.session.commit()
     from app.services import fgts_digital_robo
@@ -239,16 +242,48 @@ def serializar(pedido: FgtsPedido, *, base_pdf: Optional[str] = None) -> Dict[st
         'aguardando_escolha': pedido.status == 'aguardando_escolha',
         'competencias': dados.get('competencias', []),
         'total_em_aberto': round(sum(c.get('total') or 0 for c in dados.get('competencias', [])), 2),
+        # Vencimentos aceitos pelo FGTS Digital (AAAA-MM-DD); vazio = só hoje.
+        'datas_permitidas': dados.get('datas_permitidas') or [],
+        'data_pagamento': dados.get('data_pagamento'),
         'guias': guias,
         'criado_em': pedido.criado_em.isoformat() if pedido.criado_em else None,
         'concluido_em': pedido.concluido_em.isoformat() if pedido.concluido_em else None,
     }
 
 
-def validar_escolha(pedido: FgtsPedido, competencias: Any) -> List[str]:
-    """Só competências que o próprio FGTS Digital listou neste pedido."""
+def normalizar_data(valor: Any) -> Optional[str]:
+    """'30/10/2026', '2026-10-30' ou '20261030' → '2026-10-30'. Vazio → None."""
+    texto = str(valor or '').strip()
+    if not texto:
+        return None
+    m = re.match(r'^(\d{2})/(\d{2})/(\d{4})$', texto)
+    if m:
+        return f'{m.group(3)}-{m.group(2)}-{m.group(1)}'
+    d = ''.join(ch for ch in texto if ch.isdigit())
+    if len(d) == 8:
+        return f'{d[:4]}-{d[4:6]}-{d[6:]}'
+    raise PedidoRecusado('Data de pagamento inválida.')
+
+
+def validar_data(dados: Dict[str, Any], data: Any) -> Optional[str]:
+    """Hoje (ou vazio) sempre vale — Guia Rápida. Outra data só se o FGTS Digital a
+    liberou no calendário da Guia Parametrizada (lido na consulta)."""
+    from app.services.pendencias_service import hoje_brasil
+    iso = normalizar_data(data)
+    hoje = hoje_brasil().isoformat()
+    if not iso or iso == hoje:
+        return None
+    if iso not in (dados.get('datas_permitidas') or []):
+        raise PedidoRecusado('O FGTS Digital não aceita essa data de pagamento. Escolha uma da lista.')
+    return iso
+
+
+def validar_escolha(pedido: FgtsPedido, competencias: Any, data: Any = None):
+    """(meses, data AAAA-MM-DD ou None). Só meses e datas que o próprio FGTS Digital
+    listou neste pedido."""
     if pedido.status != 'aguardando_escolha':
         raise PedidoRecusado('Este pedido não está esperando escolha.', 409)
+    data_ok = validar_data(resultado(pedido), data)
     validas = [c['competencia'] for c in resultado(pedido).get('competencias', [])]
     if not isinstance(competencias, list):
         competencias = [competencias]
@@ -261,7 +296,7 @@ def validar_escolha(pedido: FgtsPedido, competencias: Any) -> List[str]:
             escolha.append(comp)
     if not escolha:
         raise PedidoRecusado('Escolha ao menos uma competência.')
-    return escolha
+    return escolha, data_ok
 
 
 def caminho_pdf(pedido: FgtsPedido, indice: int) -> Optional[Path]:

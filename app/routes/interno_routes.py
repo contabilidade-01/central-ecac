@@ -401,7 +401,8 @@ def fgts_criar_pedido():
                             acao=str(corpo.get('acao') or 'consultar'),
                             competencia=corpo.get('competencias') or corpo.get('competencia'),
                             link_id=None, origem=origem,
-                            solicitado_por=str(corpo.get('solicitado_por') or origem)[:120])
+                            solicitado_por=str(corpo.get('solicitado_por') or origem)[:120],
+                            data_pagamento=corpo.get('data_pagamento'))
     except fgts.PedidoRecusado as exc:
         return _erro(str(exc), exc.status)
     return jsonify({'success': True, 'pedido': _fgts_json(pedido)})
@@ -421,12 +422,13 @@ def fgts_escolher(pedido_id: int):
     pedido = _fgts_pedido_do_cnpj(pedido_id)
     if not pedido:
         return _erro('Pedido não encontrado.', 404)
+    corpo = request.get_json(silent=True) or {}
     try:
-        escolha = fgts.validar_escolha(pedido, (request.get_json(silent=True) or {}).get('competencias'))
+        escolha, data = fgts.validar_escolha(pedido, corpo.get('competencias'), corpo.get('data_pagamento'))
     except fgts.PedidoRecusado as exc:
         return _erro(str(exc), exc.status)
-    fgts_digital_robo.robo().escolher(pedido.id, escolha)
-    return jsonify({'success': True, 'competencias': escolha})
+    fgts_digital_robo.robo().escolher(pedido.id, escolha, data)
+    return jsonify({'success': True, 'competencias': escolha, 'data_pagamento': data})
 
 
 @interno_bp.get('/fgts/pedidos/<int:pedido_id>/captcha.jpg')

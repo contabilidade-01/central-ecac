@@ -34,7 +34,7 @@ verdade, não funcionavam.
 
 ---
 
-## Os 18 desvios intencionais
+## Os desvios intencionais (18 numerados aqui; 19 a 21 nos seus docs; 22 = FGTS Digital)
 
 | # | O quê | Por quê | Onde |
 |---|---|---|---|
@@ -185,6 +185,7 @@ Um desvio anterior (registrar custo de API no monitoramento) foi **revertido**: 
 indicador é gratuito, conforme o próprio frontend do exe declara.
 
 ---
+| 22 | Robô do **FGTS Digital** (Playwright) no link sem senha | o cliente pede o recálculo da guia de FGTS pelo link que o AtendeChat manda; o FGTS Digital não tem API — o robô entra como **procurador** com o A1 do escritório, lista **todos** os meses em aberto (valor e composição), emite a(s) GFD escolhida(s) e **fecha o navegador ao fim de todo pedido**. Captcha do gov.br é resolvido **pelo cliente** na própria página (recorte do desafio + toques repassados). Ver `docs/FGTS_DIGITAL.md`. Testes: `tests/test_fgts_digital.py` | `services/fgts_digital_robo.py`, `services/fgts_pedidos_service.py`, `routes/acesso_routes.py`, `routes/interno_routes.py`, `templates/acesso/guias.html`, `integracao_models.FgtsPedido`, `Dockerfile` |
 
 ## Versão do Python (corrigindo um engano)
 

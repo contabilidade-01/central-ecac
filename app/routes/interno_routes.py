@@ -22,6 +22,8 @@ Por isso NÃO existe aqui e-mail, telefone nem envio de mensagem. Só:
   GET  /api/interno/das/<id>/pdf
   POST /api/interno/reprocessar                                regerar relatório em N dias úteis
   GET  /api/interno/reprocessamentos?cnpj=&pendentes=1
+  GET  /api/interno/fgts/estado                                robô do FGTS Digital (desvio 22)
+  GET  /api/interno/fgts/pedidos?cnpj=                         pedidos ao robô e andamento
   POST /api/interno/acesso-links                               link sem senha servido AQUI (desvio 21)
   GET  /api/interno/acesso-links?cnpj=
   POST /api/interno/acesso-links/revogar
@@ -329,3 +331,27 @@ def revogar_acesso_links():
         return _erro('Empresa não cadastrada.', 404)
     quem = str(corpo.get('solicitado_por') or corpo.get('origem') or 'interno')[:120]
     return jsonify({'success': True, 'revogados': links.revogar_da_empresa(company.id, quem)})
+
+
+# ------------------------------------------------------------------- FGTS (desvio 22)
+@interno_bp.get('/fgts/estado')
+def fgts_estado():
+    """Saúde do robô do FGTS Digital (custo zero, não abre navegador)."""
+    from app.services import fgts_digital_robo, fgts_pedidos_service as fgts
+    return jsonify({'success': True, 'habilitado': fgts.habilitado(),
+                    'robo': fgts_digital_robo.robo().estado() if fgts.habilitado() else None})
+
+
+@interno_bp.get('/fgts/pedidos')
+def fgts_pedidos():
+    """Últimos pedidos ao robô, por CNPJ (o AtendeChat mostra o andamento ao atendente)."""
+    from app.integracao_models import FgtsPedido
+    from app.services import fgts_pedidos_service as fgts
+    consulta = FgtsPedido.query
+    cnpj = ''.join(ch for ch in (request.args.get('cnpj') or '') if ch.isdigit())
+    if cnpj:
+        consulta = consulta.filter_by(cnpj=cnpj)
+    itens = consulta.order_by(FgtsPedido.id.desc()).limit(50).all()
+    return jsonify({'success': True, 'total': len(itens),
+                    'pedidos': [{**fgts.serializar(p), 'cnpj': p.cnpj, 'origem': p.origem}
+                                for p in itens]})

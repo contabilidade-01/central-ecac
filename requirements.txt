@@ -31,6 +31,9 @@ cryptography==46.0.5
 signxml==5.1.0          # assinatura da procuração eletrônica (módulo procurador)
 lxml==6.1.1
 
+# --- FGTS Digital (desvio 22) ------------------------------------------------
+playwright==1.55.0      # robô do FGTS Digital; o Chromium é instalado no Dockerfile
+
 # --- Documentos --------------------------------------------------------------
 PyPDF2==3.0.1           # leitura do PDF de situação fiscal
 openpyxl==3.1.5         # exportações .xlsx de pagamentos

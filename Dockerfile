@@ -46,6 +46,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /opt/venv /opt/venv
 
+# Robô do FGTS Digital (desvio 22): Chromium do Playwright + bibliotecas de sistema.
+# Fica fora do /data (não precisa persistir) e é lido pelo appuser.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN /opt/venv/bin/playwright install --with-deps chromium \
+    && rm -rf /var/lib/apt/lists/* \
+    && chmod -R a+rX /ms-playwright
+
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

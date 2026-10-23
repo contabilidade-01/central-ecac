@@ -670,3 +670,27 @@ def test_emitir_em_sessao_nova_valida_data_da_ultima_consulta(ambiente, sem_fila
     assert r.status_code == 200
     p = db.session.get(FgtsPedido, r.get_json()['pedido']['id'])
     assert svc.resultado(p)['data_pagamento'] == '2099-12-30'
+
+
+def test_certificado_pfx_vira_pem_em_memoria():
+    """O .pfx das ACs vem com criptografia legada; o robô entrega PEM ao navegador."""
+    import datetime as dt
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.primitives.serialization import pkcs12
+    from cryptography.x509.oid import NameOID
+    from app.services.fgts_digital_robo import FalhaRobo, pfx_para_pem
+    k = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    nome = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, 'NESCON TESTE:35736034000123')])
+    c = (x509.CertificateBuilder().subject_name(nome).issuer_name(nome).public_key(k.public_key())
+         .serial_number(1).not_valid_before(dt.datetime(2025, 1, 1)).not_valid_after(dt.datetime(2030, 1, 1))
+         .sign(k, hashes.SHA256()))
+    enc = (serialization.PrivateFormat.PKCS12.encryption_builder().kdf_rounds(2048)
+           .key_cert_algorithm(pkcs12.PBES.PBESv1SHA1And3KeyTripleDESCBC).hmac_hash(hashes.SHA1()).build(b'1234'))
+    pfx = pkcs12.serialize_key_and_certificates(b't', k, c, None, enc)
+    pem = pfx_para_pem(pfx, '1234')
+    assert pem['cert'].startswith(b'-----BEGIN CERTIFICATE-----')
+    assert pem['key'].startswith(b'-----BEGIN PRIVATE KEY-----')
+    with pytest.raises(FalhaRobo):
+        pfx_para_pem(pfx, 'errada')

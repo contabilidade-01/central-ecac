@@ -354,7 +354,7 @@ render();
 </script>"""
 
 
-def _site_falso(captcha: bool, procuracoes=(CNPJ_A,), expira_primeiro=False):
+def _site_falso(captcha: bool, procuracoes=(CNPJ_A,), expira_primeiro=False, via_certificado=False):
     """Handler de `context.route` imitando gov.br + FGTS Digital (estrutura real)."""
     estado = {'downloads': 0}
 
@@ -377,7 +377,8 @@ def _site_falso(captcha: bool, procuracoes=(CNPJ_A,), expira_primeiro=False):
                 '<div style="height:520px;background:#ddd">Selecione os objetos</div>'
                 '<button style="width:100%;height:50px" onclick="parent.postMessage(\'ok\',\'*\')">Verificar</button>'))
         if host == 'sso.acesso.gov.br':
-            alvo = 'https://fgtsdigital.sistema.gov.br/portal/acessogov?code=x'
+            alvo = ('https://certificado.sso.acesso.gov.br/login?client_id=x' if via_certificado
+                    else 'https://fgtsdigital.sistema.gov.br/portal/acessogov?code=x')
             expira = ("window._n=(window._n||0)+1;if(window._n===1){setTimeout(function(){f.remove();},1500);}"
                       if expira_primeiro else "")
             js = (f"var f=document.createElement('iframe');f.src='https://newassets.hcaptcha.com/c';"
@@ -462,10 +463,11 @@ def _site_falso(captcha: bool, procuracoes=(CNPJ_A,), expira_primeiro=False):
     return handler, estado
 
 
-def _robo_com_site(app, monkeypatch, captcha=False, procuracoes=(CNPJ_A,), expira_primeiro=False):
+def _robo_com_site(app, monkeypatch, captcha=False, procuracoes=(CNPJ_A,), expira_primeiro=False,
+                   via_certificado=False):
     from app.services import fgts_digital_robo as mod
     monkeypatch.setenv('FGTS_CHROMIUM_PATH', CHROMIUM)
-    handler, estado = _site_falso(captcha, procuracoes, expira_primeiro)
+    handler, estado = _site_falso(captcha, procuracoes, expira_primeiro, via_certificado)
     robo = mod.RoboFgts(app)
     monkeypatch.setattr(robo, '_certificado', lambda: (None, None))
     monkeypatch.setattr(robo, '_ao_criar_contexto', lambda ctx: ctx.route('**/*', handler))
@@ -738,3 +740,57 @@ def test_diagnostico_so_para_o_escritorio(ambiente, sem_fila):
     assert http.get(f'/api/acesso/{token}/fgts/pedidos/{pid}').get_json()['pedido']['diagnostico'] is None
     j = http.get(f'/api/interno/fgts/pedidos/{pid}?cnpj={CNPJ_A}', headers=TOKEN).get_json()['pedido']
     assert j['diagnostico']['texto'] == 'Certificado inválido'
+
+
+
+def _pfx_teste(senha=b'1234'):
+    import datetime as dt
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.primitives.serialization import pkcs12
+    from cryptography.x509.oid import NameOID
+    k = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    nome = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, 'NESCON TESTE:35736034000123')])
+    c = (x509.CertificateBuilder().subject_name(nome).issuer_name(nome).public_key(k.public_key())
+         .serial_number(1).not_valid_before(dt.datetime(2025, 1, 1)).not_valid_after(dt.datetime(2030, 1, 1))
+         .sign(k, hashes.SHA256()))
+    return pkcs12.serialize_key_and_certificates(b't', k, c, None, serialization.BestAvailableEncryption(senha))
+
+
+@navegador
+def test_certificado_sso_e_atendido_em_python_e_o_login_segue(ambiente, sem_fila, monkeypatch):
+    """Na VPS o POST para certificado.sso ficava pendurado com o client_certificates do
+    Playwright. O robô atende esse host em Python (com o A1) e devolve a resposta: aqui um
+    resposta com Set-Cookie que leva ao FGTS Digital."""
+    app, http, _ = ambiente
+    token = _link(http)
+    robo, _ = _robo_com_site(app, monkeypatch, via_certificado=True)
+    monkeypatch.setattr(robo, '_certificado', lambda: (_pfx_teste(), '1234'))
+    chamadas = []
+
+    # (Um 302 é seguido pelo Chromium FORA das rotas — iria para a rede real, fechada no
+    # teste; na VPS é o que se quer. Aqui a resposta leva o navegador adiante por script.)
+    class Resp:
+        status_code = 200
+        content = b"<script>location='https://fgtsdigital.sistema.gov.br/portal/acessogov?code=x'</script>"
+
+        class raw:
+            class headers:
+                @staticmethod
+                def items():
+                    return [('Content-Type', 'text/html'), ('Set-Cookie', 'a=1; Path=/'),
+                            ('Set-Cookie', 'b=2; Path=/'), ('Content-Encoding', 'gzip'), ('Content-Length', '9')]
+
+    def chamar(metodo, url, headers, corpo):
+        chamadas.append((metodo, url))
+        return Resp()
+    monkeypatch.setattr(robo, '_chamar_certificado', chamar)
+    pid = http.post(f'/api/acesso/{token}/fgts/pedidos', json={'acao': 'consultar'}).get_json()['pedido']['id']
+    t = _rodar(app, robo, pid)
+    p = _esperar(http, token, pid, lambda p: p['status'] in ('aguardando_escolha', 'erro'))
+    assert p['status'] == 'aguardando_escolha', p['mensagem']
+    assert chamadas and chamadas[0][1].startswith('https://certificado.sso.acesso.gov.br/login')
+    monkeypatch.setenv('FGTS_ESCOLHA_TIMEOUT_S', '1')
+    _esperar(http, token, pid, lambda p: p['status'] in ('concluido', 'erro'), segundos=40)
+    t.join(30)

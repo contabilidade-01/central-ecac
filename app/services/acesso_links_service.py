@@ -97,7 +97,8 @@ def obter_ou_criar(company: Company, origem: str = 'atendechat',
                          AcessoLink.expira_em > agora + timedelta(days=MARGEM_REUSO_DIAS))
                  .order_by(AcessoLink.expira_em.desc())
                  .first())
-    if existente:
+    # Só reaproveita link do tamanho atual: o antigo (64) chegava cortado no WhatsApp.
+    if existente and len(existente.token) == len(novo_token()):
         return existente
     validade = max(1, min(int(dias or dias_padrao()), 180))
     link = AcessoLink(token=novo_token(), company_id=company.id, cnpj=company.cnpj, origem=origem,

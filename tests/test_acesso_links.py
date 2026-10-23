@@ -403,3 +403,16 @@ def test_pagina_agrupa_codigos_de_receita_da_mesma_competencia(ambiente, monkeyp
     r = http.post(f'/api/acesso/{token}/guias', json={'debito_id': inss[0]['id'], 'data_pagamento': _dia_util(1)})
     assert r.status_code == 200, r.get_json()
     assert chamadas[-1]['tipo'] == 'DCTFWEB' and chamadas[-1]['pa'] == '202604'
+
+
+def test_link_antigo_de_64_nao_e_reaproveitado(ambiente):
+    _app, http, ids = ambiente
+    from app.integracao_models import AcessoLink
+    antigo = AcessoLink(token='a' * 64, company_id=ids['A'], cnpj=CNPJ_A, origem='atendechat',
+                        expira_em=datetime.utcnow() + timedelta(days=30))
+    db.session.add(antigo)
+    db.session.commit()
+    assert http.get('/api/acesso/' + 'a' * 64).status_code == 200  # continua válido
+    novo = _criar_link(http)['link']['token']
+    assert len(novo) == 24 and novo != 'a' * 64
+    assert _criar_link(http)['link']['token'] == novo  # e o novo, sim, é reaproveitado

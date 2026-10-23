@@ -308,8 +308,11 @@ def criar_acesso_link():
     link = links.obter_ou_criar(company, origem=origem,
                                 solicitado_por=str(corpo.get('solicitado_por') or '')[:120] or None,
                                 dias=dias)
+    from app.services import fgts_pedidos_service as fgts
     return jsonify({'success': True, 'link': links.serializar(link),
-                    'url': links.url_do_link(link.token, _base_publica())})
+                    'url': links.url_do_link(link.token, _base_publica()),
+                    # A página do link tem a seção FGTS (desvio 22)? O AtendeChat cita no texto.
+                    'fgts': fgts.habilitado()})
 
 
 @interno_bp.get('/acesso-links')

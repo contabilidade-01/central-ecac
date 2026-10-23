@@ -111,6 +111,8 @@ def _link(http, cnpj=CNPJ_A):
 def test_pagina_mostra_fgts_so_quando_ligado(ambiente, monkeypatch):
     _app, http, _ = ambiente
     token = _link(http)
+    r = http.post('/api/interno/acesso-links', json={'cnpj': CNPJ_A}, headers=TOKEN).get_json()
+    assert r['fgts'] is True
     assert http.get(f'/api/acesso/{token}').get_json()['fgts']['habilitado'] is True
     monkeypatch.setenv('FGTS_DIGITAL_HABILITADO', '0')
     assert http.get(f'/api/acesso/{token}').get_json()['fgts'] == {'habilitado': False}

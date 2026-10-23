@@ -41,6 +41,29 @@
   .rodape a { color: var(--azul); }
   .vazio { color: var(--cinza); }
   .carregando { color: var(--cinza); text-align: center; padding: 30px 0; }
+  /* FGTS (desvio 22): etapas do robô e verificação do gov.br */
+  .etapas { list-style: none; margin: 10px 0 0; padding: 0; }
+  .etapas li { display: flex; gap: 10px; align-items: center; padding: 6px 0; color: var(--cinza); font-size: 15px; }
+  .etapas li .bola { width: 22px; height: 22px; border-radius: 50%; flex: none; display: grid; place-items: center;
+                     font-size: 13px; font-weight: 700; border: 2px solid var(--borda); background: #fff; }
+  .etapas li.feito { color: var(--texto); }
+  .etapas li.feito .bola { background: var(--verde); border-color: var(--verde); color: #fff; }
+  .etapas li.agora { color: var(--texto); font-weight: 600; }
+  .etapas li.agora .bola { border-color: var(--azul); border-top-color: transparent; animation: gira 1s linear infinite; }
+  .etapas li.erro { color: var(--vermelho); font-weight: 600; }
+  .etapas li.erro .bola { background: var(--vermelho); border-color: var(--vermelho); color: #fff; }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  .captcha { margin-top: 10px; padding: 10px; border: 2px solid var(--azul); border-radius: 10px; background: #eff6ff; }
+  .captcha p { margin: 0 0 8px; font-size: 14px; }
+  .captcha img { display: block; width: 100%; max-width: 420px; margin: 0 auto; border-radius: 6px; cursor: pointer;
+                 touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  .captcha .toque { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
+                    background: rgba(29,78,216,.45); pointer-events: none; animation: some .6s forwards; }
+  @keyframes some { to { opacity: 0; transform: scale(1.8); } }
+  .captcha .moldura { position: relative; max-width: 420px; margin: 0 auto; }
+  .fgts-comp { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0;
+               border-top: 1px solid var(--borda); flex-wrap: wrap; }
+  .fgts-comp:first-of-type { border-top: 0; }
 </style>
 </head>
 <body>
@@ -104,6 +127,7 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
       if (extras.length) h += '<div class="cartao aviso">' + extras.map(esc).join('<br>') + '</div>';
     }
     h += cartoesParcelamento();
+    h += cartaoFgts();
     h += cartaoOutra();
     h += '<p class="aviso">Se já pagou, desconsidere: o pagamento leva alguns dias para aparecer na Receita. Até '
       + dados.max_geracoes_dia + ' guias por dia por competência.</p>';
@@ -214,7 +238,192 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
       .then(function () { botao.disabled = false; botao.textContent = rotuloBotao; });
   }
 
+
+  // ---------------------------------------------------------------- FGTS (desvio 22)
+  // O robô do escritório entra no FGTS Digital e faz o trabalho; aqui o cliente só
+  // acompanha as etapas. Se o gov.br pedir a verificação de imagens, ela aparece aqui.
+  var fgtsTimer = null, captchaTimer = null, fgtsPedido = null;
+
+  function cartaoFgts() {
+    var f = dados.fgts;
+    if (!f || !f.habilitado) return '';
+    return '<h2>FGTS</h2><div class="cartao" id="fgts">' + corpoFgts(f.consulta) + '</div>';
+  }
+
+  function corpoFgts(consulta) {
+    var h = '<div class="meta">Consultamos o FGTS Digital da sua empresa e emitimos a guia com o valor atualizado para hoje.</div>';
+    if (consulta && (consulta.status === 'concluido' || consulta.aguardando_escolha) && consulta.competencias.length) {
+      h += listaCompetencias(consulta);
+      if (consulta.aguardando_escolha) {
+        h += '<p class="aviso"><b>A sessão no FGTS Digital está aberta:</b> marque os meses e toque em "Gerar guia(s)" nos próximos minutos para emitir sem nova verificação.</p>';
+      }
+      h += '<div class="acoes"><button type="button" data-fgts="consultar">Consultar de novo</button></div>';
+    } else {
+      h += '<div class="acoes"><button type="button" data-fgts="consultar">Consultar FGTS em aberto</button></div>';
+    }
+    return h + '<div class="fgts-andamento"></div>';
+  }
+
+  var ROT_COMP = { fgts_mensal: 'FGTS mensal', fgts_rescisorio: 'FGTS rescisório', indenizacao: 'Indenização compensatória',
+                  processo_trabalhista: 'Processo trabalhista', encargos: 'Multa e juros (encargos)' };
+
+  function listaCompetencias(p) {
+    if (!p.competencias.length) return '<p class="vazio">Nenhum débito de FGTS em aberto no FGTS Digital. 🎉</p>';
+    var h = '<div class="meta">' + p.competencias.length + ' mês(es) em aberto no FGTS Digital — marque os que quer pagar:</div>';
+    p.competencias.forEach(function (c) {
+      var det = '';
+      (c.grupos || []).forEach(function (g) {
+        det += '<br><span class="aviso">' + esc(g.grupo) + (g.valor != null ? ' · ' + brl(g.valor) : '') + '</span>';
+      });
+      if (c.composicao) {
+        var partes = [];
+        Object.keys(ROT_COMP).forEach(function (k) { if (c.composicao[k]) partes.push(ROT_COMP[k] + ' ' + brl(c.composicao[k])); });
+        if (partes.length) det += '<br><span class="aviso">' + esc(partes.join(' + ')) + '</span>';
+      }
+      h += '<label class="fgts-comp"><span><input type="checkbox" data-comp="' + esc(c.competencia) + '" checked> <b>'
+        + esc(c.rotulo) + '</b>' + det + '</span><b>' + (c.total != null ? brl(c.total) : '') + '</b></label>';
+    });
+    h += '<div class="total"><span>Total em aberto</span><span>' + brl(p.total_em_aberto) + '</span></div>';
+    h += '<div class="acoes"><button type="button" data-fgts="emitir-marcadas">Gerar guia(s) dos meses marcados</button>'
+      + '<button type="button" data-fgts="marcar">Marcar/desmarcar todos</button></div>';
+    return h + '<p class="aviso">Cada mês sai numa guia (GFD) com vencimento hoje: o FGTS Digital calcula multa e juros até hoje.</p>';
+  }
+
+  function marcadas() {
+    var lista = [];
+    caixaFgts().querySelectorAll('input[data-comp]:checked').forEach(function (i) { lista.push(i.getAttribute('data-comp')); });
+    return lista;
+  }
+
+  function andamento(p) {
+    var h = '<ul class="etapas">';
+    p.etapas.forEach(function (e) {
+      var simbolo = e.situacao === 'feito' ? '✓' : (e.situacao === 'erro' ? '!' : '');
+      h += '<li class="' + e.situacao + '"><span class="bola">' + simbolo + '</span>' + esc(e.rotulo)
+        + (e.chave === 'fila' && p.fila > 1 ? ' (posição ' + p.fila + ')' : '') + '</li>';
+    });
+    h += '</ul>';
+    if (p.aguardando_captcha) {
+      h += '<div class="captcha"><p><b>Verificação de segurança do gov.br.</b> Toque nas imagens pedidas e depois no botão '
+        + '<b>Verificar</b>/<b>Avançar</b> dentro da imagem. Assim que passar, o restante continua sozinho.</p>'
+        + '<div class="moldura"><img alt="Verificação do gov.br" data-captcha="1"></div></div>';
+    }
+    if (p.status === 'erro') h += '<div class="erro">' + esc(p.mensagem || 'Não foi possível concluir.') + '</div>';
+    if (p.status === 'concluido') {
+      if (p.guias.length) {
+        h += '<div class="resultado">' + esc(p.mensagem || 'Guia pronta.') + '<br>';
+        p.guias.forEach(function (g, i) {
+          h += '<a class="botao verde" target="_blank" rel="noopener" href="' + esc(g.pdf_url) + '">Abrir guia '
+            + (g.competencia ? esc(g.competencia.slice(4) + '/' + g.competencia.slice(0, 4)) + ' ' : '') + esc(g.grupo || '')
+            + (g.vencimento ? ' · pagar até ' + esc(g.vencimento) : '') + ' (PDF)</a> ';
+        });
+        h += '</div>';
+      }
+    }
+    return h;
+  }
+
+  function caixaFgts() { return document.getElementById('fgts'); }
+
+  function mostrar(p) {
+    fgtsPedido = p;
+    var caixa = caixaFgts();
+    if (!caixa) return;
+    var chave = p.id + ':' + p.status;
+    if (p.acao === 'consultar' && (p.status === 'concluido' || p.aguardando_escolha) && caixa.getAttribute('data-lista') !== chave) {
+      caixa.innerHTML = corpoFgts(p);
+      caixa.setAttribute('data-lista', chave);
+    }
+    var alvo = caixa.querySelector('.fgts-andamento');
+    alvo.innerHTML = andamento(p);
+    var aberto = p.status === 'fila' || p.status === 'executando' || p.status === 'aguardando_captcha';
+    caixa.querySelectorAll('button[data-fgts]').forEach(function (b) {
+      // Esperando escolha: só os botões de emitir ficam ativos (vão para a mesma sessão).
+      b.disabled = aberto && !(p.aguardando_escolha && b.getAttribute('data-fgts') !== 'consultar');
+    });
+    if (p.aguardando_captcha) iniciarCaptcha(p.id); else pararCaptcha();
+    clearTimeout(fgtsTimer);
+    if (aberto) fgtsTimer = setTimeout(function () { acompanhar(p.id); }, p.aguardando_captcha ? 2500 : 1500);
+  }
+
+  function acompanhar(id) {
+    fetch(api + '/fgts/pedidos/' + id).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.success) mostrar(j.pedido);
+      else fgtsTimer = setTimeout(function () { acompanhar(id); }, 3000);
+    }).catch(function () { fgtsTimer = setTimeout(function () { acompanhar(id); }, 3000); });
+  }
+
+  function escolher(lista) {
+    var alvo = caixaFgts().querySelector('.fgts-andamento');
+    caixaFgts().querySelectorAll('button[data-fgts]').forEach(function (b) { b.disabled = true; });
+    fetch(api + '/fgts/pedidos/' + fgtsPedido.id + '/escolha', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ competencias: lista }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (!j.success) alvo.insertAdjacentHTML('beforeend', '<div class="erro">' + esc(j.message) + '</div>'); })
+      .catch(function () {});
+  }
+
+  function pedirFgts(acao) {
+    if (acao === 'marcar') {
+      var caixas = caixaFgts().querySelectorAll('input[data-comp]');
+      var todas = Array.prototype.every.call(caixas, function (i) { return i.checked; });
+      caixas.forEach(function (i) { i.checked = !todas; });
+      return;
+    }
+    var comp = null;
+    if (acao === 'emitir-marcadas') {
+      var lista = marcadas();
+      var alvo0 = caixaFgts().querySelector('.fgts-andamento');
+      if (!lista.length) { alvo0.innerHTML = '<div class="erro">Marque ao menos um mês.</div>'; return; }
+      // Sessão ainda aberta: emite na mesma sessão. Senão, um pedido novo por vez (o
+      // servidor aceita a lista inteira só na sessão aberta).
+      if (fgtsPedido && fgtsPedido.aguardando_escolha) return escolher(lista);
+      acao = 'emitir'; comp = lista;
+    }
+    var alvo = caixaFgts().querySelector('.fgts-andamento');
+    alvo.innerHTML = '<p class="aviso">Enviando pedido…</p>';
+    fetch(api + '/fgts/pedidos', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao: acao, competencias: comp || null }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j.success) { alvo.innerHTML = '<div class="erro">' + esc(res.j.message || 'Não foi possível pedir agora.') + '</div>'; return; }
+        mostrar(res.j.pedido);
+      })
+      .catch(function () { alvo.innerHTML = '<div class="erro">Sem conexão. Tente de novo.</div>'; });
+  }
+
+  // Imagem do desafio: recarrega sozinha; o toque vai como fração (0..1) da imagem.
+  function iniciarCaptcha(id) {
+    var img = document.querySelector('img[data-captcha]');
+    if (!img) return;
+    var carregar = function () {
+      var novo = new Image();
+      novo.onload = function () { var atual = document.querySelector('img[data-captcha]'); if (atual) atual.src = novo.src; };
+      novo.src = api + '/fgts/pedidos/' + id + '/captcha.jpg?t=' + Date.now();
+    };
+    if (!img.getAttribute('src')) carregar();
+    clearInterval(captchaTimer);
+    captchaTimer = setInterval(carregar, 1000);
+  }
+  function pararCaptcha() { clearInterval(captchaTimer); captchaTimer = null; }
+
+  function tocar(ev) {
+    var img = ev.target;
+    var r = img.getBoundingClientRect();
+    var x = (ev.clientX - r.left) / r.width, y = (ev.clientY - r.top) / r.height;
+    if (x < 0 || x > 1 || y < 0 || y > 1 || !fgtsPedido) return;
+    var marca = document.createElement('span');
+    marca.className = 'toque'; marca.style.left = (x * 100) + '%'; marca.style.top = (y * 100) + '%';
+    img.parentNode.appendChild(marca);
+    setTimeout(function () { marca.remove(); }, 700);
+    fetch(api + '/fgts/pedidos/' + fgtsPedido.id + '/captcha/toque', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ x: x, y: y }) });
+  }
+
   raiz.addEventListener('click', function (ev) {
+    if (ev.target.matches && ev.target.matches('img[data-captcha]')) return tocar(ev);
+    var bf = ev.target.closest('button[data-fgts]');
+    if (bf) return pedirFgts(bf.getAttribute('data-fgts'));
     var b = ev.target.closest('button[data-acao]');
     if (!b) return;
     var acao = b.getAttribute('data-acao');
@@ -226,6 +435,8 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
   fetch(api).then(function (r) { return r.json(); }).then(function (j) {
     if (!j.success) { raiz.className = 'cartao'; raiz.innerHTML = '<b>Link indisponível</b><p>' + esc(j.message) + '</p>'; return; }
     dados = j; render();
+    if (j.fgts && j.fgts.pedido_aberto) acompanhar(j.fgts.pedido_aberto);
+    else if (j.fgts && j.fgts.ultimo) mostrar(j.fgts.ultimo);
   }).catch(function () { raiz.innerHTML = 'Sem conexão. Recarregue a página.'; });
 })();
 </script>

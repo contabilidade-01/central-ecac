@@ -234,7 +234,151 @@ def montar_pagina(link: AcessoLink, company: Company) -> Dict[str, Any]:
         'competencias': competencias_permitidas(hoje),
         'link': {'expira_em': link.expira_em.isoformat() if link.expira_em else None},
         'escritorio': escritorio(),
+        'fgts': _fgts_resumo(link, company),
     }
+
+
+# ------------------------------------------------------------------- FGTS (desvio 22)
+# O robô do FGTS Digital (services/fgts_digital_robo.py) entra como procurador e faz o
+# trabalho; a página só cria o pedido, acompanha as etapas e — se o gov.br pedir
+# captcha — mostra o recorte do desafio e repassa os toques do cliente.
+def _fgts_resumo(link: AcessoLink, company: Company) -> Dict[str, Any]:
+    from app.services import fgts_pedidos_service as fgts
+    if not fgts.liberado_para(company.cnpj):
+        return {'habilitado': False}
+    aberto = fgts.pedido_aberto(company.cnpj)
+    consulta = fgts.ultima_consulta_hoje(company.cnpj)
+    ultimo = fgts.ultimo_pedido_recente(company.cnpj)
+    base = f'/api/acesso/{link.token}/fgts/pedidos'
+    return {
+        'habilitado': True,
+        'pedido_aberto': aberto.id if aberto else None,
+        'consulta': fgts.serializar(consulta) if consulta else None,
+        # Último pedido (consulta ou emissão) das últimas 12 h: ao reabrir o link o
+        # cliente vê o andamento e as guias que já saíram.
+        'ultimo': fgts.serializar(ultimo, base_pdf=f'{base}/{ultimo.id}/pdf') if ultimo else None,
+    }
+
+
+def _fgts_pedido(link: AcessoLink, pedido_id: int):
+    from app.integracao_models import FgtsPedido
+    pedido = db.session.get(FgtsPedido, pedido_id)
+    # Recorte pelo CNPJ do token: pedido de outra empresa não aparece aqui.
+    if not pedido or pedido.cnpj != link.cnpj:
+        return None
+    return pedido
+
+
+@acesso_bp.post('/api/acesso/<token>/fgts/pedidos')
+def fgts_criar(token: str):
+    from app.services import fgts_pedidos_service as fgts
+    resultado, erro = _link_ou_erro(token)
+    if erro:
+        return erro
+    link, company = resultado
+    corpo = request.get_json(silent=True) or {}
+    try:
+        pedido = fgts.criar(company_id=company.id, cnpj=company.cnpj,
+                            acao=str(corpo.get('acao') or 'consultar'),
+                            competencia=corpo.get('competencias') or corpo.get('competencia'),
+                            link_id=link.id,
+                            origem='link', solicitado_por=links.solicitante(link.token))
+    except fgts.PedidoRecusado as exc:
+        return _erro(str(exc), exc.status)
+    return jsonify({'success': True, 'pedido': fgts.serializar(
+        pedido, base_pdf=f'/api/acesso/{link.token}/fgts/pedidos/{pedido.id}/pdf')})
+
+
+@acesso_bp.get('/api/acesso/<token>/fgts/pedidos/<int:pedido_id>')
+def fgts_ver(token: str, pedido_id: int):
+    from app.services import fgts_pedidos_service as fgts
+    resultado, erro = _link_ou_erro(token)
+    if erro:
+        return erro
+    link, _company = resultado
+    pedido = _fgts_pedido(link, pedido_id)
+    if not pedido:
+        return _erro('Pedido não encontrado.', 404)
+    return jsonify({'success': True, 'pedido': fgts.serializar(
+        pedido, base_pdf=f'/api/acesso/{link.token}/fgts/pedidos/{pedido.id}/pdf')})
+
+
+@acesso_bp.get('/api/acesso/<token>/fgts/pedidos/<int:pedido_id>/captcha.jpg')
+def fgts_captcha(token: str, pedido_id: int):
+    from app.services import fgts_digital_robo
+    resultado, erro = _link_ou_erro(token)
+    if erro:
+        return erro
+    link, _company = resultado
+    pedido = _fgts_pedido(link, pedido_id)
+    if not pedido or pedido.status != 'aguardando_captcha':
+        return _erro('Nenhuma verificação pendente.', 404)
+    imagem = fgts_digital_robo.robo().captcha_imagem(pedido.id)
+    if not imagem:
+        return _erro('Carregando a verificação…', 202)
+    return Response(imagem, mimetype='image/jpeg', headers={'Cache-Control': 'no-store'})
+
+
+@acesso_bp.post('/api/acesso/<token>/fgts/pedidos/<int:pedido_id>/captcha/toque')
+def fgts_captcha_toque(token: str, pedido_id: int):
+    from app.services import fgts_digital_robo
+    resultado, erro = _link_ou_erro(token)
+    if erro:
+        return erro
+    link, _company = resultado
+    pedido = _fgts_pedido(link, pedido_id)
+    if not pedido or pedido.status != 'aguardando_captcha':
+        return _erro('Nenhuma verificação pendente.', 404)
+    corpo = request.get_json(silent=True) or {}
+    try:
+        fx, fy = float(corpo.get('x')), float(corpo.get('y'))
+    except (TypeError, ValueError):
+        return _erro('Toque inválido.')
+    if not fgts_digital_robo.robo().clicar_captcha(pedido.id, fx, fy):
+        return _erro('Toque inválido.')
+    return jsonify({'success': True})
+
+
+@acesso_bp.post('/api/acesso/<token>/fgts/pedidos/<int:pedido_id>/escolha')
+def fgts_escolha(token: str, pedido_id: int):
+    """Cliente escolhe a(s) competência(s) da lista; o robô emite na MESMA sessão."""
+    from app.services import fgts_digital_robo, fgts_pedidos_service as fgts
+    resultado, erro = _link_ou_erro(token)
+    if erro:
+        return erro
+    link, _company = resultado
+    pedido = _fgts_pedido(link, pedido_id)
+    if not pedido:
+        return _erro('Pedido não encontrado.', 404)
+    corpo = request.get_json(silent=True) or {}
+    try:
+        escolha = fgts.validar_escolha(pedido, corpo.get('competencias'))
+    except fgts.PedidoRecusado as exc:
+        return _erro(str(exc), exc.status)
+    fgts_digital_robo.robo().escolher(pedido.id, escolha)
+    return jsonify({'success': True, 'competencias': escolha})
+
+
+@acesso_bp.get('/api/acesso/<token>/fgts/pedidos/<int:pedido_id>/pdf/<int:indice>')
+def fgts_pdf(token: str, pedido_id: int, indice: int):
+    from app.services import fgts_pedidos_service as fgts
+    resultado, erro = _link_ou_erro(token)
+    if erro:
+        return erro
+    link, _company = resultado
+    pedido = _fgts_pedido(link, pedido_id)
+    if not pedido:
+        return _erro('Guia não encontrada.', 404)
+    caminho = fgts.caminho_pdf(pedido, indice)
+    if not caminho:
+        return _erro('Esta guia não está mais disponível. Peça de novo.', 410)
+    conteudo = caminho.read_bytes()
+    if not fgts.pdf_e_da_empresa(conteudo, link.cnpj):
+        return _erro('Guia não encontrada.', 404)
+    nome = f'FGTS_{pedido.competencia or ""}_{indice + 1}.pdf'
+    return Response(conteudo, mimetype='application/pdf',
+                    headers={'Content-Disposition': f'inline; filename="{nome}"',
+                             'Cache-Control': 'private, no-store'})
 
 
 # ----------------------------------------------------------------------- página

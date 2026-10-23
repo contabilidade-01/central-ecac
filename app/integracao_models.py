@@ -197,3 +197,35 @@ class AcessoLink(db.Model):
     ultimo_acesso_em = db.Column(db.DateTime, nullable=True)
     ultimo_acesso_ip = db.Column(db.String(60), nullable=True)
     guias_geradas = db.Column(db.Integer, nullable=False, default=0)
+
+
+class FgtsPedido(db.Model):
+    """Pedido ao robô do FGTS Digital (desvio 22) — consultar competências em aberto ou
+    emitir a guia rápida (valor atualizado para hoje) de uma competência.
+
+    Pedido do Jean (23/10/2026): o cliente pede pelo link sem senha (`/g/<token>`) que o
+    AtendeChat manda; o robô entra no FGTS Digital com o certificado da Nescon como
+    PROCURADOR do CNPJ do link e faz o trabalho. Se o gov.br pedir captcha, a imagem do
+    desafio aparece na página do cliente e os toques dele são repassados ao robô.
+
+    Não há custo de API (o FGTS Digital é portal, não SERPRO). As travas são de uso:
+    um pedido por vez por empresa e limite diário por link (`FGTS_MAX_PEDIDOS_DIA`).
+    """
+    __tablename__ = 'fgts_pedidos'
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, nullable=False, index=True)
+    cnpj = db.Column(db.String(14), nullable=False, index=True)
+    link_id = db.Column(db.Integer, nullable=True, index=True)
+    acao = db.Column(db.String(12), nullable=False)                 # consultar | emitir
+    competencia = db.Column(db.String(6), nullable=True)            # AAAAMM (emitir)
+    status = db.Column(db.String(20), nullable=False, default='fila', index=True)
+    etapa = db.Column(db.String(30), nullable=True)                 # ver fgts_pedidos_service.ETAPAS
+    mensagem = db.Column(db.String(500), nullable=True)
+    resultado_json = db.Column(db.Text, nullable=True)              # competências / guias
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    iniciado_em = db.Column(db.DateTime, nullable=True)
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    concluido_em = db.Column(db.DateTime, nullable=True)
+    origem = db.Column(db.String(20), nullable=False, default='link')   # link | atendechat | escritorio
+    solicitado_por = db.Column(db.String(120), nullable=True)

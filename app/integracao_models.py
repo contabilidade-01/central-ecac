@@ -165,3 +165,35 @@ class ConfirmacaoSitfis(db.Model):
     mensagem = db.Column(db.String(500), nullable=True)
     relatorio_id = db.Column(db.Integer, nullable=True)
     solicitado_por = db.Column(db.String(120), nullable=True)
+
+
+class AcessoLink(db.Model):
+    """Link de acesso às guias SEM SENHA, servido por este sistema (desvio 21).
+
+    Pedido do Jean (23/10/2026): o AtendeChat manda ao cliente, dentro da conversa, um
+    link para ele mesmo gerar a guia recalculada — sem passar pelo portal do cliente.
+    Modelo de segurança (o mesmo que o portal já usa no `/g/` dele):
+    * token aleatório de 32 bytes (64 hex), não adivinhável;
+    * escopo SÓ guias daquela empresa: a página não aceita CNPJ nem id de emissão vindos
+      do navegador, e só emite competência que consta no próprio relatório;
+    * vence sozinho (`LINK_GUIAS_DIAS`, padrão 35), revogável pelo escritório;
+    * cada acesso e cada guia gerada ficam contados aqui e em `das_emissoes`
+      (`origem='link'`, `solicitado_por='link:<token curto>'`).
+    Nada do portal do cliente lê ou escreve esta tabela.
+    """
+    __tablename__ = 'acesso_links'
+
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(64), nullable=False, unique=True, index=True)
+    company_id = db.Column(db.Integer, nullable=False, index=True)
+    cnpj = db.Column(db.String(14), nullable=False, index=True)
+    origem = db.Column(db.String(20), nullable=False, default='atendechat')
+    solicitado_por = db.Column(db.String(120), nullable=True)
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    expira_em = db.Column(db.DateTime, nullable=False, index=True)
+    revogado_em = db.Column(db.DateTime, nullable=True)
+    revogado_por = db.Column(db.String(120), nullable=True)
+    acessos = db.Column(db.Integer, nullable=False, default=0)
+    ultimo_acesso_em = db.Column(db.DateTime, nullable=True)
+    ultimo_acesso_ip = db.Column(db.String(60), nullable=True)
+    guias_geradas = db.Column(db.Integer, nullable=False, default=0)

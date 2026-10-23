@@ -50,6 +50,31 @@ WhatsApp, sob demanda do atendente — `origem: atendechat`). Não muda nada do 
 | POST | `/situacao/confirmar` | **pago** (~R$ 0,32; um por vez; `INTEGRACAO_MAX_CONFIRMACOES_DIA`=2) | relatório de situação fiscal NA HORA para uma empresa ("Confirmar pendências", desvio 20) — roda em thread |
 | GET | `/situacao/<cnpj>/confirmacao` | 0 | status da última confirmação (`em_andamento`/`concluida`/`erro`, `relatorio_data`) |
 | POST | `/parcelas/consultar` | **pago** (ou 0 se já consultado hoje) | `{cnpj, tipo, forcar?, solicitado_por?}` |
+| POST | `/acesso-links` | 0 | `{cnpj, origem: atendechat, solicitado_por?, dias?}` → `{url, link}`: link de guias **sem senha servido por este sistema** (desvio 21). Reaproveita link válido por ≥ 3 dias |
+| GET | `/acesso-links?cnpj=` | 0 | últimos links da empresa (acessos, guias geradas, validade) |
+| POST | `/acesso-links/revogar` | 0 | `{cnpj}` → revoga os links ativos da empresa |
+
+## Página pública de guias sem senha — `/g/<token>` (desvio 21)
+
+Pedido do Jean (23/10/2026): o AtendeChat manda o link na conversa e o cliente gera a
+guia recalculada **aqui**, sem o portal do cliente no caminho. O portal continua com o
+`/g/` dele, no domínio dele, com a tabela dele — nada do que o portal faz é tocado.
+
+| Rota | Faz |
+|---|---|
+| `GET /g/<token>` | página para celular: empresa, data do relatório, débitos **válidos e em atraso** com "vou pagar em [data]" + **Gerar guia atualizada**; a vencer com **Baixar guia**; avisos de parcelamento/PGFN/omissão |
+| `GET /api/acesso/<token>` | JSON da página |
+| `POST /api/acesso/<token>/guias` `{debito_id, data_pagamento?}` | emite pelo `emitir` (mesmas travas: procuração, teto, reuso); `origem='link'`, `solicitado_por='link:<token curto>'` |
+| `GET /api/acesso/<token>/guias/<id>/pdf` | PDF inline; só emissão da empresa do token |
+
+Segurança: token de 32 bytes (64 hex), escopo só guias daquela empresa, vence sozinho
+(`LINK_GUIAS_DIAS`, 35), revogável; a página nunca recebe CNPJ nem id de emissão de fora
+e só emite débito que consta no último relatório; token errado conta como tentativa do
+IP (5 → bloqueio de 5 min, como o login). Data de pagamento: hoje a +30 dias, dia útil.
+Limite por token: `LINK_GUIAS_MAX_GERACOES_DIA` (2) emissões **pagas** por competência
+por dia — reuso do PDF não conta. As emissões do link **não contam** no limite diário do
+portal (`INTEGRACAO_MAX_EMISSOES_DIA`): o que o cliente gera por aqui nunca bloqueia o
+portal nem o escritório. Rodapé: `ESCRITORIO_NOME` e `ESCRITORIO_WHATSAPP` (opcionais).
 
 ### O que cada débito traz
 
@@ -116,7 +141,7 @@ Acompanhe em `/agendamento` (seção "Reprocessamentos pedidos pelo portal").
 ## Teste
 
 ```bash
-python -m pytest tests/test_integracao_interno.py -q
+python -m pytest tests/test_integracao_interno.py tests/test_acesso_links.py -q
 ```
 
 Antes de ligar em produção: emitir **uma** guia SN vencida e **uma** MEI vencida pela

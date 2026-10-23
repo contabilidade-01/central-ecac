@@ -145,7 +145,9 @@ def create_app() -> Flask:
                 # visual do Integra Contador), servida pelo Flask.
                 or path == '/mei'
                 or path == '/escritorio'
-                or path.startswith('/escritorio/')):
+                or path.startswith('/escritorio/')
+                # DESVIO INTENCIONAL (21o): página pública de guias sem senha.
+                or path.startswith('/g/')):
             return None
         if '.' in path.split('/')[-1]:
             return None
@@ -217,6 +219,12 @@ def create_app() -> Flask:
     # Autenticada por token próprio (INTEGRACAO_TOKEN), ver app/security.py.
     from app.routes.interno_routes import interno_bp
     app.register_blueprint(interno_bp, url_prefix='/api/interno')
+
+    # DESVIO INTENCIONAL (21o) — página de guias SEM SENHA (`/g/<token>` e
+    # `/api/acesso/*`), servida por este sistema para o link que o AtendeChat manda na
+    # conversa. Ver routes/acesso_routes.py.
+    from app.routes.acesso_routes import acesso_bp
+    app.register_blueprint(acesso_bp)
 
     from app.scheduler import iniciar as iniciar_agendador
     iniciar_agendador(app)

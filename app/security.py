@@ -87,6 +87,16 @@ def auth_habilitada() -> bool:
     return usuarios_service.configurado()
 
 
+# DESVIO 21 — a página pública do link sem senha (routes/acesso_routes.py) usa o mesmo
+# bloqueio por tentativas do login para token errado.
+def segundos_bloqueado() -> int:
+    return _bloqueado()
+
+
+def registrar_tentativa_falha() -> None:
+    _registrar_falha()
+
+
 def usuario_atual():
     """Usuário da sessão (ou do HTTP Basic). None se não autenticado."""
     usuario_id = session.get('usuario_id')
@@ -176,6 +186,13 @@ def registrar_seguranca(app) -> None:
         caminho = request.path
 
         if caminho in CAMINHOS_LIVRES:
+            return None
+
+        # DESVIO INTENCIONAL (21o) — `/g/<token>` e `/api/acesso/<token>/*`: página de
+        # guias SEM SENHA. Não há usuário nem sessão; a própria rota valida o token (64
+        # hex, não vencido, não revogado) e conta token errado como tentativa do IP.
+        from app.routes.acesso_routes import caminho_publico
+        if caminho_publico(caminho):
             return None
 
         # DESVIO INTENCIONAL (18o) — `/api/interno/*` é máquina-a-máquina (portal do

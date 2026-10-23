@@ -37,6 +37,11 @@ acesso_bp = Blueprint('acesso', __name__)
 PREFIXOS_LIVRES = ('/g/', '/api/acesso/')
 ROTULOS = {'SN': 'DAS — Simples Nacional', 'MEI': 'DAS — MEI', 'INSS': 'DARF — INSS (DCTFWeb)'}
 JANELA_DIAS = 30
+# "Outra competência": guia que ainda não está no relatório (a Receita só lista o que
+# foi declarado até a data do relatório; a guia do mês que venceu ontem fica de fora).
+# O cliente escolhe o tipo e o mês; a Receita calcula se existir declaração.
+TIPOS_LIVRES = {'SN': 'DAS — Simples Nacional', 'MEI': 'DAS — MEI', 'DCTFWEB': 'DARF — INSS (DCTFWeb)'}
+COMPETENCIA_MESES_ATRAS = 36
 
 
 def caminho_publico(caminho: str) -> bool:
@@ -110,6 +115,31 @@ def escritorio() -> Dict[str, Optional[str]]:
     }
 
 
+def _eh_mei(company_id: int) -> bool:
+    from app.integracao_models import EmpresaMei
+    marca = EmpresaMei.query.filter_by(company_id=company_id).first()
+    return bool(marca and marca.eh_mei)
+
+
+def tipos_livres(company: Company) -> list:
+    """Tipos que o cliente pode pedir em "Outra competência": MEI → DAS MEI; demais → SN e INSS."""
+    if _eh_mei(company.id):
+        return [{'tipo': 'MEI', 'rotulo': TIPOS_LIVRES['MEI']}]
+    return [{'tipo': 'SN', 'rotulo': TIPOS_LIVRES['SN']}, {'tipo': 'DCTFWEB', 'rotulo': TIPOS_LIVRES['DCTFWEB']}]
+
+
+def competencias_permitidas(hoje: date) -> list:
+    """AAAAMM do mês atual para trás (36 meses), para a lista da página."""
+    ano, mes = hoje.year, hoje.month
+    saida = []
+    for _ in range(COMPETENCIA_MESES_ATRAS):
+        saida.append(f'{ano:04d}{mes:02d}')
+        mes -= 1
+        if mes == 0:
+            mes, ano = 12, ano - 1
+    return saida
+
+
 def montar_pagina(link: AcessoLink, company: Company) -> Dict[str, Any]:
     hoje = pend.hoje_brasil()
     dados = pend.pendencias_da_empresa(company, hoje=hoje)
@@ -128,6 +158,8 @@ def montar_pagina(link: AcessoLink, company: Company) -> Dict[str, Any]:
         'hoje': hoje.isoformat(),
         'data_maxima': (hoje + timedelta(days=JANELA_DIAS)).isoformat(),
         'max_geracoes_dia': links.max_geracoes_dia(),
+        'tipos_livres': tipos_livres(company),
+        'competencias': competencias_permitidas(hoje),
         'link': {'expira_em': link.expira_em.isoformat() if link.expira_em else None},
         'escritorio': escritorio(),
     }
@@ -164,24 +196,40 @@ def gerar(token: str):
         return erro
     link, company = resultado
     corpo = request.get_json(silent=True) or {}
-
-    try:
-        debito_id = int(corpo.get('debito_id'))
-    except (TypeError, ValueError):
-        return _erro('Informe o débito.')
-    dados_empresa = pend.pendencias_da_empresa(company)
-    debito = next((d for d in dados_empresa['debitos'] if d['id'] == debito_id), None)
-    if not debito or not debito.get('valido') or not debito.get('recalculo_disponivel'):
-        return _erro('Este débito não consta no relatório atual da empresa.', 404)
-    pa = debito.get('periodo_aaaamm')
-    tipo_guia = pend.GUIA_POR_TIPO.get(debito['tipo'])
-    if not pa or not tipo_guia:
-        return _erro('Não é possível gerar guia para este débito por aqui. Fale com o escritório.', 409)
-
     hoje = pend.hoje_brasil()
+
+    if corpo.get('debito_id') is not None:
+        # Guia que consta no relatório.
+        try:
+            debito_id = int(corpo.get('debito_id'))
+        except (TypeError, ValueError):
+            return _erro('Informe o débito.')
+        dados_empresa = pend.pendencias_da_empresa(company)
+        debito = next((d for d in dados_empresa['debitos'] if d['id'] == debito_id), None)
+        if not debito or not debito.get('valido') or not debito.get('recalculo_disponivel'):
+            return _erro('Este débito não consta no relatório atual da empresa.', 404)
+        pa = debito.get('periodo_aaaamm')
+        tipo_guia = pend.GUIA_POR_TIPO.get(debito['tipo'])
+        if not pa or not tipo_guia:
+            return _erro('Não é possível gerar guia para este débito por aqui. Fale com o escritório.', 409)
+        exige_data = bool(debito.get('em_atraso'))
+    else:
+        # "Outra competência": guia que não está no relatório (venceu depois dele, ou foi
+        # declarada depois). O cliente escolhe tipo e mês; a Receita calcula se houver
+        # declaração — se não houver, a SERPRO recusa e a mensagem aparece na tela.
+        tipo_guia = str(corpo.get('tipo') or '').upper()
+        if tipo_guia not in {t['tipo'] for t in tipos_livres(company)}:
+            return _erro('Tipo de guia não disponível para esta empresa.')
+        pa = ''.join(ch for ch in str(corpo.get('competencia') or '') if ch.isdigit())
+        if tipo_guia == 'DCTFWEB' and len(pa) == 6 and pa[4:] == '13':
+            pass  # DCTFWeb do 13º salário
+        elif pa not in competencias_permitidas(hoje):
+            return _erro('Escolha uma competência entre o mês atual e os últimos 36 meses.')
+        exige_data = False
+
     data_pagamento = None
-    if debito.get('em_atraso'):
-        bruto = ''.join(ch for ch in str(corpo.get('data_pagamento') or '') if ch.isdigit())
+    bruto = ''.join(ch for ch in str(corpo.get('data_pagamento') or '') if ch.isdigit())
+    if bruto or exige_data:
         if len(bruto) != 8:
             return _erro('Escolha a data em que vai pagar.')
         try:

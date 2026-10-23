@@ -62,9 +62,9 @@ guia recalculada **aqui**, sem o portal do cliente no caminho. O portal continua
 
 | Rota | Faz |
 |---|---|
-| `GET /g/<token>` | página para celular: empresa, data do relatório, débitos **válidos e em atraso** com "vou pagar em [data]" + **Gerar guia atualizada**; a vencer com **Baixar guia**; avisos de parcelamento/PGFN/omissão |
+| `GET /g/<token>` | página para celular: empresa, data do relatório, débitos **válidos e em atraso** com "vou pagar em [data]" + **Gerar guia atualizada**; a vencer com data opcional; **Outra competência** (tipo + mês + data) para a guia que ainda não está no relatório — venceu depois dele ou foi declarada depois; avisos de parcelamento/PGFN/omissão |
 | `GET /api/acesso/<token>` | JSON da página |
-| `POST /api/acesso/<token>/guias` `{debito_id, data_pagamento?}` | emite pelo `emitir` (mesmas travas: procuração, teto, reuso); `origem='link'`, `solicitado_por='link:<token curto>'` |
+| `POST /api/acesso/<token>/guias` `{debito_id, data_pagamento?}` ou `{tipo: SN\|MEI\|DCTFWEB, competencia: AAAAMM, data_pagamento?}` | emite pelo `emitir` (mesmas travas: procuração, teto, reuso); `origem='link'`, `solicitado_por='link:<token curto>'`. Tipos livres: MEI → só DAS MEI; demais → SN e INSS (inclusive 13º); competência do mês atual até 36 meses atrás |
 | `GET /api/acesso/<token>/guias/<id>/pdf` | PDF inline; só emissão da empresa do token |
 
 Segurança: token de 32 bytes (64 hex), escopo só guias daquela empresa, vence sozinho

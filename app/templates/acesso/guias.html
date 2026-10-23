@@ -28,7 +28,7 @@
   .atraso .valor { color: var(--vermelho); }
   .acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
   label { font-size: 14px; color: var(--cinza); }
-  input[type=date] { font: inherit; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 8px; }
+  input[type=date], select { font: inherit; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; }
   button, a.botao { font: inherit; font-weight: 600; padding: 10px 14px; border-radius: 8px; border: 0;
                     background: var(--azul); color: #fff; cursor: pointer; text-decoration: none; display: inline-block; }
   button[disabled] { opacity: .55; cursor: default; }
@@ -71,12 +71,8 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
       + '<div class="linha"><span class="rotulo">' + esc(d.rotulo) + '</span><span class="valor">' + brl(d.saldo_devedor_total) + '</span></div>'
       + '<div class="meta">Competência ' + esc(d.competencia) + (d.vencimento ? ' · vencimento ' + esc(d.vencimento) : '') + '</div>';
     if (d.pode_gerar) {
-      if (atraso) {
-        html += '<div class="acoes"><label>Vou pagar em <input type="date" min="' + dados.hoje + '" max="' + dados.data_maxima + '" value="' + dados.hoje + '"></label>'
-          + '<button type="button" data-acao="gerar">Gerar guia atualizada</button></div>';
-      } else {
-        html += '<div class="acoes"><button type="button" data-acao="gerar">Baixar guia</button></div>';
-      }
+      html += '<div class="acoes"><label>Vou pagar em <input type="date" min="' + dados.hoje + '" max="' + dados.data_maxima + '" value="' + dados.hoje + '"></label>'
+        + '<button type="button" data-acao="gerar">' + (atraso ? 'Gerar guia atualizada' : 'Gerar guia') + '</button></div>';
       html += '<div class="saida"></div>';
     } else {
       html += '<div class="aviso">Esta guia não é gerada por aqui. Fale com o escritório.</div>';
@@ -88,7 +84,7 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
     var h = '<div class="cartao empresa"><b>' + esc(dados.empresa.razao_social) + '</b><span>CNPJ ' + esc(dados.empresa.cnpj) + '</span>'
       + (dados.relatorio ? '<span><br>Relatório da Receita de ' + esc(dados.relatorio.data) + '</span>' : '') + '</div>';
     if (!dados.relatorio) {
-      h += '<div class="cartao vazio">Ainda não há relatório da Receita para esta empresa. Fale com o escritório.</div>';
+      h += '<div class="cartao vazio">Ainda não há relatório da Receita para esta empresa. Você pode gerar a guia de um mês específico abaixo.</div>';
     } else {
       h += '<h2>Em atraso</h2>';
       if (dados.em_atraso.length) {
@@ -106,21 +102,50 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
       if (dados.pgfn) extras.push('Há inscrição na Dívida Ativa (PGFN). Esse caso a gente trata junto com você.');
       if (dados.omissoes) extras.push('Há declaração em falta na Receita. O escritório está cuidando.');
       if (extras.length) h += '<div class="cartao aviso">' + extras.map(esc).join('<br>') + '</div>';
-      h += '<p class="aviso">Se já pagou, desconsidere: o pagamento leva alguns dias para aparecer na Receita. Até '
-        + dados.max_geracoes_dia + ' guias por dia por competência.</p>';
     }
+    h += cartaoOutra();
+    h += '<p class="aviso">Se já pagou, desconsidere: o pagamento leva alguns dias para aparecer na Receita. Até '
+      + dados.max_geracoes_dia + ' guias por dia por competência.</p>';
     raiz.className = '';
     raiz.innerHTML = h;
   }
 
-  function gerar(cartao) {
-    var id = Number(cartao.getAttribute('data-id'));
-    var botao = cartao.querySelector('button[data-acao=gerar]');
+  var MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  function rotuloComp(c) { return MESES[Number(c.slice(4)) - 1] + '/' + c.slice(0, 4); }
+
+  // Guia que ainda não está no relatório: venceu depois dele, ou foi declarada depois.
+  function cartaoOutra() {
+    if (!dados.tipos_livres || !dados.tipos_livres.length) return '';
+    var tipos = dados.tipos_livres.map(function (t) { return '<option value="' + esc(t.tipo) + '">' + esc(t.rotulo) + '</option>'; }).join('');
+    var comps = dados.competencias.map(function (c) { return '<option value="' + c + '">' + rotuloComp(c) + '</option>'; }).join('');
+    var tem13 = dados.tipos_livres.some(function (t) { return t.tipo === 'DCTFWEB'; });
+    return '<h2>Outra competência</h2>'
+      + '<div class="cartao debito outra">'
+      + '<div class="meta">Guia do mês que ainda não aparece acima (venceu há poucos dias ou foi declarada depois do relatório), ou de outro mês.</div>'
+      + '<div class="acoes"><label>Guia <select data-campo="tipo">' + tipos + '</select></label>'
+      + '<label>Mês <select data-campo="competencia">' + comps + (tem13 ? '<option value="13">13º salário (INSS)</option>' : '') + '</select></label></div>'
+      + '<div class="acoes"><label>Vou pagar em <input type="date" min="' + dados.hoje + '" max="' + dados.data_maxima + '" value="' + dados.hoje + '"></label>'
+      + '<button type="button" data-acao="gerar-outra">Gerar guia</button></div>'
+      + '<div class="saida"></div></div>';
+  }
+
+  function gerar(cartao, outra) {
+    var botao = cartao.querySelector('button[data-acao]');
+    var rotuloBotao = botao.textContent;
     var data = cartao.querySelector('input[type=date]');
     var saida = cartao.querySelector('.saida');
+    var corpo = { data_pagamento: data ? data.value : null };
+    if (outra) {
+      var tipo = cartao.querySelector('select[data-campo=tipo]').value;
+      var comp = cartao.querySelector('select[data-campo=competencia]').value;
+      if (comp === '13') { tipo = 'DCTFWEB'; comp = dados.hoje.slice(0, 4) + '13'; }
+      corpo.tipo = tipo; corpo.competencia = comp;
+    } else {
+      corpo.debito_id = Number(cartao.getAttribute('data-id'));
+    }
     botao.disabled = true; botao.textContent = 'Gerando…'; saida.innerHTML = '';
     fetch(api + '/guias', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ debito_id: id, data_pagamento: data ? data.value : null }) })
+      body: JSON.stringify(corpo) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (res) {
         if (!res.ok || !res.j.success) {
@@ -133,12 +158,13 @@ Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são at
           + '<a class="botao verde" target="_blank" rel="noopener" href="' + esc(g.pdf_url) + '">Abrir guia (PDF)</a></div>';
       })
       .catch(function () { saida.innerHTML = '<div class="erro">Sem conexão. Tente de novo.</div>'; })
-      .then(function () { botao.disabled = false; botao.textContent = data ? 'Gerar guia atualizada' : 'Baixar guia'; });
+      .then(function () { botao.disabled = false; botao.textContent = rotuloBotao; });
   }
 
   raiz.addEventListener('click', function (ev) {
-    var b = ev.target.closest('button[data-acao=gerar]');
-    if (b) gerar(b.closest('.debito'));
+    var b = ev.target.closest('button[data-acao]');
+    if (!b) return;
+    gerar(b.closest('.debito'), b.getAttribute('data-acao') === 'gerar-outra');
   });
 
   fetch(api).then(function (r) { return r.json(); }).then(function (j) {

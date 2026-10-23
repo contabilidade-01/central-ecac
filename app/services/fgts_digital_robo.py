@@ -158,6 +158,8 @@ class RoboFgts:
         self._page = None
         self._logado = False
         self._perfil_cnpj: Optional[str] = None
+        self._pfx: Optional[bytes] = None
+        self._senha: Optional[str] = None
 
     # ------------------------------------------------------------------ API pública
     def enfileirar(self, pedido_id: int) -> None:
@@ -355,9 +357,10 @@ class RoboFgts:
             headless=os.getenv('FGTS_HEADLESS', '1') != '0',
             executable_path=os.getenv('FGTS_CHROMIUM_PATH') or None,
             args=['--disable-dev-shm-usage', '--no-sandbox'])
-        certificados = [{'origin': ORIGEM_CERTIFICADO, **pfx_para_pem(pfx, senha)}] if pfx else []
+        if pfx:
+            pfx_para_pem(pfx, senha)      # valida senha/certificado cedo, com mensagem clara
+        self._pfx, self._senha = pfx, senha
         self._context = self._browser.new_context(
-            client_certificates=certificados,
             locale='pt-BR', timezone_id='America/Sao_Paulo',
             viewport={'width': 1366, 'height': 900},
             accept_downloads=True,
@@ -366,7 +369,14 @@ class RoboFgts:
             permissions=[],
         )
         self._context.set_default_timeout(30_000)
+        # O certificado NÃO vai pelo navegador: em 23/10/2026, na VPS, o POST para
+        # certificado.sso.acesso.gov.br ficava pendurado para sempre com o
+        # `client_certificates` do Playwright (botão "carregando", sem resposta nem erro).
+        # Esse host é atendido aqui, em Python, com o mesmo requests_pkcs12 que a
+        # integração SERPRO já usa com este .pfx; a resposta volta ao navegador.
         self._ao_criar_contexto(self._context)
+        if pfx:   # registrada por último = tem prioridade sobre outras rotas
+            self._context.route(re.compile(r'^https://certificado\.sso\.acesso\.gov\.br/'), self._rota_certificado)
         self._page = self._context.new_page()
         # Diálogo JS (alert/confirm) nunca trava o robô: fecha.
         self._page.on('dialog', lambda d: d.dismiss())
@@ -380,6 +390,31 @@ class RoboFgts:
             'FGTS certificado: %s %s', r.status, _sem_query(r.url)))
         self._logado = False
         self._perfil_cnpj = None
+
+    def _chamar_certificado(self, metodo: str, url: str, headers: Dict[str, str], corpo: Optional[bytes]):
+        """Uma chamada a certificado.sso com o A1 (TLS cliente) — sem seguir redirecionamento."""
+        import requests_pkcs12
+        return requests_pkcs12.request(metodo, url, headers=headers, data=corpo, allow_redirects=False,
+                                       pkcs12_data=self._pfx, pkcs12_password=self._senha, timeout=40)
+
+    def _rota_certificado(self, route) -> None:
+        req = route.request
+        try:
+            headers = {k: v for k, v in req.all_headers().items()
+                       if not k.startswith(':') and k.lower() not in ('host', 'content-length', 'connection')}
+            resp = self._chamar_certificado(req.method, req.url, headers, req.post_data_buffer)
+        except Exception as exc:
+            logger.warning('FGTS certificado (python) falhou: %s %s', _sem_query(req.url), exc)
+            route.abort('failed')
+            return
+        logger.warning('FGTS certificado (python): %s %s -> %s', req.method, _sem_query(req.url), resp.status_code)
+        saida: Dict[str, str] = {}
+        for k, v in resp.raw.headers.items():
+            kl = k.lower()
+            if kl in ('content-encoding', 'content-length', 'transfer-encoding', 'connection'):
+                continue          # o corpo já vem decodificado pelo requests
+            saida[kl] = f'{saida[kl]}\n{v}' if kl in saida else v   # vários Set-Cookie: um por linha
+        route.fulfill(status=resp.status_code, headers=saida, body=resp.content)
 
     def _ao_criar_contexto(self, context) -> None:
         """Gancho para os testes (site falso via `context.route`). Sem efeito em produção."""
@@ -397,6 +432,7 @@ class RoboFgts:
         except Exception:
             pass
         self._pw = self._browser = self._context = self._page = None
+        self._pfx = self._senha = None
         self._logado = False
         self._perfil_cnpj = None
 

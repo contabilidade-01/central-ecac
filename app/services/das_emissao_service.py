@@ -141,10 +141,14 @@ def _emissoes_hoje(cnpj: str, tipo: str, pa: str) -> int:
     inicio = datetime.combine(hoje_brasil(), datetime.min.time())
     # emitido_em é UTC; a folga de 3h cobre o fuso sem exigir conversão exata.
     inicio_utc = inicio + timedelta(hours=3)
+    # As guias que o CLIENTE gera pela página do link sem senha (desvio 21, origem
+    # 'link') ficam fora desta conta: têm limite próprio por token e nunca podem
+    # bloquear o portal do cliente nem o escritório nesta competência.
     return (DasEmissao.query
             .filter(DasEmissao.cnpj == cnpj, DasEmissao.tipo == tipo,
                     DasEmissao.periodo_apuracao == pa,
                     DasEmissao.reuso_de_id.is_(None),
+                    DasEmissao.origem != 'link',
                     DasEmissao.emitido_em >= inicio_utc)
             .count())
 

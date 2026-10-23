@@ -22,6 +22,9 @@ Por isso NÃO existe aqui e-mail, telefone nem envio de mensagem. Só:
   GET  /api/interno/das/<id>/pdf
   POST /api/interno/reprocessar                                regerar relatório em N dias úteis
   GET  /api/interno/reprocessamentos?cnpj=&pendentes=1
+  POST /api/interno/acesso-links                               link sem senha servido AQUI (desvio 21)
+  GET  /api/interno/acesso-links?cnpj=
+  POST /api/interno/acesso-links/revogar
 
 Autenticação: cabeçalho `X-Integracao-Token` (ver `services/integracao_token.py`),
 verificado em `app/security.py` ANTES de qualquer rota daqui rodar.
@@ -38,6 +41,7 @@ from app.services import das_emissao_service as emissao
 from app.services import pendencias_service as pend
 from app.services import parcelas_service
 from app.services import confirmacao_service
+from app.services import acesso_links_service as links
 from app.extensions import db
 from app.integracao_models import DasEmissao
 
@@ -274,3 +278,54 @@ def listar_reprocessamentos():
     itens = fila.listar(cnpj=request.args.get('cnpj'),
                         apenas_pendentes=request.args.get('pendentes') in ('1', 'true'))
     return jsonify({'success': True, 'total': len(itens), 'itens': itens})
+
+
+# ------------------------------------------------------------------ links sem senha
+# DESVIO 21 — o AtendeChat pede o link e manda na conversa; a página é servida por
+# este sistema (`/g/<token>`, ver routes/acesso_routes.py). O portal do cliente tem o
+# `/g/` dele, com a tabela dele; nada aqui toca aquilo.
+def _base_publica() -> str:
+    return (request.headers.get('X-Public-Base-Url') or '').strip() or request.host_url.rstrip('/')
+
+
+@interno_bp.post('/acesso-links')
+def criar_acesso_link():
+    corpo = request.get_json(silent=True) or {}
+    company = pend.empresa_por_cnpj(corpo.get('cnpj'))
+    if not company:
+        return _erro('Empresa não cadastrada.', 404)
+    if not company.ativo:
+        return _erro('Empresa inativa no Central e-CAC.', 409)
+    origem = str(corpo.get('origem') or 'atendechat')[:20]
+    if origem not in links.ORIGENS:
+        return _erro('origem inválida.')
+    try:
+        dias = int(corpo['dias']) if corpo.get('dias') else None
+    except (TypeError, ValueError):
+        return _erro('dias deve ser inteiro.')
+    link = links.obter_ou_criar(company, origem=origem,
+                                solicitado_por=str(corpo.get('solicitado_por') or '')[:120] or None,
+                                dias=dias)
+    return jsonify({'success': True, 'link': links.serializar(link),
+                    'url': links.url_do_link(link.token, _base_publica())})
+
+
+@interno_bp.get('/acesso-links')
+def listar_acesso_links():
+    company = pend.empresa_por_cnpj(request.args.get('cnpj'))
+    if not company:
+        return _erro('Empresa não cadastrada.', 404)
+    itens = links.listar_da_empresa(company.id)
+    for item in itens:
+        item['url'] = links.url_do_link(item['token'], _base_publica())
+    return jsonify({'success': True, 'total': len(itens), 'links': itens})
+
+
+@interno_bp.post('/acesso-links/revogar')
+def revogar_acesso_links():
+    corpo = request.get_json(silent=True) or {}
+    company = pend.empresa_por_cnpj(corpo.get('cnpj'))
+    if not company:
+        return _erro('Empresa não cadastrada.', 404)
+    quem = str(corpo.get('solicitado_por') or corpo.get('origem') or 'interno')[:120]
+    return jsonify({'success': True, 'revogados': links.revogar_da_empresa(company.id, quem)})

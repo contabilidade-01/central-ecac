@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Guias — {{ escritorio.nome }}</title>
+<style>
+  :root { --azul: #1d4ed8; --azul-escuro: #1e3a8a; --verde: #15803d; --vermelho: #b91c1c;
+          --cinza: #6b7280; --borda: #e5e7eb; --fundo: #f3f4f6; --cartao: #ffffff; --texto: #111827; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--texto);
+         font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .topo { background: var(--azul-escuro); color: #fff; padding: 14px 16px; }
+  .topo b { font-size: 17px; }
+  .topo small { display: block; opacity: .85; }
+  main { max-width: 640px; margin: 0 auto; padding: 16px; }
+  .cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 10px;
+            padding: 14px 16px; margin-bottom: 14px; }
+  .empresa b { font-size: 17px; display: block; }
+  .empresa span { color: var(--cinza); font-size: 14px; }
+  h2 { font-size: 15px; margin: 18px 0 8px; color: var(--cinza); text-transform: uppercase; letter-spacing: .04em; }
+  .debito { display: flex; flex-direction: column; gap: 6px; }
+  .debito .linha { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .debito .rotulo { font-weight: 600; }
+  .debito .valor { font-weight: 700; font-size: 18px; white-space: nowrap; }
+  .debito .meta { color: var(--cinza); font-size: 14px; }
+  .atraso .valor { color: var(--vermelho); }
+  .acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+  label { font-size: 14px; color: var(--cinza); }
+  input[type=date] { font: inherit; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 8px; }
+  button, a.botao { font: inherit; font-weight: 600; padding: 10px 14px; border-radius: 8px; border: 0;
+                    background: var(--azul); color: #fff; cursor: pointer; text-decoration: none; display: inline-block; }
+  button[disabled] { opacity: .55; cursor: default; }
+  a.botao.verde { background: var(--verde); }
+  .resultado { margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: #ecfdf5; border: 1px solid #a7f3d0; font-size: 14px; }
+  .erro { margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: var(--vermelho); font-size: 14px; }
+  .aviso { color: var(--cinza); font-size: 13px; }
+  .total { display: flex; justify-content: space-between; font-weight: 700; margin-top: 4px; }
+  .rodape { color: var(--cinza); font-size: 13px; text-align: center; padding: 18px 0 30px; }
+  .rodape a { color: var(--azul); }
+  .vazio { color: var(--cinza); }
+  .carregando { color: var(--cinza); text-align: center; padding: 30px 0; }
+</style>
+</head>
+<body>
+<div class="topo"><b>{{ escritorio.nome }}</b><small>Guias da Receita Federal</small></div>
+<main>
+{% if invalido %}
+  <div class="cartao"><b>Link indisponível</b><p>{{ mensagem }}</p>
+  <p class="aviso">Peça um link novo ao escritório pelo WhatsApp.</p></div>
+{% else %}
+  <div id="conteudo" class="carregando">Carregando…</div>
+{% endif %}
+<div class="rodape">{{ escritorio.nome }}{% if escritorio.whatsapp %} · WhatsApp {{ escritorio.whatsapp }}{% endif %}<br>
+Os valores vêm do relatório da Receita; ao gerar a guia, multa e juros são atualizados até a data escolhida.</div>
+</main>
+{% if not invalido %}
+<script>
+(function () {
+  var token = {{ token|tojson }};
+  var api = '/api/acesso/' + token;
+  var raiz = document.getElementById('conteudo');
+  var brl = function (v) { return (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var dados = null;
+
+  function cartaoDebito(d, atraso) {
+    var html = '<div class="cartao debito ' + (atraso ? 'atraso' : '') + '" data-id="' + d.id + '">'
+      + '<div class="linha"><span class="rotulo">' + esc(d.rotulo) + '</span><span class="valor">' + brl(d.saldo_devedor_total) + '</span></div>'
+      + '<div class="meta">Competência ' + esc(d.competencia) + (d.vencimento ? ' · vencimento ' + esc(d.vencimento) : '') + '</div>';
+    if (d.pode_gerar) {
+      if (atraso) {
+        html += '<div class="acoes"><label>Vou pagar em <input type="date" min="' + dados.hoje + '" max="' + dados.data_maxima + '" value="' + dados.hoje + '"></label>'
+          + '<button type="button" data-acao="gerar">Gerar guia atualizada</button></div>';
+      } else {
+        html += '<div class="acoes"><button type="button" data-acao="gerar">Baixar guia</button></div>';
+      }
+      html += '<div class="saida"></div>';
+    } else {
+      html += '<div class="aviso">Esta guia não é gerada por aqui. Fale com o escritório.</div>';
+    }
+    return html + '</div>';
+  }
+
+  function render() {
+    var h = '<div class="cartao empresa"><b>' + esc(dados.empresa.razao_social) + '</b><span>CNPJ ' + esc(dados.empresa.cnpj) + '</span>'
+      + (dados.relatorio ? '<span><br>Relatório da Receita de ' + esc(dados.relatorio.data) + '</span>' : '') + '</div>';
+    if (!dados.relatorio) {
+      h += '<div class="cartao vazio">Ainda não há relatório da Receita para esta empresa. Fale com o escritório.</div>';
+    } else {
+      h += '<h2>Em atraso</h2>';
+      if (dados.em_atraso.length) {
+        dados.em_atraso.forEach(function (d) { h += cartaoDebito(d, true); });
+        h += '<div class="cartao total"><span>Total em atraso (valores do relatório)</span><span>' + brl(dados.total_em_atraso) + '</span></div>';
+      } else {
+        h += '<div class="cartao vazio">Nenhuma guia em atraso no relatório. 🎉</div>';
+      }
+      if (dados.a_vencer.length) {
+        h += '<h2>A vencer</h2>';
+        dados.a_vencer.forEach(function (d) { h += cartaoDebito(d, false); });
+      }
+      var extras = [];
+      if (dados.parcelamento) extras.push('Consta um parcelamento em andamento. Parcelas em atraso: fale com o escritório.');
+      if (dados.pgfn) extras.push('Há inscrição na Dívida Ativa (PGFN). Esse caso a gente trata junto com você.');
+      if (dados.omissoes) extras.push('Há declaração em falta na Receita. O escritório está cuidando.');
+      if (extras.length) h += '<div class="cartao aviso">' + extras.map(esc).join('<br>') + '</div>';
+      h += '<p class="aviso">Se já pagou, desconsidere: o pagamento leva alguns dias para aparecer na Receita. Até '
+        + dados.max_geracoes_dia + ' guias por dia por competência.</p>';
+    }
+    raiz.className = '';
+    raiz.innerHTML = h;
+  }
+
+  function gerar(cartao) {
+    var id = Number(cartao.getAttribute('data-id'));
+    var botao = cartao.querySelector('button[data-acao=gerar]');
+    var data = cartao.querySelector('input[type=date]');
+    var saida = cartao.querySelector('.saida');
+    botao.disabled = true; botao.textContent = 'Gerando…'; saida.innerHTML = '';
+    fetch(api + '/guias', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ debito_id: id, data_pagamento: data ? data.value : null }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j.success) {
+          saida.innerHTML = '<div class="erro">' + esc(res.j.message || 'Não foi possível gerar a guia agora.') + '</div>';
+          return;
+        }
+        var g = res.j.guia;
+        saida.innerHTML = '<div class="resultado">Guia pronta' + (g.valor_total ? ': <b>' + brl(g.valor_total) + '</b>' : '')
+          + (g.vencimento ? ' · pagar até <b>' + esc(g.vencimento) + '</b>' : '') + '<br>'
+          + '<a class="botao verde" target="_blank" rel="noopener" href="' + esc(g.pdf_url) + '">Abrir guia (PDF)</a></div>';
+      })
+      .catch(function () { saida.innerHTML = '<div class="erro">Sem conexão. Tente de novo.</div>'; })
+      .then(function () { botao.disabled = false; botao.textContent = data ? 'Gerar guia atualizada' : 'Baixar guia'; });
+  }
+
+  raiz.addEventListener('click', function (ev) {
+    var b = ev.target.closest('button[data-acao=gerar]');
+    if (b) gerar(b.closest('.debito'));
+  });
+
+  fetch(api).then(function (r) { return r.json(); }).then(function (j) {
+    if (!j.success) { raiz.className = 'cartao'; raiz.innerHTML = '<b>Link indisponível</b><p>' + esc(j.message) + '</p>'; return; }
+    dados = j; render();
+  }).catch(function () { raiz.innerHTML = 'Sem conexão. Recarregue a página.'; });
+})();
+</script>
+{% endif %}
+</body>
+</html>

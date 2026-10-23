@@ -306,3 +306,67 @@ def test_limite_por_token_e_nao_bloqueia_o_portal(ambiente, monkeypatch):
                   headers=TOKEN)
     assert r.status_code == 200, r.get_json()
     assert len(chamadas) == 3
+
+
+# ------------------------------------------------- outra competência / data em qualquer guia
+def test_a_vencer_aceita_data_de_pagamento_opcional(ambiente, monkeypatch):
+    _app, http, _ = ambiente
+    chamadas = []
+    _serpro_falsa(monkeypatch, chamadas)
+    token = _criar_link(http)['link']['token']
+    debito = http.get(f'/api/acesso/{token}').get_json()['a_vencer'][0]
+    dia = _dia_util(2)
+    r = http.post(f'/api/acesso/{token}/guias', json={'debito_id': debito['id'], 'data_pagamento': dia})
+    assert r.status_code == 200, r.get_json()
+    assert chamadas[-1] == {'tipo': 'SN', 'cnpj': CNPJ_A, 'pa': '202609', 'consolidacao': dia.replace('-', '')}
+
+
+def test_outra_competencia_gera_guia_que_nao_esta_no_relatorio(ambiente, monkeypatch):
+    _app, http, _ = ambiente
+    chamadas = []
+    _serpro_falsa(monkeypatch, chamadas)
+    token = _criar_link(http)['link']['token']
+    pagina = http.get(f'/api/acesso/{token}').get_json()
+    # empresa comum: SN e INSS; a lista de meses começa no mês atual
+    assert [t['tipo'] for t in pagina['tipos_livres']] == ['SN', 'DCTFWEB']
+    hoje = date.today()
+    assert pagina['competencias'][0] == f'{hoje.year:04d}{hoje.month:02d}' and len(pagina['competencias']) == 36
+
+    comp = pagina['competencias'][1]  # mês passado: ainda não consta no relatório
+    dia = _dia_util(1)
+    r = http.post(f'/api/acesso/{token}/guias', json={'tipo': 'SN', 'competencia': comp, 'data_pagamento': dia})
+    assert r.status_code == 200, r.get_json()
+    assert chamadas[-1] == {'tipo': 'SN', 'cnpj': CNPJ_A, 'pa': comp, 'consolidacao': dia.replace('-', '')}
+    # INSS do 13º
+    r = http.post(f'/api/acesso/{token}/guias', json={'tipo': 'DCTFWEB', 'competencia': f'{hoje.year}13', 'data_pagamento': dia})
+    assert r.status_code == 200, r.get_json()
+    assert chamadas[-1]['pa'] == f'{hoje.year}13'
+    # sem data também sai (guia original)
+    r = http.post(f'/api/acesso/{token}/guias', json={'tipo': 'SN', 'competencia': pagina['competencias'][2]})
+    assert r.status_code == 200 and chamadas[-1]['consolidacao'] is None
+
+
+def test_outra_competencia_recusa_tipo_e_mes_invalidos(ambiente, monkeypatch):
+    app, http, ids = ambiente
+    chamadas = []
+    _serpro_falsa(monkeypatch, chamadas)
+    token = _criar_link(http)['link']['token']
+    url = f'/api/acesso/{token}/guias'
+    assert http.post(url, json={'tipo': 'PARC_SN', 'competencia': '202601'}).status_code == 400
+    assert http.post(url, json={'tipo': 'MEI', 'competencia': '202601'}).status_code == 400  # não é MEI
+    assert http.post(url, json={'tipo': 'SN', 'competencia': '201501'}).status_code == 400  # fora dos 36 meses
+    futuro = date.today().year + 1
+    assert http.post(url, json={'tipo': 'SN', 'competencia': f'{futuro}01'}).status_code == 400
+    assert chamadas == []
+
+    # empresa MEI: só DAS MEI
+    from app.integracao_models import EmpresaMei
+    db.session.add(EmpresaMei(company_id=ids['B'], eh_mei=True))
+    db.session.commit()
+    token_b = _criar_link(http, cnpj=CNPJ_B)['link']['token']
+    pagina = http.get(f'/api/acesso/{token_b}').get_json()
+    assert [t['tipo'] for t in pagina['tipos_livres']] == ['MEI']
+    assert pagina['relatorio'] is None  # sem relatório, mas a seção "outra competência" existe
+    r = http.post(f'/api/acesso/{token_b}/guias', json={'tipo': 'MEI', 'competencia': pagina['competencias'][1]})
+    assert r.status_code == 200, r.get_json()
+    assert chamadas[-1]['tipo'] == 'MEI' and chamadas[-1]['cnpj'] == CNPJ_B

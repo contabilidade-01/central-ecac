@@ -140,12 +140,38 @@ def competencias_permitidas(hoje: date) -> list:
     return saida
 
 
+def _agrupar(debitos: list) -> list:
+    """Um item por tipo + competência. O relatório traz um débito por código de receita
+    (INSS: 1082, 1099, 1138…), mas a guia é uma só por competência — a DARF da DCTFWeb
+    junta todos os códigos — e é assim que o cliente a vê. O `id` é o do primeiro
+    débito do grupo (qualquer um gera a mesma guia); o vencimento é o mais antigo."""
+    grupos: Dict[str, Dict[str, Any]] = {}
+    vencimentos: Dict[str, str] = {}
+    for d in debitos:
+        item = _item(d)
+        chave = f"{item['tipo']}|{item['competencia']}"
+        venc = d.get('data_vencimento') or ''
+        if chave not in grupos:
+            grupos[chave] = item
+            vencimentos[chave] = venc
+            continue
+        atual = grupos[chave]
+        atual['saldo_devedor_total'] = round(float(atual['saldo_devedor_total'] or 0)
+                                             + float(item['saldo_devedor_total'] or 0), 2)
+        atual['valor_original'] = round(float(atual['valor_original'] or 0)
+                                        + float(item['valor_original'] or 0), 2)
+        if venc and (not vencimentos[chave] or venc < vencimentos[chave]):
+            vencimentos[chave] = venc
+            atual['vencimento'] = item['vencimento']
+    return list(grupos.values())
+
+
 def montar_pagina(link: AcessoLink, company: Company) -> Dict[str, Any]:
     hoje = pend.hoje_brasil()
     dados = pend.pendencias_da_empresa(company, hoje=hoje)
     validos = [d for d in dados['debitos'] if d.get('valido')]
-    em_atraso = [_item(d) for d in validos if d.get('em_atraso')]
-    a_vencer = [_item(d) for d in validos if not d.get('em_atraso')]
+    em_atraso = _agrupar([d for d in validos if d.get('em_atraso')])
+    a_vencer = _agrupar([d for d in validos if not d.get('em_atraso')])
     return {
         'empresa': {'razao_social': company.razao_social, 'cnpj': _fmt_cnpj(company.cnpj)},
         'relatorio': {'data': _fmt_data(dados['relatorio']['data_hora'])} if dados['relatorio'] else None,

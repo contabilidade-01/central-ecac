@@ -370,3 +370,31 @@ def test_outra_competencia_recusa_tipo_e_mes_invalidos(ambiente, monkeypatch):
     r = http.post(f'/api/acesso/{token_b}/guias', json={'tipo': 'MEI', 'competencia': pagina['competencias'][1]})
     assert r.status_code == 200, r.get_json()
     assert chamadas[-1]['tipo'] == 'MEI' and chamadas[-1]['cnpj'] == CNPJ_B
+
+
+def test_pagina_agrupa_codigos_de_receita_da_mesma_competencia(ambiente, monkeypatch):
+    app, http, ids = ambiente
+    from app.models import DebitoRelatorio, RelatorioSitFiscal
+    rel = RelatorioSitFiscal.query.filter_by(company_id=ids['A']).first()
+    hoje = date.today()
+    db.session.add_all([
+        DebitoRelatorio(relatorio_id=rel.id, tipo='INSS', receita='1082', periodo_apuracao='04/2026',
+                        data_vencimento=hoje - timedelta(days=30), valor_original=Decimal('3926.81'),
+                        saldo_devedor_total=Decimal('4928.53'), situacao='DEVEDOR'),
+        DebitoRelatorio(relatorio_id=rel.id, tipo='INSS', receita='1138', periodo_apuracao='04/2026',
+                        data_vencimento=hoje - timedelta(days=30), valor_original=Decimal('178.31'),
+                        saldo_devedor_total=Decimal('223.79'), situacao='DEVEDOR'),
+    ])
+    db.session.commit()
+    chamadas = []
+    _serpro_falsa(monkeypatch, chamadas)
+    token = _criar_link(http)['link']['token']
+    pagina = http.get(f'/api/acesso/{token}').get_json()
+    inss = [d for d in pagina['em_atraso'] if d['tipo'] == 'INSS']
+    assert len(inss) == 1 and inss[0]['competencia'] == '04/2026'
+    assert inss[0]['saldo_devedor_total'] == 5152.32 and inss[0]['valor_original'] == 4105.12
+    assert pagina['total_em_atraso'] == round(515.0 + 5152.32, 2)
+    # gerar pelo item agrupado emite UMA DARF da competência
+    r = http.post(f'/api/acesso/{token}/guias', json={'debito_id': inss[0]['id'], 'data_pagamento': _dia_util(1)})
+    assert r.status_code == 200, r.get_json()
+    assert chamadas[-1]['tipo'] == 'DCTFWEB' and chamadas[-1]['pa'] == '202604'

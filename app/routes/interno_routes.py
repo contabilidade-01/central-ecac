@@ -37,6 +37,7 @@ from app.services import fila_reprocessamento_service as fila
 from app.services import das_emissao_service as emissao
 from app.services import pendencias_service as pend
 from app.services import parcelas_service
+from app.services import confirmacao_service
 from app.extensions import db
 from app.integracao_models import DasEmissao
 
@@ -198,6 +199,25 @@ def parcelas_consultar():
             return _erro(str(exc), 400 if 400 <= exc.status_code < 500 else 502)
         return _erro(f'Falha na consulta: {exc}', 502)
     return jsonify({'success': True, **r})
+
+
+@interno_bp.post('/situacao/confirmar')
+def situacao_confirmar():
+    """Relatório de situação fiscal NA HORA para uma empresa (pago, ~R$ 0,32). `{cnpj, solicitado_por?}`.
+    Responde logo; o portal acompanha em GET /situacao/<cnpj>/confirmacao."""
+    corpo = request.get_json(silent=True) or {}
+    try:
+        r = confirmacao_service.iniciar(
+            corpo.get('cnpj'),
+            solicitado_por=(str(corpo.get('solicitado_por'))[:120] if corpo.get('solicitado_por') else None))
+    except confirmacao_service.ConfirmacaoBloqueada as exc:
+        return _erro(str(exc), exc.status)
+    return jsonify({'success': True, **r})
+
+
+@interno_bp.get('/situacao/<cnpj>/confirmacao')
+def situacao_confirmacao(cnpj: str):
+    return jsonify({'success': True, **confirmacao_service.serializar(confirmacao_service.ultima(cnpj))})
 
 
 @interno_bp.get('/das/emissoes')

@@ -47,6 +47,8 @@ WhatsApp, sob demanda do atendente — `origem: atendechat`). Não muda nada do 
 | POST | `/reprocessar` | agenda (pago quando rodar) | `{cnpj, dias_uteis: 5, motivo, origem}` |
 | GET | `/reprocessamentos?cnpj=&pendentes=1` | 0 | fila |
 | GET | `/parcelas/<cnpj>?tipo=PARC_SN` | 0 | última consulta de parcelas |
+| POST | `/situacao/confirmar` | **pago** (~R$ 0,32; um por vez; `INTEGRACAO_MAX_CONFIRMACOES_DIA`=2) | relatório de situação fiscal NA HORA para uma empresa ("Confirmar pendências", desvio 20) — roda em thread |
+| GET | `/situacao/<cnpj>/confirmacao` | 0 | status da última confirmação (`em_andamento`/`concluida`/`erro`, `relatorio_data`) |
 | POST | `/parcelas/consultar` | **pago** (ou 0 se já consultado hoje) | `{cnpj, tipo, forcar?, solicitado_por?}` |
 
 ### O que cada débito traz

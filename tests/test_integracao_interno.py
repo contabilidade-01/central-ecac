@@ -42,10 +42,10 @@ def ambiente():
     app = create_app()
     app.config['TESTING'] = True
     with app.app_context():
-        from app.integracao_models import DasEmissao, FilaReprocessamento, ParcelasConsulta
+        from app.integracao_models import ConfirmacaoSitfis, DasEmissao, FilaReprocessamento, ParcelasConsulta
         from app.models import (ApiUsageLog, Company, DebitoRelatorio, PendenciaRelatorio,
                                 RelatorioSitFiscal)
-        for modelo in (DasEmissao, FilaReprocessamento, ParcelasConsulta, ApiUsageLog, DebitoRelatorio,
+        for modelo in (ConfirmacaoSitfis, DasEmissao, FilaReprocessamento, ParcelasConsulta, ApiUsageLog, DebitoRelatorio,
                        PendenciaRelatorio, RelatorioSitFiscal, Company):
             modelo.query.delete()
         a = Company(razao_social='ALFA', cnpj=CNPJ_A, ativo=True)
@@ -447,3 +447,40 @@ def test_lote_retoma_de_onde_parou_apos_queda_do_processo(ambiente):
         assert segunda_rodada == [ids['B']]
         assert res['retomada'] is True and res['processadas'] == 1
         assert ag.checkpoint('situacao_fiscal') == {}
+
+
+def test_confirmar_pendencias_um_por_vez_e_limite_diario(ambiente, monkeypatch):
+    app, http, ids = ambiente
+    from app.services import confirmacao_service as conf
+    chamadas = []
+
+    def processar(company_id):
+        chamadas.append(company_id)
+        return True, 'Relatório gerado', ids['relatorio']
+
+    # síncrono no teste: sem thread
+    orig = conf.iniciar
+    monkeypatch.setattr(conf, 'iniciar', lambda cnpj, solicitado_por=None, **k: orig(
+        cnpj, solicitado_por, processar=processar, em_thread=False))
+
+    assert http.get(f'/api/interno/situacao/{CNPJ_A}/confirmacao', headers=TOKEN).get_json()['existe'] is False
+    r1 = http.post('/api/interno/situacao/confirmar', json={'cnpj': CNPJ_A, 'solicitado_por': 'admin:1'}, headers=TOKEN)
+    j1 = r1.get_json()
+    assert r1.status_code == 200 and j1['status'] == 'concluida' and j1['relatorio_id'] == ids['relatorio']
+    assert j1['relatorio_data']
+    r2 = http.post('/api/interno/situacao/confirmar', json={'cnpj': CNPJ_A}, headers=TOKEN)
+    assert r2.status_code == 200
+    r3 = http.post('/api/interno/situacao/confirmar', json={'cnpj': CNPJ_A}, headers=TOKEN)
+    assert r3.status_code == 429 and len(chamadas) == 2
+    st = http.get(f'/api/interno/situacao/{CNPJ_A}/confirmacao', headers=TOKEN).get_json()
+    assert st['status'] == 'concluida'
+
+
+def test_confirmar_em_andamento_nao_repete(ambiente):
+    app, http, ids = ambiente
+    from app.integracao_models import ConfirmacaoSitfis
+    with app.app_context():
+        db.session.add(ConfirmacaoSitfis(company_id=ids['A'], cnpj=CNPJ_A))
+        db.session.commit()
+    r = http.post('/api/interno/situacao/confirmar', json={'cnpj': CNPJ_A}, headers=TOKEN)
+    assert r.status_code == 200 and r.get_json()['reuso'] is True and r.get_json()['status'] == 'em_andamento'

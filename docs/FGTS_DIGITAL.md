@@ -14,7 +14,13 @@
 | 3 | `certificado.sso.acesso.gov.br` | o Chromium apresenta o `.pfx` da Nescon direto no TLS (`client_certificates`) — **não existe** a janela "Selecione um certificado" |
 | 4 | `portal/escolhaPerfil` (modal "Definir Perfil", `ng-select`) | Perfil **Procurador** + CNPJ do link → Definir. Sem procuração: "Não existe procuração para o Número de Inscrição selecionado." |
 | 5 | `cobranca/#/gestao-guias/emissao-guia-rapida` | lê **todas** as competências da lista "Competência de Apuração" e, para cada uma, Pesquisar → Total Devedor, grupos (Mensal/Rescisório…, vencimento da guia) e composição (FGTS mensal, rescisório, indenização, processo trabalhista, encargos) |
-| 6 | idem | o cliente marca um, vários ou todos os meses → "Emitir guia" de cada grupo → GFD em PDF (vencimento **hoje**, valor atualizado até hoje) |
+| 6 | idem | o cliente marca um, vários ou todos os meses e escolhe a **data de pagamento** → hoje: "Emitir guia" da Guia Rápida; outra data: Guia Parametrizada (abaixo) |
+| 7 | `cobranca/#/gestao-guias/emissao-guia-parametrizada` | assistente em 4 passos: 1) Competência Inicial = Final = o mês, Pesquisar, `#selecionar-todos` + "Adicionar à guia" em cada página (5 por página, `#btn-next-page`), confere "Quantidade de Débitos de FGTS" = total de itens; 2) Consignado → Avançar; 3) **Vencimento da Guia** dd/mm/aaaa (data fora do limite é recusada em silêncio — o robô confere o campo); 4) "Vencimento da Guia: dd/mm/aaaa" → **Emitir Guia** → GFD |
+
+**Dias liberados:** na consulta, o robô abre a Parametrizada (sem emitir), lê no calendário os dias
+habilitados (`span[bsdatepickerdaydecorator]` sem `.disabled`) — em 23/10/2026 eram os próximos
+12 dias úteis, sem fins de semana e feriados — e devolve em `datas_permitidas`. A página e o
+AtendeChat só oferecem essas datas; a rota recusa qualquer outra.
 
 Tudo numa sessão só: consulta → cliente escolhe (até `FGTS_ESCOLHA_TIMEOUT_S`) → emite →
 **fecha o navegador** (regra do Jean: sempre fecha, deu certo ou não). Se o cliente não

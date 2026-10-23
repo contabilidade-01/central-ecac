@@ -14,6 +14,7 @@ Rodar:  python -m pytest tests/test_fgts_digital.py -q
 (o teste do navegador é pulado se o Chromium do Playwright não estiver instalado;
  `FGTS_CHROMIUM_PATH` aponta outro executável)
 """
+import json
 import os
 import tempfile
 import threading
@@ -179,7 +180,7 @@ def test_escolha_so_da_lista_e_emitir_exige_consulta(ambiente, sem_fila, monkeyp
     p.status = 'aguardando_escolha'
     db.session.commit()
     escolhas = []
-    monkeypatch.setattr(fgts_digital_robo.RoboFgts, 'escolher', lambda self, i, c: escolhas.append((i, c)))
+    monkeypatch.setattr(fgts_digital_robo.RoboFgts, 'escolher', lambda self, i, c, d=None: escolhas.append((i, c)))
     assert http.post(f'/api/acesso/{token}/fgts/pedidos/{pid}/escolha',
                      json={'competencias': ['202603']}).status_code == 400
     assert escolhas == []
@@ -269,6 +270,90 @@ ESTILO = '<style>[role=dialog]{position:fixed;top:40px;left:300px;background:#ff
          '.ng-option{padding:6px;cursor:pointer} iframe{border:0}</style>'
 
 
+def _dias_uteis(n):
+    from datetime import date, timedelta
+    d, saida = date.today(), []
+    while len(saida) < n:
+        if d.weekday() < 5:
+            saida.append(d.isoformat())
+        d += timedelta(days=1)
+    return saida
+
+
+# Dias que a Parametrizada falsa libera: os próximos 12 dias úteis (como no portal em 23/10/2026).
+DATAS_PARAM = _dias_uteis(12)
+
+# Guia Parametrizada falsa, com a estrutura mapeada na tela real em 23/10/2026.
+PARAM_JS = """<h1>Emissão de Guia Parametrizada</h1><div id=passo></div>
+<script>
+var LIVRES = %s, esc = {Inicial: '09/2026', Final: '09/2026'}, resumo = 0, passo = 1, venc = null;
+var MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function br(iso){ return iso.slice(8)+'/'+iso.slice(5,7)+'/'+iso.slice(0,4); }
+function iso(br){ return br.slice(6)+'-'+br.slice(3,5)+'-'+br.slice(0,2); }
+function hojeIso(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+venc = hojeIso();
+function render(){
+  var el = document.getElementById('passo'), h = '';
+  // botões dos passos (como no portal: "Emitir Guia" também é nome de passo)
+  h += '<div><button type=button>Selecionar Débitos FGTS</button><button type=button>Emitir Guia</button></div>';
+  if (passo === 1) {
+    h += '<label>Inicial</label><ng-select data-r=Inicial style="display:block;border:1px solid #888;width:150px;height:24px">'+esc.Inicial+'</ng-select>'
+      +  '<label>Final</label><ng-select data-r=Final style="display:block;border:1px solid #888;width:150px;height:24px">'+esc.Final+'</ng-select>'
+      +  '<div id=ops></div><button type=button id=pesq>Pesquisar</button><div id=tab></div>'
+      +  '<div id=res>'+(resumo ? 'Quantidade de Débitos de FGTS '+resumo : '')+'</div><button type=button id=av1>Avançar</button>';
+  } else if (passo === 2) {
+    h += '<p>Selecionar Débitos Consignado</p><button type=button id=av2>Avançar</button>';
+  } else if (passo === 3) {
+    h += '<p>Definir Vencimento</p><label>Vencimento da Guia</label><input id=dt value="'+br(venc)+'">'
+      +  '<i class="fas fa-calendar-alt" style="display:inline-block;width:20px;height:20px;background:#ccc"></i>'
+      +  '<div id=cal></div><button type=button id=av3>Avançar</button>';
+  } else {
+    var t = esc.Inicial === '02/2026' ? ['312,00','47,99','359,99'] : ['200,00','11,10','211,10'];
+    h += '<p>Vencimento da Guia: '+br(venc)+' Tag: x</p><table><tr><td>Total</td><td>'+t[0]+'</td><td>0,00</td><td>0,00</td><td>0,00</td><td>'
+      +  t[1]+'</td><td>'+t[2]+'</td></tr></table><button type=button id=emit>Emitir Guia</button>';
+  }
+  el.innerHTML = h;
+}
+var mesCal = null;
+function cal(){
+  var c = document.getElementById('cal'); var y = mesCal[0], m = mesCal[1];
+  var h = '<bs-datepicker-container><div class=bs-datepicker-head><button class=previous>‹</button><button>'+MESES[m-1]
+        + '</button><button>'+y+'</button><button class=next>›</button></div>';
+  var dias = new Date(y, m, 0).getDate();
+  for (var d=1; d<=dias; d++){ var i=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    h += '<span bsdatepickerdaydecorator class="'+(LIVRES.indexOf(i)>=0?'':'disabled')+'">'+d+'</span> '; }
+  c.innerHTML = h + '</bs-datepicker-container>';
+}
+document.addEventListener('click', function(e){
+  var t = e.target, r = t.getAttribute && t.getAttribute('data-r');
+  if (r) { window._r = r; document.getElementById('ops').innerHTML =
+    '<div class=ng-option>09/2026</div><div class=ng-option>02/2026</div>'; return; }
+  if (t.classList && t.classList.contains('ng-option')) { esc[window._r] = t.innerText.trim(); document.getElementById('ops').innerHTML='';
+    document.querySelector('[data-r='+window._r+']').innerText = esc[window._r]; return; }
+  if (t.id === 'pesq') { var a = esc.Inicial.slice(3)+esc.Inicial.slice(0,2);
+    fetch('/cobranca/api/guia-parametrizada/debitos?competenciaApuracaoInicial='+a).then(function(){
+      document.getElementById('tab').innerHTML = '<input type=checkbox id=selecionar-todos><label for=selecionar-todos>todos</label>'
+        + '<div>1-2 de 2 itens</div><button type=button id=add>Adicionar à guia</button><button id=btn-next-page disabled>›</button>'; }); return; }
+  if (t.id === 'add') { if (document.getElementById('selecionar-todos').checked) resumo = 2;
+    document.getElementById('res').innerText = 'Quantidade de Débitos de FGTS ' + resumo; return; }
+  if (t.id === 'av1' && resumo) { passo = 2; render(); return; }
+  if (t.id === 'av2') { passo = 3; render(); return; }
+  if (t.classList && t.classList.contains('fa-calendar-alt')) { var d = new Date(); mesCal = [d.getFullYear(), d.getMonth()+1]; cal(); return; }
+  if (t.classList && t.classList.contains('next')) { mesCal = mesCal[1]===12 ? [mesCal[0]+1,1] : [mesCal[0], mesCal[1]+1]; cal(); return; }
+  if (t.id === 'av3') { passo = 4; render(); return; }
+  if (t.id === 'emit') { fetch('/cobranca/api/gfd.pdf',{method:'POST'}).then(function(x){return x.blob()}).then(function(b){
+      var l=document.createElement('a'); l.href=URL.createObjectURL(b); l.download='gfd.pdf'; document.body.appendChild(l); l.click();
+      document.body.insertAdjacentHTML('beforeend','<span>0126102399999999-1</span>'); }); return; }
+});
+document.addEventListener('keydown', function(e){ if (e.key==='Escape') { var c=document.getElementById('cal'); if (c) c.innerHTML=''; } });
+// Data fora do limite: o portal RECUSA EM SILÊNCIO (o campo volta ao valor anterior).
+document.addEventListener('change', function(e){ if (e.target.id !== 'dt') return;
+  var v = e.target.value; if (/^\\d{2}\\/\\d{2}\\/\\d{4}$/.test(v) && LIVRES.indexOf(iso(v)) >= 0) { venc = iso(v);
+    fetch('/cobranca/api/guia-parametrizada/debitos-revisao?dtPagamento='+venc); } else { e.target.value = br(venc); } });
+render();
+</script>"""
+
+
 def _site_falso(captcha: bool, procuracoes=(CNPJ_A,)):
     """Handler de `context.route` imitando gov.br + FGTS Digital (estrutura real)."""
     estado = {'downloads': 0}
@@ -334,8 +419,16 @@ def _site_falso(captcha: bool, procuracoes=(CNPJ_A,)):
         if path == '/cobranca/api/gfd.pdf':
             estado['downloads'] += 1
             return route.fulfill(status=200, body=GFD_A, headers={'Content-Type': 'application/pdf'})
+        if path == '/cobranca/param.html':
+            return route.fulfill(**html(cabecalho + PARAM_JS % (json.dumps(DATAS_PARAM),)))
+        if path == '/cobranca/api/guia-parametrizada/debitos' or path == '/cobranca/api/guia-parametrizada/debitos-revisao':
+            return route.fulfill(status=200, content_type='application/json', body='{"ok":true}')
         if path == '/cobranca/':
-            corpo = cabecalho + """<h1>Emissão de Guia Rápida</h1>
+            corpo = cabecalho + """<script>
+              // Angular de verdade troca de tela pelo hash; aqui a Parametrizada é outra página.
+              function rota(){ if (location.hash.indexOf('parametrizada') >= 0) location.replace('/cobranca/param.html' + location.hash); }
+              rota(); window.addEventListener('hashchange', rota);
+              </script><h1>Emissão de Guia Rápida</h1>
               <label>Competência de Apuração</label>
               <ng-select id=comp style="display:block;border:1px solid #888;width:200px;height:30px">09/2026</ng-select>
               <div id=ops></div><button type=button id=pesq>Pesquisar</button><div id=res></div>
@@ -418,6 +511,7 @@ def test_robo_consulta_escolhe_e_emite_sem_captcha(ambiente, sem_fila, monkeypat
     assert c['total'] == 359.93 and c['grupos'] == [{'grupo': 'Mensal', 'vencimento': '23/10/2026', 'valor': 359.93}]
     assert c['composicao']['fgts_mensal'] == 312.0 and c['composicao']['encargos'] == 47.93
     assert p['total_em_aberto'] == 570.98
+    assert p['datas_permitidas'] == DATAS_PARAM          # lidas do calendário da Parametrizada
     # O cliente marca os DOIS meses: duas GFDs na mesma sessão.
     assert http.post(f'/api/acesso/{token}/fgts/pedidos/{pid}/escolha',
                      json={'competencias': ['202602', '09/2026']}).status_code == 200
@@ -505,7 +599,7 @@ def test_interno_escritorio_pede_acompanha_e_baixa_com_cnpj_conferido(ambiente, 
     pedido.status = 'aguardando_escolha'
     db.session.commit()
     escolhas = []
-    monkeypatch.setattr(fgts_digital_robo.RoboFgts, 'escolher', lambda self, i, c: escolhas.append((i, c)))
+    monkeypatch.setattr(fgts_digital_robo.RoboFgts, 'escolher', lambda self, i, c, d=None: escolhas.append((i, c)))
     assert http.post(f'/api/interno/fgts/pedidos/{pid}/escolha', json={'cnpj': CNPJ_B, 'competencias': ['202602']},
                      headers=TOKEN).status_code == 404
     assert http.post(f'/api/interno/fgts/pedidos/{pid}/escolha', json={'cnpj': CNPJ_A, 'competencias': ['202602']},
@@ -526,3 +620,53 @@ def test_interno_escritorio_pede_acompanha_e_baixa_com_cnpj_conferido(ambiente, 
     pedido.status = 'erro'
     db.session.commit()
     assert http.post('/api/interno/fgts/pedidos', json={'cnpj': CNPJ_A}, headers=TOKEN).status_code == 503
+
+
+
+@navegador
+def test_robo_emite_com_data_escolhida_pela_guia_parametrizada(ambiente, sem_fila, monkeypatch):
+    app, http, _ = ambiente
+    token = _link(http)
+    robo, estado = _robo_com_site(app, monkeypatch)
+    pid = http.post(f'/api/acesso/{token}/fgts/pedidos', json={'acao': 'consultar'}).get_json()['pedido']['id']
+    t = _rodar(app, robo, pid)
+    p = _esperar(http, token, pid, lambda p: p['status'] in ('aguardando_escolha', 'erro'))
+    assert p['status'] == 'aguardando_escolha', p['mensagem']
+    # Data que o FGTS Digital não libera: recusada antes de chegar ao robô.
+    r = http.post(f'/api/acesso/{token}/fgts/pedidos/{pid}/escolha',
+                  json={'competencias': ['202602'], 'data_pagamento': '2099-01-02'})
+    assert r.status_code == 400 and 'data' in r.get_json()['message']
+    data = DATAS_PARAM[-1]
+    br = f'{data[8:]}/{data[5:7]}/{data[:4]}'
+    r = http.post(f'/api/acesso/{token}/fgts/pedidos/{pid}/escolha',
+                  json={'competencias': ['202602'], 'data_pagamento': br})
+    assert r.status_code == 200 and r.get_json()['data_pagamento'] == data
+    p = _esperar(http, token, pid, lambda p: p['status'] in ('concluido', 'erro'))
+    t.join(30)
+    assert p['status'] == 'concluido', p['mensagem']
+    assert p['data_pagamento'] == data and estado['downloads'] == 1
+    g = p['guias'][0]
+    assert g['vencimento'] == br and g['valor'] == 359.99 and g['identificador'] == '0126102399999999-1'
+    assert http.get(g['pdf_url']).status_code == 200
+    assert robo._browser is None
+
+
+def test_emitir_em_sessao_nova_valida_data_da_ultima_consulta(ambiente, sem_fila):
+    _app, http, _ = ambiente
+    token = _link(http)
+    from app.integracao_models import FgtsPedido
+    from app.services import fgts_pedidos_service as svc
+    consulta = FgtsPedido(company_id=1, cnpj=CNPJ_A, acao='consultar', status='concluido',
+                          concluido_em=datetime.utcnow())
+    svc.gravar_resultado(consulta, {'competencias': [{'competencia': '202602'}],
+                                    'datas_permitidas': ['2099-12-30']})
+    db.session.add(consulta)
+    db.session.commit()
+    r = http.post(f'/api/acesso/{token}/fgts/pedidos',
+                  json={'acao': 'emitir', 'competencias': ['202602'], 'data_pagamento': '2099-12-29'})
+    assert r.status_code == 400
+    r = http.post(f'/api/acesso/{token}/fgts/pedidos',
+                  json={'acao': 'emitir', 'competencias': ['202602'], 'data_pagamento': '30/12/2099'})
+    assert r.status_code == 200
+    p = db.session.get(FgtsPedido, r.get_json()['pedido']['id'])
+    assert svc.resultado(p)['data_pagamento'] == '2099-12-30'

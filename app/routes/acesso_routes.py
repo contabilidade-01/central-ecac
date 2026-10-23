@@ -282,7 +282,8 @@ def fgts_criar(token: str):
                             acao=str(corpo.get('acao') or 'consultar'),
                             competencia=corpo.get('competencias') or corpo.get('competencia'),
                             link_id=link.id,
-                            origem='link', solicitado_por=links.solicitante(link.token))
+                            origem='link', solicitado_por=links.solicitante(link.token),
+                            data_pagamento=corpo.get('data_pagamento'))
     except fgts.PedidoRecusado as exc:
         return _erro(str(exc), exc.status)
     return jsonify({'success': True, 'pedido': fgts.serializar(
@@ -352,11 +353,11 @@ def fgts_escolha(token: str, pedido_id: int):
         return _erro('Pedido não encontrado.', 404)
     corpo = request.get_json(silent=True) or {}
     try:
-        escolha = fgts.validar_escolha(pedido, corpo.get('competencias'))
+        escolha, data = fgts.validar_escolha(pedido, corpo.get('competencias'), corpo.get('data_pagamento'))
     except fgts.PedidoRecusado as exc:
         return _erro(str(exc), exc.status)
-    fgts_digital_robo.robo().escolher(pedido.id, escolha)
-    return jsonify({'success': True, 'competencias': escolha})
+    fgts_digital_robo.robo().escolher(pedido.id, escolha, data)
+    return jsonify({'success': True, 'competencias': escolha, 'data_pagamento': data})
 
 
 @acesso_bp.get('/api/acesso/<token>/fgts/pedidos/<int:pedido_id>/pdf/<int:indice>')

@@ -29,7 +29,9 @@ from app.integracao_models import AcessoLink, DasEmissao
 from app.models import Company
 from app.services import acesso_links_service as links
 from app.services import das_emissao_service as emissao
+from app.services import parcelas_service
 from app.services import pendencias_service as pend
+from app.services.parcelamentos_serpro_service import PARCELAMENTO_TYPES
 from app.services.calendario_util import eh_dia_util
 
 acesso_bp = Blueprint('acesso', __name__)
@@ -166,6 +168,46 @@ def _agrupar(debitos: list) -> list:
     return list(grupos.values())
 
 
+def tipos_parcelamento(company: Company, texto_relatorio: Optional[str]) -> list:
+    """Parcelamentos que a página oferece: os marcados no cadastro da empresa e os que o
+    relatório da Receita cita (ex.: "SIMPLES NACIONAL - EM PARCELAMENTO"), para o cliente
+    gerar a parcela pelo mesmo link."""
+    mei = _eh_mei(company.id)
+    tipos: list = []
+    for tipo, cfg in PARCELAMENTO_TYPES.items():
+        if getattr(company, cfg.get('flag') or '', False):
+            tipos.append(tipo)
+    texto = (texto_relatorio or '').upper()
+    if texto:
+        sufixo = 'MEI' if mei else 'SN'
+        if 'PERT' in texto:
+            tipos.append(f'PERT_{sufixo}')
+        if 'RELP' in texto:
+            tipos.append(f'RELP_{sufixo}')
+        if 'PARCELAMENTO' in texto and not any(t.startswith(('PERT', 'RELP')) for t in tipos):
+            tipos.append(f'PARC_{sufixo}')
+    saida, vistos = [], set()
+    for tipo in tipos:
+        if tipo in PARCELAMENTO_TYPES and tipo not in vistos:
+            vistos.add(tipo)
+            saida.append(tipo)
+    return saida
+
+
+def _parcelamento_item(cnpj: str, tipo: str) -> Dict[str, Any]:
+    consulta = parcelas_service.serializar(parcelas_service.ultima(cnpj, tipo))
+    return {
+        'tipo': tipo,
+        'rotulo': parcelas_service.rotulo(tipo),
+        'consultado': consulta['consultado'],
+        'consultado_em': _fmt_data(consulta.get('consultado_em')) if consulta.get('consultado_em') else None,
+        'hoje': bool(consulta.get('hoje')),
+        'parcelas': [{'parcela': p['parcela'], 'competencia': f"{p['parcela'][4:]}/{p['parcela'][:4]}",
+                      'valor': p.get('valor')} for p in consulta.get('parcelas', [])],
+        'mensagem': consulta.get('mensagem'),
+    }
+
+
 def montar_pagina(link: AcessoLink, company: Company) -> Dict[str, Any]:
     hoje = pend.hoje_brasil()
     dados = pend.pendencias_da_empresa(company, hoje=hoje)
@@ -179,7 +221,11 @@ def montar_pagina(link: AcessoLink, company: Company) -> Dict[str, Any]:
         'a_vencer': a_vencer,
         'total_em_atraso': round(sum(float(i['saldo_devedor_total'] or 0) for i in em_atraso), 2),
         'parcelamento': bool(dados.get('parcelamento')),
+        'parcelamento_texto': dados.get('parcelamento'),
+        'parcelamentos': [_parcelamento_item(company.cnpj, t)
+                          for t in tipos_parcelamento(company, dados.get('parcelamento'))],
         'pgfn': bool(dados.get('pgfn')),
+        'pgfn_texto': dados.get('pgfn'),
         'omissoes': len(dados.get('omissoes') or []),
         'hoje': hoje.isoformat(),
         'data_maxima': (hoje + timedelta(days=JANELA_DIAS)).isoformat(),
@@ -239,6 +285,17 @@ def gerar(token: str):
         if not pa or not tipo_guia:
             return _erro('Não é possível gerar guia para este débito por aqui. Fale com o escritório.', 409)
         exige_data = bool(debito.get('em_atraso'))
+    elif str(corpo.get('tipo') or '').upper() in PARCELAMENTO_TYPES:
+        # Parcela de parcelamento: só a que consta na última consulta (emitir confere).
+        tipo_guia = str(corpo.get('tipo')).upper()
+        dados_empresa = pend.pendencias_da_empresa(company)
+        if tipo_guia not in tipos_parcelamento(company, dados_empresa.get('parcelamento')):
+            return _erro('Parcelamento não disponível para esta empresa.')
+        pa = ''.join(ch for ch in str(corpo.get('parcela') or '') if ch.isdigit())
+        if len(pa) != 6:
+            return _erro('Informe a parcela.')
+        exige_data = False
+        corpo = {**corpo, 'data_pagamento': None}  # a Receita calcula a parcela para o mês
     else:
         # "Outra competência": guia que não está no relatório (venceu depois dele, ou foi
         # declarada depois). O cliente escolhe tipo e mês; a Receita calcula se houver
@@ -306,6 +363,31 @@ def gerar(token: str):
             'pdf_url': f'/api/acesso/{link.token}/guias/{registro.id}/pdf',
         },
     })
+
+
+@acesso_bp.post('/api/acesso/<token>/parcelas/consultar')
+def consultar_parcelas(token: str):
+    """Consulta paga das parcelas (a do dia é reaproveitada sem custo) — `{tipo}`."""
+    resultado, erro = _link_ou_erro(token)
+    if erro:
+        return erro
+    link, company = resultado
+    corpo = request.get_json(silent=True) or {}
+    tipo = str(corpo.get('tipo') or '').upper()
+    dados_empresa = pend.pendencias_da_empresa(company)
+    if tipo not in tipos_parcelamento(company, dados_empresa.get('parcelamento')):
+        return _erro('Parcelamento não disponível para esta empresa.')
+    try:
+        parcelas_service.consultar(cnpj=company.cnpj, tipo=tipo, forcar=False,
+                                   solicitado_por=links.solicitante(link.token))
+    except parcelas_service.ConsultaBloqueada as exc:
+        return _erro(str(exc), exc.status)
+    except Exception as exc:
+        from app.services.serpro_das_service import SerproApiError
+        if isinstance(exc, SerproApiError):
+            return _erro(str(exc), 400 if 400 <= exc.status_code < 500 else 502)
+        return _erro(f'Não foi possível consultar as parcelas agora: {exc}', 502)
+    return jsonify({'success': True, 'parcelamento': _parcelamento_item(company.cnpj, tipo)})
 
 
 @acesso_bp.get('/api/acesso/<token>/guias/<int:emissao_id>/pdf')

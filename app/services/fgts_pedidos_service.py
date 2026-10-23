@@ -197,7 +197,7 @@ def posicao_na_fila(pedido: FgtsPedido) -> int:
     return FgtsPedido.query.filter(FgtsPedido.status == 'fila', FgtsPedido.id < pedido.id).count() + 1
 
 
-def serializar(pedido: FgtsPedido, *, base_pdf: Optional[str] = None) -> Dict[str, Any]:
+def serializar(pedido: FgtsPedido, *, base_pdf: Optional[str] = None, diagnostico: bool = False) -> Dict[str, Any]:
     dados = resultado(pedido)
     etapa = pedido.etapa or 'fila'
     indice = CHAVES_ETAPAS.index(etapa) if etapa in CHAVES_ETAPAS else 0
@@ -245,6 +245,8 @@ def serializar(pedido: FgtsPedido, *, base_pdf: Optional[str] = None) -> Dict[st
         # Vencimentos aceitos pelo FGTS Digital (AAAA-MM-DD); vazio = só hoje.
         'datas_permitidas': dados.get('datas_permitidas') or [],
         'data_pagamento': dados.get('data_pagamento'),
+        # Só para o escritório (rotas internas); a página do cliente não recebe.
+        'diagnostico': dados.get('diagnostico') if diagnostico else None,
         'guias': guias,
         'criado_em': pedido.criado_em.isoformat() if pedido.criado_em else None,
         'concluido_em': pedido.concluido_em.isoformat() if pedido.concluido_em else None,

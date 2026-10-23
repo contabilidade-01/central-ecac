@@ -380,7 +380,7 @@ def _fgts_pedido_do_cnpj(pedido_id: int):
 
 def _fgts_json(pedido):
     from app.services import fgts_pedidos_service as fgts
-    return {**fgts.serializar(pedido, base_pdf=f'/api/interno/fgts/pedidos/{pedido.id}/pdf'),
+    return {**fgts.serializar(pedido, base_pdf=f'/api/interno/fgts/pedidos/{pedido.id}/pdf', diagnostico=True),
             'cnpj': pedido.cnpj, 'origem': pedido.origem}
 
 

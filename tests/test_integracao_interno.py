@@ -281,6 +281,61 @@ def test_parcelas_le_variacoes_da_resposta():
     assert _parcelas_do_corpo({'dados': ''}) == []
 
 
+def test_apenas_reuso_nunca_chama_a_serpro(ambiente, monkeypatch):
+    _app, http, _ = ambiente
+    chamadas = []
+    _serpro_falsa(monkeypatch, chamadas)
+    corpo = {'cnpj': CNPJ_A, 'tipo': 'SN', 'periodo_apuracao': '202607',
+             'data_consolidacao': '20991230', 'origem': 'atendechat', 'apenas_reuso': True}
+
+    # sem guia guardada → 402 e nenhuma chamada paga (mesmo com forcar)
+    r0 = http.post('/api/interno/das/emitir', json={**corpo, 'forcar': True}, headers=TOKEN)
+    assert r0.status_code == 402 and not chamadas
+
+    # alguém com permissão gera; depois o "só reuso" recebe a guia do disco
+    gerada = http.post('/api/interno/das/emitir', json={**corpo, 'apenas_reuso': False}, headers=TOKEN)
+    assert gerada.status_code == 200 and len(chamadas) == 1
+    r1 = http.post('/api/interno/das/emitir', json={**corpo, 'forcar': True}, headers=TOKEN)
+    assert r1.status_code == 200 and r1.get_json()['reuso'] is True and len(chamadas) == 1
+    assert r1.get_json()['emissao']['origem'] == 'atendechat'
+
+
+def test_busca_de_empresas_e_cadastro(ambiente):
+    app, http, ids = ambiente
+    from app.integracao_models import EmpresaMei
+    from app.models import Company
+    # mesma sessão da fixture (o contexto dela continua ativo durante as requisições)
+    EmpresaMei.query.delete()
+    db.session.add(EmpresaMei(company_id=ids['B'], eh_mei=True))
+    db.session.get(Company, ids['A']).consultar_parc_sn = True
+    db.session.commit()
+
+    assert http.get('/api/interno/empresas?busca=a', headers=TOKEN).status_code == 400
+    por_nome = http.get('/api/interno/empresas?busca=alf', headers=TOKEN).get_json()
+    assert [e['cnpj'] for e in por_nome['empresas']] == [CNPJ_A]
+    por_cnpj = http.get('/api/interno/empresas?busca=11.444.777', headers=TOKEN).get_json()
+    assert [e['razao_social'] for e in por_cnpj['empresas']] == ['BETA']
+    assert por_cnpj['empresas'][0]['mei'] is True
+    assert http.get('/api/interno/empresas?busca=alf').status_code == 401
+
+    cad = http.get(f'/api/interno/empresa/{CNPJ_A}', headers=TOKEN).get_json()['empresa']
+    assert cad['razao_social'] == 'ALFA' and cad['mei'] is False
+    habilitados = [p['tipo'] for p in cad['parcelamentos'] if p['habilitado']]
+    assert habilitados == ['PARC_SN'] and len(cad['parcelamentos']) == 6
+    assert http.get('/api/interno/empresa/99999999000191', headers=TOKEN).status_code == 404
+    EmpresaMei.query.delete()   # MEI fica fora do lote: não vazar para os outros testes
+    db.session.commit()
+
+
+def test_vencimento_e_valor_lidos_do_texto_do_darf():
+    from app.services.das_emissao_service import detalhe_do_pdf, extrair_vencimento_valor
+    texto = ('Documento de Arrecadação de Receitas Federais\nCNPJ 11.222.333/0001-81\n'
+             'Pagar este documento até\n30/10/2026\nValor Total do Documento\n1.234,56')
+    assert extrair_vencimento_valor(texto) == {'dataVencimento': '20261030', 'valores': {'total': 1234.56}}
+    assert extrair_vencimento_valor('nada aqui') == {}
+    assert detalhe_do_pdf(PDF) == {}   # PDF ilegível não derruba a emissão
+
+
 def test_empresa_desconhecida_nao_emite(ambiente):
     _app, http, _ = ambiente
     r = http.post('/api/interno/das/emitir', json={'cnpj': '99999999000191', 'tipo': 'SN',

@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FGTS Digital — Escritório</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --cartao:#fff; --borda:#dce1e7; --texto:#1b2733; --suave:#5b6b7b;
+    --azul:#0a5ca8; --azul-forte:#084a86; --verde:#1b7a44; --verde-bg:#e7f5ec;
+    --amarelo-bg:#fff7e0; --amarelo-borda:#e8c766; --vermelho:#b4231f; --vermelho-bg:#fbeaea;
+    --sombra:0 1px 3px rgba(16,36,56,.08),0 1px 2px rgba(16,36,56,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--texto);
+    font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.45}
+  .topo{background:var(--azul);color:#fff;padding:14px 16px}
+  .topo h1{margin:0;font-size:18px;font-weight:650}
+  .topo p{margin:2px 0 0;font-size:12.5px;opacity:.9}
+  .wrap{max-width:860px;margin:0 auto;padding:16px}
+  .cartao{background:var(--cartao);border:1px solid var(--borda);border-radius:10px;
+    box-shadow:var(--sombra);padding:16px;margin-bottom:14px}
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:var(--suave);margin:0 0 10px}
+  label{font-size:13px;color:var(--suave);display:block;margin-bottom:4px}
+  input[type=text],select{font-size:15px;padding:9px 10px;border:1px solid var(--borda);
+    border-radius:7px;width:100%;background:#fff;color:var(--texto)}
+  .linha{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .linha > div{flex:1;min-width:180px}
+  button{font-size:14px;font-weight:600;padding:10px 16px;border-radius:7px;border:0;
+    background:var(--azul);color:#fff;cursor:pointer}
+  button:hover{background:var(--azul-forte)}
+  button.sec{background:#eef2f6;color:var(--texto);border:1px solid var(--borda)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .status{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600}
+  .ponto{width:9px;height:9px;border-radius:50%;background:#aab4bf;flex:none}
+  .ok .ponto{background:var(--verde)} .nok .ponto{background:var(--vermelho)}
+  .aviso{background:var(--amarelo-bg);border:1px solid var(--amarelo-borda);border-radius:8px;
+    padding:11px 13px;font-size:13.5px;margin-top:10px}
+  .erro{background:var(--vermelho-bg);border:1px solid #e3b4b2;color:var(--vermelho);
+    border-radius:8px;padding:11px 13px;font-size:13.5px}
+  .barra{display:flex;gap:6px;margin:4px 0 12px;flex-wrap:wrap}
+  .passo{font-size:12px;padding:3px 9px;border-radius:20px;background:#eef2f6;color:var(--suave)}
+  .passo.agora{background:var(--azul);color:#fff} .passo.feito{background:var(--verde-bg);color:var(--verde)}
+  .mes{border:1px solid var(--borda);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+  .mes-topo{display:flex;align-items:center;gap:10px}
+  .mes-topo input{width:17px;height:17px;flex:none}
+  .mes-nome{font-weight:650;font-size:15px} .mes-valor{margin-left:auto;font-weight:650}
+  .comp{font-size:12.5px;color:var(--suave);margin:6px 0 0 27px}
+  .total{font-size:13.5px;color:var(--suave);margin-top:4px}
+  .guia{display:flex;align-items:center;gap:10px;border:1px solid var(--borda);
+    border-radius:8px;padding:10px 12px;margin-bottom:8px;background:var(--verde-bg)}
+  .guia a{color:var(--azul-forte);font-weight:650;text-decoration:none}
+  .muted{color:var(--suave);font-size:13px}
+  code{background:#eef2f6;padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .rodape{font-size:12px;color:var(--suave);text-align:center;padding:6px 0 18px}
+</style>
+</head>
+<body>
+<div class="topo">
+  <h1>FGTS Digital — Escritório</h1>
+  <p>O login é seu, no Chrome do FGTS. Aqui a automação consulta e gera as guias nessa sessão.</p>
+</div>
+
+<div class="wrap">
+  <div class="cartao">
+    <h2>Chrome do FGTS</h2>
+    <div id="chrome" class="status"><span class="ponto"></span><span>Verificando…</span></div>
+    <div id="chrome-aviso"></div>
+  </div>
+
+  <div class="cartao">
+    <h2>Consultar empresa</h2>
+    <div class="linha">
+      <div>
+        <label for="cnpj">CNPJ do cliente</label>
+        <input id="cnpj" type="text" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18">
+      </div>
+      <button id="btn-consultar">Consultar FGTS</button>
+    </div>
+    <div id="andamento"></div>
+  </div>
+
+  <div class="cartao" id="box-meses" style="display:none">
+    <h2>Meses em aberto</h2>
+    <div id="meses"></div>
+    <div class="linha" style="margin-top:12px">
+      <div style="max-width:260px">
+        <label for="vencimento">Vou pagar em</label>
+        <select id="vencimento"><option value="">Hoje (valor atualizado)</option></select>
+      </div>
+      <button id="btn-emitir">Gerar guias dos meses marcados</button>
+    </div>
+  </div>
+
+  <div class="cartao" id="box-guias" style="display:none">
+    <h2>Guias geradas</h2>
+    <div id="guias"></div>
+    <p class="muted">Os PDFs também ficam na pasta <code id="pasta">{{ pasta }}</code> deste computador.</p>
+  </div>
+
+  <div class="rodape">A verificação de segurança do gov.br é sempre resolvida por você, no Chrome.</div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let ultimoStatus = null, jaMostrouGuias = false;
+
+function fmtCnpj(d){ d=(d||'').replace(/\D/g,'').slice(0,14);
+  return d.replace(/^(\d{2})(\d{3})?(\d{3})?(\d{4})?(\d{2})?.*/, (m,a,b,c,e,f)=>
+    a+(b?'.'+b:'')+(c?'.'+c:'')+(e?'/'+e:'')+(f?'-'+f:'')); }
+$('#cnpj').addEventListener('input', e => { const p=e.target.selectionStart; e.target.value=fmtCnpj(e.target.value); });
+
+function reais(v){ if(v==null) return '—';
+  return 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function dataBr(iso){ return iso ? iso.slice(8)+'/'+iso.slice(5,7)+'/'+iso.slice(0,4) : ''; }
+
+const ROTULOS_COMP = {fgts_mensal:'Mensal', fgts_rescisorio:'Rescisório', indenizacao:'Indenização',
+  processo_trabalhista:'Processo trab.', encargos:'Encargos'};
+function composicao(c){ if(!c) return '';
+  const partes = Object.keys(ROTULOS_COMP).filter(k=>c[k]).map(k=>ROTULOS_COMP[k]+': '+reais(c[k]));
+  return partes.join('  ·  '); }
+
+async function verificar(){ await fetch('/api/verificar',{method:'POST'}); }
+
+function pintarChrome(c){
+  const el = $('#chrome'), av = $('#chrome-aviso');
+  if(!c || !c.chrome){ el.className='status nok';
+    el.innerHTML='<span class="ponto"></span><span>Chrome do FGTS não encontrado</span>';
+    av.innerHTML='<div class="aviso">Abra o <b>Chrome do FGTS</b> pelo atalho e entre no FGTS Digital. '
+      +'Depois clique em <a href="#" onclick="verificar();return false">verificar de novo</a>.</div>'; return; }
+  if(!c.logado){ el.className='status nok';
+    el.innerHTML='<span class="ponto"></span><span>Chrome aberto, mas sem login no FGTS Digital</span>';
+    av.innerHTML='<div class="aviso">Entre no FGTS Digital (certificado e captcha) na janela do Chrome e '
+      +'<a href="#" onclick="verificar();return false">verifique de novo</a>.</div>'; return; }
+  el.className='status ok';
+  el.innerHTML='<span class="ponto"></span><span>Conectado e logado no FGTS Digital</span>';
+  av.innerHTML='';
+}
+
+function pintarAndamento(s){
+  const el = $('#andamento');
+  if(s.status==='ocioso'){ el.innerHTML=''; return; }
+  const passos = [['consultando','Consultando'],['aguardando_escolha','Escolher meses'],
+                  ['emitindo','Gerando guias'],['concluido','Pronto']];
+  const ordem = {consultando:0, aguardando_escolha:1, emitindo:2, concluido:3, erro:3};
+  const atual = ordem[s.status] ?? 0;
+  let barra = '<div class="barra">';
+  passos.forEach(([ch,rot],i)=>{ let cls='passo'; if(i<atual||s.status==='concluido') cls+=' feito';
+    else if(i===atual) cls+= s.status==='erro'?'':' agora'; barra += `<span class="${cls}">${rot}</span>`; });
+  barra += '</div>';
+  let msg = s.status==='erro' ? `<div class="erro">${s.mensagem||'Erro.'}</div>`
+          : `<div class="muted">${s.mensagem||''}</div>`;
+  el.innerHTML = barra + msg;
+}
+
+function pintarMeses(s){
+  const box = $('#box-meses');
+  if(s.status!=='aguardando_escolha' || !s.competencias.length){ if(s.status!=='emitindo') box.style.display='none'; return; }
+  box.style.display='';
+  $('#meses').innerHTML = s.competencias.map(c=>{
+    const venc = (c.grupos&&c.grupos[0]&&c.grupos[0].vencimento) ? ' · vence '+c.grupos[0].vencimento : '';
+    const comp = composicao(c.composicao);
+    return `<div class="mes"><div class="mes-topo">
+      <input type="checkbox" class="chk" value="${c.competencia}">
+      <span class="mes-nome">${c.rotulo}</span><span class="muted">${venc}</span>
+      <span class="mes-valor">${reais(c.total)}</span></div>
+      ${comp?`<div class="comp">${comp}</div>`:''}</div>`; }).join('');
+  const sel = $('#vencimento');
+  const atuais = Array.from(sel.options).slice(1).map(o=>o.value);
+  if(JSON.stringify(atuais)!==JSON.stringify(s.datas_permitidas||[])){
+    sel.innerHTML = '<option value="">Hoje (valor atualizado)</option>'
+      + (s.datas_permitidas||[]).map(d=>`<option value="${d}">${dataBr(d)}</option>`).join('');
+  }
+}
+
+function pintarGuias(s){
+  const box = $('#box-guias');
+  if(!s.guias || !s.guias.length){ if(s.status!=='concluido'&&s.status!=='emitindo') box.style.display='none'; return; }
+  box.style.display='';
+  $('#guias').innerHTML = s.guias.map(g=>{
+    const id = g.identificador?` · <span class="muted">${g.identificador}</span>`:'';
+    const venc = g.vencimento?` · vence ${g.vencimento}`:'';
+    return `<div class="guia"><a href="/guias/${encodeURIComponent(g.arquivo)}" target="_blank">⬇ ${g.competencia? (g.competencia.slice(4)+'/'+g.competencia.slice(0,4)):'Guia'}</a>
+      <span>${g.grupo||'FGTS'} — ${reais(g.valor)}${venc}</span>${id}</div>`; }).join('');
+}
+
+async function tick(){
+  try{
+    const s = await (await fetch('/api/estado')).json();
+    pintarChrome(s.chrome);
+    pintarAndamento(s);
+    pintarMeses(s);
+    pintarGuias(s);
+    const ocupado = s.status==='consultando'||s.status==='emitindo';
+    $('#btn-consultar').disabled = ocupado;
+    $('#btn-emitir').disabled = ocupado;
+    ultimoStatus = s.status;
+  }catch(e){}
+}
+
+$('#btn-consultar').onclick = async () => {
+  const cnpj = $('#cnpj').value.replace(/\D/g,'');
+  if(cnpj.length!==14){ alert('Informe um CNPJ com 14 dígitos.'); return; }
+  $('#box-meses').style.display='none'; $('#box-guias').style.display='none';
+  const r = await fetch('/api/consultar',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({cnpj})});
+  if(!r.ok){ const j=await r.json(); alert(j.message||'Não deu para consultar.'); }
+  tick();
+};
+
+$('#btn-emitir').onclick = async () => {
+  const comps = Array.from(document.querySelectorAll('.chk:checked')).map(c=>c.value);
+  if(!comps.length){ alert('Marque pelo menos um mês.'); return; }
+  const cnpj = $('#cnpj').value.replace(/\D/g,'');
+  const data = $('#vencimento').value || null;
+  $('#box-guias').style.display='none';
+  const r = await fetch('/api/emitir',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({cnpj,competencias:comps,data_pagamento:data})});
+  if(!r.ok){ const j=await r.json(); alert(j.message||'Não deu para gerar.'); }
+  tick();
+};
+
+verificar();
+tick();
+setInterval(tick, 1500);
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+FGTS Digital — automação local do escritório
+=============================================
+
+O QUE É
+-------
+Um programa que roda no SEU computador e ajuda a gerar guias de FGTS no FGTS Digital,
+entrando como procurador dos clientes. O LOGIN é sempre seu: você entra no FGTS Digital
+no Chrome (certificado e captcha), como já faz hoje. Só depois disso o programa usa essa
+sessão já aberta para o trabalho repetitivo: abrir a empresa, listar os meses em aberto
+com os valores e gerar as guias (rápida = pagar hoje; com data = parametrizada).
+
+O programa NÃO resolve captcha e NÃO faz login por você. Se o Chrome não estiver logado,
+ele avisa e espera você entrar.
+
+O QUE PRECISA (uma vez)
+-----------------------
+1. Google Chrome instalado.
+2. Python 3.10 ou mais novo (https://www.python.org/downloads/ — na instalação, marque
+   "Add Python to PATH").
+3. O certificado A1 do escritório disponível no Windows, como você já usa para o gov.br.
+
+COMO USAR (no dia a dia)
+------------------------
+1. Dê um duplo-clique em  "Abrir Chrome do FGTS.bat".
+   Abre um Chrome só para o FGTS. Entre no FGTS Digital (certificado + captcha) e
+   DEIXE essa janela aberta.
+
+2. Dê um duplo-clique em  "Rodar FGTS.bat".
+   Na primeira vez ele prepara tudo (demora alguns minutos). Depois abre a tela em
+   http://127.0.0.1:5055 no seu navegador.
+
+3. Na tela:
+   - confira que diz "Conectado e logado no FGTS Digital";
+   - digite o CNPJ do cliente e clique em "Consultar FGTS";
+   - veja os meses em aberto com os valores, marque os que quiser;
+   - se for pagar hoje, deixe "Hoje"; para outra data, escolha uma data da lista;
+   - clique em "Gerar guias dos meses marcados".
+   Os PDFs aparecem na tela e ficam salvos na pasta "guias" deste computador.
+
+OBSERVAÇÕES
+-----------
+- Um trabalho por vez. Enquanto consulta ou gera, aguarde terminar.
+- Antes de gerar, o programa confere que o CNPJ do PDF é o da empresa do pedido; guia que
+  não bate é descartada.
+- Se aparecer "sem procuração", o escritório não tem procuração no FGTS Digital para essa
+  empresa.
+- Se algo der errado, a pasta "diagnostico" guarda uma foto da tela para entender.
+- Nada é enviado para fora do seu computador.
+
+SEGURANÇA
+---------
+- O login e o captcha são sempre seus, feitos à mão no Chrome.
+- O programa não disfarça que há automação nem tenta burlar a verificação do gov.br. Se o
+  portal recusar algum passo, ele mostra o erro — não há contorno.
+- O Chrome do FGTS usa um perfil próprio (pasta "chrome-perfil"), separado do seu Chrome
+  normal.

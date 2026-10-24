@@ -105,6 +105,30 @@ def _sem_query(url: str) -> str:
     return (url or '').split('?')[0].split('#')[0]
 
 
+def _campos_form(corpo: Optional[bytes]) -> str:
+    """Nomes dos campos de um POST com o TAMANHO de cada valor — nunca o conteúdo
+    (o token do captcha e códigos de sessão não vão para o log)."""
+    if not corpo:
+        return '-'
+    from urllib.parse import parse_qsl
+    try:
+        pares = parse_qsl(corpo.decode('utf-8', 'replace'), keep_blank_values=True)
+    except Exception:
+        return f'{len(corpo)} bytes'
+    return ', '.join(f'{k}[{len(v)}]' for k, v in pares) or f'{len(corpo)} bytes'
+
+
+def _destino(url: str) -> str:
+    """Para onde um redirecionamento manda: host+caminho e só os NOMES da query
+    (o gov.br põe o código do erro ali)."""
+    if not url:
+        return '-'
+    from urllib.parse import parse_qsl, urlsplit
+    u = urlsplit(url)
+    nomes = [k for k, _ in parse_qsl(u.query, keep_blank_values=True)]
+    return _sem_query(url) + (f' ?{",".join(nomes)}' if nomes else '')
+
+
 def db_commit() -> None:
     from app.extensions import db
     db.session.commit()
@@ -386,6 +410,10 @@ class RoboFgts:
             'FGTS nav: %s', _sem_query(f.url)))
         self._page.on('requestfailed', lambda r: 'gov.br' in r.url and logger.warning(
             'FGTS falhou: %s %s', _sem_query(r.url), r.failure))
+        # POSTs ao gov.br: só nomes de campo e tamanhos (mostra se o token do captcha saiu).
+        self._page.on('request', lambda r: r.method == 'POST' and 'acesso.gov.br' in r.url
+                      and 'certificado.sso' not in r.url and logger.warning(
+                          'FGTS post: %s | %s', _sem_query(r.url), _campos_form(r.post_data_buffer)))
         self._page.on('response', lambda r: 'certificado.sso' in r.url and logger.warning(
             'FGTS certificado: %s %s', r.status, _sem_query(r.url)))
         self._logado = False
@@ -407,13 +435,15 @@ class RoboFgts:
             logger.warning('FGTS certificado (python) falhou: %s %s', _sem_query(req.url), exc)
             route.abort('failed')
             return
-        logger.warning('FGTS certificado (python): %s %s -> %s', req.method, _sem_query(req.url), resp.status_code)
         saida: Dict[str, str] = {}
         for k, v in resp.raw.headers.items():
             kl = k.lower()
             if kl in ('content-encoding', 'content-length', 'transfer-encoding', 'connection'):
                 continue          # o corpo já vem decodificado pelo requests
             saida[kl] = f'{saida[kl]}\n{v}' if kl in saida else v   # vários Set-Cookie: um por linha
+        logger.warning('FGTS certificado (python): %s %s -> %s | enviado: %s | volta: %s',
+                       req.method, _sem_query(req.url), resp.status_code,
+                       _campos_form(req.post_data_buffer), _destino(saida.get('location', '')))
         route.fulfill(status=resp.status_code, headers=saida, body=resp.content)
 
     def _ao_criar_contexto(self, context) -> None:

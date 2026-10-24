@@ -1,0 +1,5 @@
+# Dependências do FGTS local (PC do escritório). NÃO precisa baixar navegador do
+# Playwright: o app se liga ao Chrome que o operador já abriu (connect_over_cdp).
+Flask==3.1.3
+playwright==1.55.0
+pypdf==5.1.0

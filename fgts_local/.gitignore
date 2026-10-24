@@ -1,0 +1,6 @@
+chrome-perfil/
+guias/
+diagnostico/
+.venv/
+__pycache__/
+config.json

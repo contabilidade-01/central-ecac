@@ -794,3 +794,13 @@ def test_certificado_sso_e_atendido_em_python_e_o_login_segue(ambiente, sem_fila
     monkeypatch.setenv('FGTS_ESCOLHA_TIMEOUT_S', '1')
     _esperar(http, token, pid, lambda p: p['status'] in ('concluido', 'erro'), segundos=40)
     t.join(30)
+
+
+def test_log_do_certificado_nao_leva_valores():
+    """O diagnóstico do POST ao gov.br mostra nomes e tamanhos, nunca o token/código."""
+    from app.services.fgts_digital_robo import _campos_form, _destino
+    assert _campos_form(b'h-captcha-response=SEGREDO123&operation=') == 'h-captcha-response[10], operation[0]'
+    assert _campos_form(None) == '-'
+    saida = _destino('https://sso.acesso.gov.br/login?client_id=abc&erro=ERL0033800')
+    assert saida == 'https://sso.acesso.gov.br/login ?client_id,erro'
+    assert 'abc' not in saida and 'ERL' not in saida

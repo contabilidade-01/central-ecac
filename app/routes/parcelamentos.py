@@ -94,15 +94,30 @@ def _run_pedidos_empresa_job(app, company_id, tipos):
             db.session.remove()
 
 
+def _empresas_marcadas():
+    """Ativas com algum tipo marcado — as demais não teriam o que consultar."""
+    return [
+        c for c in db.session.query(Company).filter(Company.ativo == True).all()  # noqa: E712
+        if service._selected_types_for_company(c)
+    ]
+
+
+def _marcar_na_fila(company_ids, etapa):
+    """Marca 'processando' ANTES da thread subir.
+
+    Sem isso a tela consultava /status antes da thread começar, via has_processing
+    falso e parava de atualizar — a busca rodava sem andamento na tela.
+    """
+    for company_id in company_ids:
+        update_parcelamento_progress(company_id, status="processing", step=etapa,
+                                     progress=0, message="Na fila...", restart=True)
+
+
 def _run_pedidos_todas_job(app):
     """Linha 68 do exe — as empresas rodam em PARALELO (até 4 por vez)."""
     with app.app_context():
         try:
-            company_ids = [
-                row[0] for row in db.session.query(Company.id)
-                .filter(Company.ativo == True)  # noqa: E712 — como no exe
-                .all()
-            ]
+            company_ids = [c.id for c in _empresas_marcadas()]
         finally:
             db.session.remove()
 
@@ -130,11 +145,7 @@ def _run_parcelas_todas_job(app, emitir_pdfs):
     """Linha 100 do exe — mesmas 4 threads em paralelo."""
     with app.app_context():
         try:
-            company_ids = [
-                row[0] for row in db.session.query(Company.id)
-                .filter(Company.ativo == True)  # noqa: E712 — como no exe
-                .all()
-            ]
+            company_ids = [c.id for c in _empresas_marcadas()]
         finally:
             db.session.remove()
 
@@ -199,6 +210,7 @@ def buscar_pedidos_empresa(company_id: int):
 
     # Auto-destravamento se stale
     _release_stale_processing(company)
+    _marcar_na_fila([company_id], "Busca de pedidos")
 
     thread = threading.Thread(
         target=_run_pedidos_empresa_job,
@@ -213,6 +225,7 @@ def buscar_pedidos_empresa(company_id: int):
 @parcelamentos_bp.post("/buscar-pedidos-todas")
 def buscar_pedidos_todas():
     """Busca pedidos de todas as empresas (thread)."""
+    _marcar_na_fila([c.id for c in _empresas_marcadas()], "Busca de pedidos")
     thread = threading.Thread(
         target=_run_pedidos_todas_job,
         args=(current_app._get_current_object(),),
@@ -228,9 +241,13 @@ def listar_pedidos():
     """Lista pedidos de parcelamento armazenados."""
     query = db.session.query(ParcelamentoPedido)
 
-    tipo = request.args.get("type")
+    # A tela manda `company_id` e `tipo`; o exe só lia `type` e ignorava a empresa.
+    tipo = request.args.get("type") or request.args.get("tipo")
     if tipo:
         query = query.filter(ParcelamentoPedido.tipo == tipo)
+    company_id = request.args.get("company_id", type=int)
+    if company_id:
+        query = query.filter(ParcelamentoPedido.company_id == company_id)
 
     ativos = request.args.get("ativos")
     if ativos in ("1", "true", "True"):
@@ -263,6 +280,7 @@ def buscar_parcelas_empresa(company_id: int):
 
     # Auto-destravamento se stale
     _release_stale_processing(company)
+    _marcar_na_fila([company_id], "Baixa de parcelas")
 
     thread = threading.Thread(
         target=_run_parcelas_empresa_job,
@@ -277,6 +295,7 @@ def buscar_parcelas_empresa(company_id: int):
 @parcelamentos_bp.post("/buscar-parcelas-todas-ativas")
 def buscar_parcelas_todas_ativas():
     """Busca parcelas de todas as empresas com pedidos ativos (thread)."""
+    _marcar_na_fila([c.id for c in _empresas_marcadas()], "Baixa de parcelas")
     thread = threading.Thread(
         target=_run_parcelas_todas_job,
         args=(current_app._get_current_object(), True),
@@ -352,9 +371,12 @@ def listar_parcelas():
     """Lista parcelas de parcelamento armazenadas."""
     query = db.session.query(ParcelamentoParcela)
 
-    tipo = request.args.get("type")
+    tipo = request.args.get("type") or request.args.get("tipo")
     if tipo:
         query = query.filter(ParcelamentoParcela.tipo == tipo)
+    company_id = request.args.get("company_id", type=int)
+    if company_id:
+        query = query.filter(ParcelamentoParcela.company_id == company_id)
 
     # O exe devolve LISTA pura. Em vez do caminho do PDF, expõe has_pdf +
     # download_message/download_status.

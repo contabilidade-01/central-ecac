@@ -35,7 +35,9 @@ def app():
     app = create_app()
     app.config['TESTING'] = True
     with app.app_context():
-        for modelo in (PendenciaRelatorio, RelatorioSitFiscal, Company):
+        from app.models import ParcelamentoParcela, ParcelamentoPedido
+        for modelo in (ParcelamentoParcela, ParcelamentoPedido, PendenciaRelatorio,
+                       RelatorioSitFiscal, Company):
             modelo.query.delete()
         db.session.commit()
         yield app
@@ -89,3 +91,68 @@ def test_rota_sugestoes(app):
         'Authorization': 'Basic dGVzdGU6dGVzdGU='})
     assert resp.status_code == 200, resp.data[:200]
     assert resp.get_json()[str(c.id)]['tipos'] == ['PARC_SN']
+
+
+# --- andamento da busca de pedidos/parcelas (Acompanhamento) ---------------------
+
+def test_busca_pedidos_publica_andamento_e_erro(app, monkeypatch):
+    from app.services.parcelamentos_serpro_service import ParcelamentosSerproService
+    c = Company(razao_social='ELIUDE', cnpj='11222333000181', ativo=True,
+                consultar_parc_sn=True, consultar_parc_mei=True)
+    db.session.add(c)
+    db.session.commit()
+    vistos = []
+
+    def falso(self, company, tipo):
+        vistos.append((tipo, db.session.get(Company, company.id).processing_status))
+        if tipo == 'PARC_MEI':
+            return {'erro': 'Contribuinte não é MEI'}
+        return {'success': True, 'pedidos': [], 'message': '0 pedido(s), 0 ativo(s).'}
+
+    monkeypatch.setattr(ParcelamentosSerproService, 'buscar_pedidos_tipo', falso)
+    ParcelamentosSerproService().buscar_pedidos_empresa(c.id)
+
+    assert vistos == [('PARC_SN', 'processing'), ('PARC_MEI', 'processing')]
+    c = db.session.get(Company, c.id)
+    assert c.processing_status == 'done'
+    assert c.processing_progress == 100
+    assert 'Parcelamento Simples Nacional: 0 pedido(s)' in c.processing_message
+    assert 'Parcelamento MEI: erro — Contribuinte não é MEI' in c.processing_message
+
+
+def test_busca_sem_tipo_marcado_avisa(app):
+    from app.services.parcelamentos_serpro_service import ParcelamentosSerproService
+    c = Company(razao_social='SEM TIPO', cnpj='11222333000181', ativo=True)
+    db.session.add(c)
+    db.session.commit()
+    ParcelamentosSerproService().buscar_pedidos_empresa(c.id)
+    assert 'Nenhum tipo de parcelamento marcado' in db.session.get(Company, c.id).processing_message
+
+
+def test_rota_marca_processando_antes_da_thread(app, monkeypatch):
+    import app.routes.parcelamentos as rotas
+    c = Company(razao_social='ALFA', cnpj='11222333000181', ativo=True, consultar_parc_sn=True)
+    db.session.add(c)
+    db.session.commit()
+    monkeypatch.setattr(rotas.threading, 'Thread', lambda *a, **k: type('T', (), {'start': lambda s: None})())
+    auth = {'Authorization': 'Basic dGVzdGU6dGVzdGU='}
+    cli = app.test_client()
+    assert cli.post(f'/api/parcelamentos/buscar-pedidos-empresa/{c.id}', headers=auth).status_code == 200
+    assert cli.get('/api/parcelamentos/status', headers=auth).get_json()['has_processing'] is True
+
+
+def test_pedidos_filtra_empresa_e_tipo(app):
+    from app.models import ParcelamentoPedido
+    a = Company(razao_social='A', cnpj='11222333000181', ativo=True)
+    b = Company(razao_social='B', cnpj='11444777000161', ativo=True)
+    db.session.add_all([a, b])
+    db.session.flush()
+    db.session.add_all([
+        ParcelamentoPedido(company_id=a.id, tipo='PARC_SN', numero='1', ativo=True),
+        ParcelamentoPedido(company_id=b.id, tipo='PARC_MEI', numero='2', ativo=True),
+    ])
+    db.session.commit()
+    auth = {'Authorization': 'Basic dGVzdGU6dGVzdGU='}
+    cli = app.test_client()
+    assert [p['numero'] for p in cli.get(f'/api/parcelamentos/pedidos?company_id={b.id}', headers=auth).get_json()] == ['2']
+    assert [p['numero'] for p in cli.get('/api/parcelamentos/pedidos?tipo=PARC_SN', headers=auth).get_json()] == ['1']

@@ -232,3 +232,53 @@ def empresa_por_cnpj(cnpj: str) -> Optional[Company]:
 def total_relatorios_desde(desde: datetime) -> int:
     return (db.session.query(func.count(RelatorioSitFiscal.id))
             .filter(RelatorioSitFiscal.data_hora >= desde).scalar() or 0)
+
+
+def _tipos_sugeridos(texto: str, relatorio: RelatorioSitFiscal) -> List[str]:
+    """Qual tipo do PARCELAMENTO_TYPES o texto do relatório aponta.
+
+    O relatório só diz "SIMPLES NACIONAL - EM PARCELAMENTO" (ou cita PERT/RELP); o
+    regime vem do próprio texto (SIMEI/MEI) ou da opção pelo SIMEI ainda vigente no
+    relatório. Parcelamento que não é do Simples (ex.: só "Parcelamento <nº> Valor
+    Suspenso") não vira tipo: a SERPRO só cobre os seis do Simples/MEI.
+    """
+    t = texto.upper()
+    if not re.search(r'SIMPLES NACIONAL|SIMEI|\bMEI\b|\bPERT\b|\bRELP\b', t):
+        return []
+    mei = bool(re.search(r'SIMEI|\bMEI\b', t)) or bool(
+        relatorio.simei_inclusao and not relatorio.simei_exclusao)
+    sufixo = 'MEI' if mei else 'SN'
+    if 'RELP' in t:
+        return [f'RELP_{sufixo}']
+    if 'PERT' in t:
+        return [f'PERT_{sufixo}']
+    return [f'PARC_{sufixo}']
+
+
+def sugestoes_parcelamento() -> Dict[int, Dict[str, Any]]:
+    """Empresas cujo ÚLTIMO relatório mostra parcelamento ativo (pendência PARCELAMENTO).
+
+    Usado pela tela Parcelamentos para colorir o tipo sugerido. Como só olha o último
+    relatório, a sugestão some sozinha quando o parcelamento deixa de constar nele.
+    """
+    ultimo = (db.session.query(RelatorioSitFiscal.company_id,
+                               func.max(RelatorioSitFiscal.id).label('max_id'))
+              .group_by(RelatorioSitFiscal.company_id).subquery())
+    linhas = (db.session.query(RelatorioSitFiscal, PendenciaRelatorio)
+              .join(ultimo, RelatorioSitFiscal.id == ultimo.c.max_id)
+              .join(PendenciaRelatorio, PendenciaRelatorio.relatorio_id == RelatorioSitFiscal.id)
+              .filter(PendenciaRelatorio.tipo == 'PARCELAMENTO')
+              .all())
+    saida: Dict[int, Dict[str, Any]] = {}
+    for relatorio, pendencia in linhas:
+        texto = ' · '.join(str(x) for x in (pendencia.meses_json or []))
+        item = saida.setdefault(relatorio.company_id, {
+            'texto': '',
+            'tipos': [],
+            'relatorio_data': relatorio.data_hora.isoformat() if relatorio.data_hora else None,
+        })
+        item['texto'] = ' · '.join(x for x in (item['texto'], texto) if x)
+        for tipo in _tipos_sugeridos(texto, relatorio):
+            if tipo not in item['tipos']:
+                item['tipos'].append(tipo)
+    return saida

@@ -6,6 +6,7 @@ Fonte da verdade: dis/routes/parcelamentos.txt (2005 linhas)
 
 URLs do exe (13 rotas GET + POST):
   GET    /tipos
+  GET    /sugestoes            (desvio: parcelamento visto no último relatório)
   POST   /empresa/<int:company_id>/flags
   POST   /buscar-pedidos-empresa/<int:company_id>
   POST   /buscar-pedidos-todas
@@ -40,6 +41,7 @@ from app.services.parcelamentos_serpro_service import (
     PARCELAMENTO_TYPES,
     update_parcelamento_progress,
 )
+from app.services.pendencias_service import sugestoes_parcelamento
 from app.utils.paths import app_data_dir
 
 
@@ -158,6 +160,17 @@ def tipos():
         }
         for chave, cfg in PARCELAMENTO_TYPES.items()
     ])
+
+
+@parcelamentos_bp.get("/sugestoes")
+def sugestoes():
+    """DESVIO (não existe no exe): empresas com parcelamento no último relatório.
+
+    Devolve {company_id: {texto, tipos, relatorio_data}}. A tela pinta o tipo sugerido
+    enquanto o parcelamento constar no relatório; some quando deixa de constar.
+    Lê só o banco — custo zero na SERPRO.
+    """
+    return jsonify({str(k): v for k, v in sugestoes_parcelamento().items()})
 
 
 @parcelamentos_bp.post("/empresa/<int:company_id>/flags")

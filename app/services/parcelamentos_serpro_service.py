@@ -45,6 +45,7 @@ def update_parcelamento_progress(
     progress: int | None = None,
     message: str | None = None,
     finished: bool = False,
+    restart: bool = False,
 ) -> None:
     """Atualiza status de processamento em tempo real."""
     company = db.session.get(Company, company_id)
@@ -60,7 +61,7 @@ def update_parcelamento_progress(
     if message is not None:
         company.processing_message = message
 
-    if status == "processing" and not company.processing_started_at:
+    if status == "processing" and (restart or not company.processing_started_at):
         company.processing_started_at = datetime.now()
 
     if finished:
@@ -466,12 +467,53 @@ class ParcelamentosSerproService:
             tipos = self._selected_types_for_company(company)
 
         result = {"pedidos": {}}
-        for tipo in tipos:
-            response = self.buscar_pedidos_tipo(company, tipo)
-            if response and "pedidos" in response:
-                result["pedidos"][tipo] = response["pedidos"]
-
+        resumo = self._percorrer_tipos(
+            company_id, tipos, "Busca de pedidos", "pedidos",
+            lambda tipo: self.buscar_pedidos_tipo(company, tipo), result)
+        result["resumo"] = resumo
         return result
+
+    def _percorrer_tipos(self, company_id, tipos, etapa, chave, consultar, result):
+        """DESVIO (não existe no exe): roda `consultar` por tipo publicando o andamento.
+
+        O exe não atualizava `processing_*` na busca de pedidos/parcelas, e erro da
+        SERPRO morria calado: o Acompanhamento mostrava o último relatório e a tela
+        ficava sem saber o que houve. Agora cada tipo vira uma linha no resumo.
+        """
+        if not tipos:
+            msg = ("Nenhum tipo de parcelamento marcado. "
+                   "Marque em Configurar Busca Parcelamentos.")
+            update_parcelamento_progress(company_id, status="done", step=etapa,
+                                         progress=100, message=msg, finished=True)
+            return [msg]
+
+        update_parcelamento_progress(company_id, status="processing", step=etapa,
+                                     progress=0, message=f"{etapa} iniciada.")
+        resumo = []
+        try:
+            for i, tipo in enumerate(tipos):
+                label = PARCELAMENTO_TYPES.get(tipo, {}).get("label", tipo)
+                update_parcelamento_progress(
+                    company_id, step=f"{etapa}: {label}",
+                    progress=int(i * 100 / len(tipos)),
+                    message=f"Consultando {label} ({i + 1}/{len(tipos)})...")
+                response = consultar(tipo)
+                if response and chave in response:
+                    result[chave][tipo] = response[chave]
+                    qtd = len(response[chave] or [])
+                    resumo.append(f"{label}: {response.get('message') or f'{qtd} encontrado(s)'}")
+                else:
+                    erro = (response or {}).get("erro") or "sem resposta da SERPRO"
+                    resumo.append(f"{label}: erro — {erro}")
+        except Exception as e:  # noqa: BLE001 — a thread não tem quem ouça a exceção
+            db.session.rollback()
+            logger.exception(f"Erro em {etapa}: {e}")
+            resumo.append(f"erro — {e}")
+        finally:
+            update_parcelamento_progress(company_id, status="done", step=etapa,
+                                         progress=100, message=" | ".join(resumo),
+                                         finished=True)
+        return resumo
 
     def buscar_pedidos_todas(self) -> Dict[str, Any]:
         """Busca pedidos de todas as empresas com tipos habilitados."""
@@ -583,11 +625,9 @@ class ParcelamentosSerproService:
             tipos = self._selected_types_for_company(company)
 
         result = {"parcelas": {}}
-        for tipo in tipos:
-            response = self.buscar_parcelas_tipo(company, tipo, emitir_pdfs)
-            if response and "parcelas" in response:
-                result["parcelas"][tipo] = response["parcelas"]
-
+        result["resumo"] = self._percorrer_tipos(
+            company_id, tipos, "Baixa de parcelas", "parcelas",
+            lambda tipo: self.buscar_parcelas_tipo(company, tipo, emitir_pdfs), result)
         return result
 
     def buscar_parcelas_todas_com_pedido_ativo(

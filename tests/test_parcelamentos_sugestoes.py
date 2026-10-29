@@ -156,3 +156,65 @@ def test_pedidos_filtra_empresa_e_tipo(app):
     cli = app.test_client()
     assert [p['numero'] for p in cli.get(f'/api/parcelamentos/pedidos?company_id={b.id}', headers=auth).get_json()] == ['2']
     assert [p['numero'] for p in cli.get('/api/parcelamentos/pedidos?tipo=PARC_SN', headers=auth).get_json()] == ['1']
+
+
+# --- baixa de parcelas: lê `dados.listaParcelas` e emite pelo caminho do portal ---------
+
+def test_baixa_parcelas_le_lista_e_emite_pdf(app, monkeypatch):
+    from app.integracao_models import DasEmissao, ParcelasConsulta
+    from app.models import ParcelamentoParcela, ParcelamentoPedido
+    from app.services import das_emissao_service
+    from app.services.parcelamentos_serpro_service import ParcelamentosSerproService
+    import app.services.serpro_das_service as sds
+    for modelo in (DasEmissao, ParcelasConsulta):
+        modelo.query.delete()
+    c = Company(razao_social='SANDRA', cnpj='11222333000181', ativo=True,
+                consultar_parc_sn=True, consultar_parc_mei=True)
+    db.session.add(c)
+    db.session.flush()
+    db.session.add(ParcelamentoPedido(company_id=c.id, tipo='PARC_SN', numero='3', ativo=True))
+    db.session.commit()
+
+    consultas, emissoes = [], []
+
+    def consultar_falso(cnpj, sistema, servico):
+        consultas.append(servico)
+        return {'dados': '{"listaParcelas": [{"parcela": 202609, "valor": 211.72},'
+                         ' {"parcela": 202610, "valor": 210.5}]}', 'mensagens': []}
+
+    def emitir_falso(tipo, cnpj, pa, categoria, consolidacao):
+        emissoes.append(pa)
+        if pa == '202610':
+            raise das_emissao_service.EmissaoBloqueada('Teto de gasto: limite atingido.', 409)
+        return b'%PDF-1.4\n% parcela\n', {'numeroDocumento': f'07202625810{pa}',
+                                          'dataVencimento': '20261130',
+                                          'valores': {'total': 211.72}}
+
+    monkeypatch.setattr(sds, 'consultar_parcelas_para_gerar', consultar_falso)
+    monkeypatch.setattr(das_emissao_service, '_chamar_serpro', emitir_falso)
+
+    r = ParcelamentosSerproService().buscar_parcelas_empresa(c.id, emitir_pdfs=True)
+
+    # PARC_MEI marcado mas sem pedido "Em parcelamento": não consulta (chamada paga)
+    assert consultas == ['PARCELASPARAGERAR162']
+    assert emissoes == ['202609', '202610']
+    p1, p2 = ParcelamentoParcela.query.filter_by(company_id=c.id).order_by(ParcelamentoParcela.parcela).all()
+    assert (p1.parcela, float(p1.valor_total), str(p1.data_vencimento)) == ('202609', 211.72, '2026-11-30')
+    assert p1.pdf_local_path and p1.pdf_local_path.endswith('.pdf')
+    assert p2.pdf_local_path is None and 'Teto de gasto' in p2.source_json['aviso']
+    msg = db.session.get(Company, c.id).processing_message
+    assert 'Parcelamento Simples Nacional: 2 parcela(s)' in msg and '202610: Teto de gasto' in msg
+    assert 'Parcelamento MEI: sem pedido' in msg
+    assert r['parcelas']['PARC_SN']
+
+    # rodar de novo no mesmo dia: consulta reaproveitada e a guia emitida reaproveitada
+    ParcelamentosSerproService().buscar_parcelas_empresa(c.id, emitir_pdfs=True)
+    assert consultas == ['PARCELASPARAGERAR162']
+    assert emissoes == ['202609', '202610', '202610']
+    assert ParcelamentoParcela.query.filter_by(company_id=c.id).count() == 2
+
+    auth = {'Authorization': 'Basic dGVzdGU6dGVzdGU='}
+    lista = app.test_client().get('/api/parcelamentos/parcelas', headers=auth).get_json()
+    avisos = {x['parcela']: (x['has_pdf'], x['download_message']) for x in lista}
+    assert avisos['202609'] == (True, None)
+    assert avisos['202610'][0] is False and 'Teto de gasto' in avisos['202610'][1]

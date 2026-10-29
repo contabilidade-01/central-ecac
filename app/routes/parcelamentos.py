@@ -392,7 +392,7 @@ def listar_parcelas():
             "data_vencimento": p.data_vencimento.isoformat() if p.data_vencimento else None,
             "valor_total": float(p.valor_total or 0),
             "has_pdf": bool(p.pdf_local_path),
-            "download_message": None,
+            "download_message": (p.source_json or {}).get("aviso") if isinstance(p.source_json, dict) else None,
             "download_status": None,
             "created_at": p.created_at.isoformat() if p.created_at else None,
             "updated_at": p.updated_at.isoformat() if p.updated_at else None,

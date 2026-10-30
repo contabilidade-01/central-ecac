@@ -70,6 +70,28 @@ def update_parcelamento_progress(
     db.session.commit()
 
 
+def registrar_resultado(company_id: int, tipo: str, etapa: str, ok: bool, mensagem: str) -> None:
+    """DESVIO 26: guarda o último resultado de pedidos/parcelas por tipo na empresa.
+
+    A tela mostra isso na "Situação por empresa" — o andamento (processing_*) é um só
+    por empresa e é sobrescrito pelo relatório; aqui fica o que houve em cada tipo.
+    """
+    company = db.session.get(Company, company_id)
+    if not company:
+        return
+    try:
+        dados = json.loads(company.parcelamento_resultado_json or "{}")
+    except ValueError:
+        dados = {}
+    dados.setdefault(tipo, {})[etapa] = {
+        "ok": bool(ok),
+        "mensagem": str(mensagem or "")[:600],
+        "em": datetime.now().isoformat(timespec="seconds"),
+    }
+    company.parcelamento_resultado_json = json.dumps(dados, ensure_ascii=False)
+    db.session.commit()
+
+
 # Lock para serializar emissão de PDF
 PDF_EMISSION_LOCK = threading.Lock()
 
@@ -501,10 +523,13 @@ class ParcelamentosSerproService:
                 if response and chave in response:
                     result[chave][tipo] = response[chave]
                     qtd = len(response[chave] or [])
-                    resumo.append(f"{label}: {response.get('message') or f'{qtd} encontrado(s)'}")
+                    texto = response.get('message') or f'{qtd} encontrado(s)'
+                    resumo.append(f"{label}: {texto}")
+                    registrar_resultado(company_id, tipo, chave, True, texto)
                 else:
                     erro = (response or {}).get("erro") or "sem resposta da SERPRO"
                     resumo.append(f"{label}: erro — {erro}")
+                    registrar_resultado(company_id, tipo, chave, False, erro)
         except Exception as e:  # noqa: BLE001 — a thread não tem quem ouça a exceção
             db.session.rollback()
             logger.exception(f"Erro em {etapa}: {e}")

@@ -184,6 +184,116 @@ def sugestoes():
     return jsonify({str(k): v for k, v in sugestoes_parcelamento().items()})
 
 
+def _situacao(marcado, pedido, consulta, parcelas, res):
+    """Uma frase e um tom para a linha: o que falta ou o que deu errado."""
+    parcelas_res = res.get("parcelas") or {}
+    pedidos_res = res.get("pedidos") or {}
+    if pedidos_res and not pedidos_res.get("ok") and not pedido:
+        return "erro", f"Erro na busca de pedidos: {pedidos_res.get('mensagem')}"
+    if not pedido:
+        if pedidos_res:
+            return "neutro", "Nenhum pedido deste tipo na SERPRO."
+        return "pendente", "Pedidos ainda não buscados (passo 1)."
+    if not pedido.ativo:
+        return "neutro", f"Pedido nº {pedido.numero} não está em parcelamento ({pedido.situacao or '-'})."
+    if parcelas_res and not parcelas_res.get("ok"):
+        return "erro", f"Erro ao baixar parcelas: {parcelas_res.get('mensagem')}"
+    if not consulta and not parcelas:
+        return "pendente", "Parcelas ainda não baixadas (passo 2)."
+    if not parcelas:
+        msg = (consulta or {}).get("mensagem")
+        return "aviso", "A SERPRO não devolveu parcela para emitir" + (f": {msg}" if msg else ".")
+    sem_pdf = [p for p in parcelas if not p["has_pdf"]]
+    if sem_pdf:
+        motivos = "; ".join(f"{p['parcela']}: {p['aviso'] or 'PDF não emitido'}" for p in sem_pdf)
+        return "aviso", f"{len(parcelas) - len(sem_pdf)} de {len(parcelas)} PDF(s). Sem PDF — {motivos}"
+    return "ok", f"{len(parcelas)} parcela(s) com PDF."
+
+
+@parcelamentos_bp.get("/resumo")
+def resumo():
+    """DESVIO 26: situação por empresa e tipo — pedido, consulta, parcelas e PDF.
+
+    Junta numa linha o que antes ficava espalhado (pedidos, parcelas, andamento) e diz
+    o motivo quando algo não saiu, com a mensagem da SERPRO. Só lê o banco.
+    """
+    import json as _json
+    from app.integracao_models import ParcelasConsulta
+    from app.services import parcelas_service
+
+    company_id = request.args.get("company_id", type=int)
+    pedidos = db.session.query(ParcelamentoPedido)
+    parcelas = db.session.query(ParcelamentoParcela)
+    empresas = db.session.query(Company).filter(Company.ativo == True)  # noqa: E712
+    if company_id:
+        pedidos = pedidos.filter(ParcelamentoPedido.company_id == company_id)
+        parcelas = parcelas.filter(ParcelamentoParcela.company_id == company_id)
+        empresas = empresas.filter(Company.id == company_id)
+
+    por_chave = {}
+    for p in pedidos.all():
+        atual = por_chave.setdefault((p.company_id, p.tipo), {}).get("pedido")
+        # mais de um pedido no mesmo tipo: o ativo (ou o mais recente) representa
+        if atual is None or (p.ativo and not atual.ativo) or (
+                p.ativo == atual.ativo and (p.data_pedido or datetime.min.date())
+                > (atual.data_pedido or datetime.min.date())):
+            por_chave[(p.company_id, p.tipo)]["pedido"] = p
+    for p in parcelas.order_by(ParcelamentoParcela.parcela.desc()).all():
+        aviso = p.source_json.get("aviso") if isinstance(p.source_json, dict) else None
+        por_chave.setdefault((p.company_id, p.tipo), {}).setdefault("parcelas", []).append({
+            "id": p.id,
+            "parcela": p.parcela,
+            "descricao": p.descricao,
+            "data_vencimento": p.data_vencimento.isoformat() if p.data_vencimento else None,
+            "valor_total": float(p.valor_total or 0),
+            "has_pdf": bool(p.pdf_local_path),
+            "aviso": aviso,
+        })
+
+    linhas = []
+    for c in empresas.order_by(Company.razao_social).all():
+        marcados = set(service._selected_types_for_company(c))
+        tipos = marcados | {t for (cid, t) in por_chave if cid == c.id}
+        if not tipos:
+            continue
+        try:
+            res_empresa = _json.loads(c.parcelamento_resultado_json or "{}")
+        except ValueError:
+            res_empresa = {}
+        for tipo in [t for t in PARCELAMENTO_TYPES if t in tipos]:
+            item = por_chave.get((c.id, tipo), {})
+            pedido = item.get("pedido")
+            ultima = parcelas_service.ultima(c.cnpj, tipo) if c.cnpj else None
+            consulta = parcelas_service.serializar(ultima) if ultima else None
+            lista = item.get("parcelas", [])
+            res = res_empresa.get(tipo) or {}
+            tom, texto = _situacao(tipo in marcados, pedido, consulta, lista, res)
+            linhas.append({
+                "company_id": c.id,
+                "company_name": c.razao_social,
+                "tipo": tipo,
+                "label": PARCELAMENTO_TYPES[tipo]["label"],
+                "marcado": tipo in marcados,
+                "pedido": None if not pedido else {
+                    "numero": pedido.numero,
+                    "situacao": pedido.situacao,
+                    "ativo": bool(pedido.ativo),
+                    "data_situacao": (pedido.data_situacao.isoformat()
+                                      if pedido.data_situacao else None),
+                },
+                "consulta": None if not consulta else {
+                    "consultado_em": consulta.get("consultado_em"),
+                    "qtd": len(consulta.get("parcelas") or []),
+                    "mensagem": consulta.get("mensagem"),
+                },
+                "parcelas": lista,
+                "resultado": res,
+                "tom": tom,
+                "situacao": texto,
+            })
+    return jsonify(linhas)
+
+
 @parcelamentos_bp.post("/empresa/<int:company_id>/flags")
 def salvar_flags_empresa(company_id: int):
     """Salva flags de tipos de parcelamento para empresa."""

@@ -55,6 +55,8 @@ class Company(db.Model):
     consultar_pert_mei = db.Column(db.Boolean, default=False, nullable=False)
     consultar_relp_sn = db.Column(db.Boolean, default=False, nullable=False)
     consultar_relp_mei = db.Column(db.Boolean, default=False, nullable=False)
+    # DESVIO 26: último resultado por tipo de parcelamento ({tipo: {pedidos|parcelas: {...}}})
+    parcelamento_resultado_json = db.Column(db.Text, nullable=True)
 
     relatorios = db.relationship('RelatorioSitFiscal', back_populates='company',
                                  cascade='all, delete-orphan')

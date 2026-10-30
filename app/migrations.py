@@ -110,6 +110,11 @@ def run_migrations():
         'consultar_relp_mei',
         'ALTER TABLE companies ADD COLUMN consultar_relp_mei BOOLEAN DEFAULT 0'
     )
+    add_column_if_not_exists(
+        'companies',
+        'parcelamento_resultado_json',
+        'ALTER TABLE companies ADD COLUMN parcelamento_resultado_json TEXT'
+    )
 
     add_column_if_not_exists(
         'settings',

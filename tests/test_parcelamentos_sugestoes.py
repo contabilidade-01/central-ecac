@@ -218,3 +218,24 @@ def test_baixa_parcelas_le_lista_e_emite_pdf(app, monkeypatch):
     avisos = {x['parcela']: (x['has_pdf'], x['download_message']) for x in lista}
     assert avisos['202609'] == (True, None)
     assert avisos['202610'][0] is False and 'Teto de gasto' in avisos['202610'][1]
+    # situação por empresa/tipo junta pedido, parcelas, PDF e motivo
+    linhas = app.test_client().get(f'/api/parcelamentos/resumo?company_id={c.id}', headers=auth).get_json()
+    sn = next(x for x in linhas if x['tipo'] == 'PARC_SN')
+    mei = next(x for x in linhas if x['tipo'] == 'PARC_MEI')
+    assert sn['pedido']['numero'] == '3' and sn['consulta']['qtd'] == 2
+    assert sn['tom'] == 'aviso' and '1 de 2 PDF(s)' in sn['situacao'] and 'Teto de gasto' in sn['situacao']
+    assert sn['resultado']['parcelas']['ok'] is True
+    assert mei['pedido'] is None and mei['tom'] == 'pendente'
+
+
+def test_resumo_mostra_erro_da_busca_de_pedidos(app, monkeypatch):
+    from app.services.parcelamentos_serpro_service import ParcelamentosSerproService
+    c = Company(razao_social='ELIUDE', cnpj='11222333000181', ativo=True, consultar_parc_mei=True)
+    db.session.add(c)
+    db.session.commit()
+    monkeypatch.setattr(ParcelamentosSerproService, 'buscar_pedidos_tipo',
+                        lambda self, company, tipo: {'erro': 'Acesso negado: procuração'})
+    ParcelamentosSerproService().buscar_pedidos_empresa(c.id)
+    auth = {'Authorization': 'Basic dGVzdGU6dGVzdGU='}
+    [linha] = app.test_client().get('/api/parcelamentos/resumo', headers=auth).get_json()
+    assert linha['tom'] == 'erro' and 'Acesso negado: procuração' in linha['situacao']

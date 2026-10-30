@@ -27,8 +27,9 @@ agendamento_bp = Blueprint('agendamento', __name__)
 def listar_agendamento():
     dados = resumo()
     dados['limite_gasto'] = LimiteGastoService.resumo()
-    from app.scheduler import habilitado
+    from app.scheduler import estado, habilitado
     dados['scheduler_ligado'] = habilitado()
+    dados['scheduler'] = estado()
     return jsonify(dados)
 
 
@@ -120,6 +121,30 @@ PAGINA = """
 <script>
 let DADOS = null;
 
+// Se o agendador está ligado, mostra que está vivo — ou avisa que parou / deu erro.
+// Durante um lote longo o ciclo fica preso na execução — isso não é "parado".
+function avisoAgendador(s, rodando) {
+  if (!s) return '';
+  const partes = [];
+  const ultimo = s.ultimo_ciclo ? new Date(s.ultimo_ciclo) : null;
+  const atrasado = ultimo && (Date.now() - ultimo) > 3 * s.intervalo_s * 1000;
+  const parado = !s.vivo || (atrasado && !rodando);
+  if (parado) {
+    partes.push(`<div class="aviso"><b>O agendador parou de verificar</b>
+      (última verificação: ${dataBR(s.ultimo_ciclo)}). Reinicie o serviço.</div>`);
+  }
+  if (s.ultimo_erro) {
+    partes.push(`<div class="aviso"><b>Último erro do agendador</b> (${texto(s.ultimo_erro.onde)},
+      ${dataBR(s.ultimo_erro.em)}): <code>${texto(s.ultimo_erro.erro)}</code></div>`);
+  }
+  if (!parado) {
+    partes.push(`<p class="rodape">Agendador ligado · última verificação:
+      ${s.ultimo_ciclo ? dataBR(s.ultimo_ciclo) : 'aguardando a primeira'}
+      · verifica a cada ${Math.round(s.intervalo_s / 60)} min</p>`);
+  }
+  return partes.join('');
+}
+
 function texto(v) { return (v === null || v === undefined || v === '') ? '—' : String(v); }
 function dataBR(iso) {
   if (!iso) return '—';
@@ -130,10 +155,11 @@ function dataBR(iso) {
 async function carregar() {
   DADOS = await (await fetch('/api/agendamento')).json();
 
-  document.getElementById('aviso-scheduler').innerHTML = DADOS.scheduler_ligado ? '' :
+  document.getElementById('aviso-scheduler').innerHTML = !DADOS.scheduler_ligado ?
     `<div class="aviso"><b>O agendador está desligado neste ambiente.</b>
      As configurações abaixo ficam salvas, mas nada dispara sozinho até
-     <code>SCHEDULER_ENABLED=1</code> estar definido (é o padrão no servidor).</div>`;
+     <code>SCHEDULER_ENABLED=1</code> estar definido (é o padrão no servidor).</div>`
+    : avisoAgendador(DADOS.scheduler, DADOS.modulos.some(m => m.em_execucao));
 
   const lg = DADOS.limite_gasto;
   document.getElementById('limite').value = lg.limite;
@@ -201,7 +227,12 @@ async function carregar() {
       <div class="rodape">
         Última execução: ${dataBR(m.ultima_execucao)}
         ${m.ultimo_resultado ? ` · resultado: <code>${texto(JSON.stringify(m.ultimo_resultado))}</code>` : ''}
-        <br>Próxima: ${m.ativo ? dataBR(m.proxima_execucao) : 'desativado'}
+        <br>Próxima: ${!m.ativo ? 'desativado'
+          : m.em_execucao ? 'em execução agora'
+          : m.atrasada ? `<b>atrasada</b> — devia ter rodado em ${dataBR(m.atrasada_desde)}; roda na próxima verificação`
+          : dataBR(m.proxima_execucao)}
+        ${m.ultimo_bloqueio ? `<br><b>⚠ Rodada não iniciada</b> desde ${dataBR(m.ultimo_bloqueio.desde)}:
+          ${texto(m.ultimo_bloqueio.motivo)}` : ''}
       </div>
     </div>`).join('');
 

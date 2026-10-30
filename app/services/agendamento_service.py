@@ -200,23 +200,86 @@ def proxima_execucao(config: Dict[str, Any], referencia: Optional[datetime] = No
     return candidato if candidato > agora else agora
 
 
+def ocorrencia_anterior(config: Dict[str, Any],
+                        referencia: Optional[datetime] = None) -> Optional[datetime]:
+    """O horário agendado mais recente que já passou (<= `referencia`).
+
+    É o espelho de `proxima_execucao`: a rodada que "deveria ter acontecido" por último.
+    Para a quinzenal (que conta a partir da última execução) devolve None.
+    """
+    agora = referencia or _agora()
+    hora = config.get('hora', '03:00')
+    frequencia = config.get('frequencia')
+
+    if frequencia == FREQ_MENSAL:
+        dia_mes = int(config.get('dia_mes', 25))
+        ajustar = bool(config.get('ajustar_dia_util'))
+
+        def _dia(ano: int, mes: int) -> datetime:
+            base = date(ano, mes, dia_mes)
+            return _horario_do_dia(proximo_dia_util(base) if ajustar else base, hora)
+
+        candidato = _dia(agora.year, agora.month)
+        if candidato > agora:
+            ano = agora.year - (1 if agora.month == 1 else 0)
+            mes = 12 if agora.month == 1 else agora.month - 1
+            candidato = _dia(ano, mes)
+        return candidato
+
+    if frequencia == FREQ_SEMANAL:
+        alvo = int(config.get('dia_semana', 0))
+        dias = (agora.weekday() - alvo) % 7
+        candidato = _horario_do_dia(agora.date() - timedelta(days=dias), hora)
+        if candidato > agora:
+            candidato -= timedelta(days=7)
+        return candidato
+
+    return None
+
+
+def _data(valor: Any) -> Optional[datetime]:
+    if not valor:
+        return None
+    try:
+        return datetime.fromisoformat(str(valor))
+    except ValueError:
+        return None
+
+
 def esta_vencida(config: Dict[str, Any], referencia: Optional[datetime] = None) -> bool:
-    """True quando a rotina deveria ter rodado e ainda não rodou."""
+    """True quando a rotina deveria ter rodado e ainda não rodou.
+
+    Correção de 30/10/2026: a regra antiga, para rotina que **nunca rodou**, perguntava
+    se `proxima_execucao(agora) <= agora` — o que nunca é verdade na mensal e na semanal
+    (a próxima é sempre futura). Resultado: a situação fiscal, ligada mas sem nenhuma
+    execução registrada, não disparou no dia 25/10 (adiado para 26/10) e a tela já
+    mostrava 25/11 como próxima. Agora a pergunta é uma só: **houve um horário agendado
+    depois da última execução (ou de quando a rotina foi ligada) que já passou?** Se o
+    processo estava fora do ar nesse horário, a rodada perdida roda uma vez na volta.
+    """
     if not config.get('ativo'):
         return False
 
     agora = referencia or _agora()
     ultima = config.get('ultima_execucao')
-    if not ultima:
-        # nunca rodou: só dispara quando o horário do dia já passou
-        return proxima_execucao(config, agora) <= agora
 
-    try:
-        quando = datetime.fromisoformat(ultima)
-    except ValueError:
+    if ultima and _data(ultima) is None:
+        return True  # data corrompida: melhor rodar do que ficar parado para sempre
+
+    if config.get('frequencia') not in (FREQ_MENSAL, FREQ_SEMANAL):
+        # quinzenal: 15 dias após a última execução; se nunca rodou, hoje no horário
+        return proxima_execucao(config, _data(ultima) or agora) <= agora
+
+    # marco a partir do qual uma rodada conta como "devida": a última execução ou o
+    # momento em que o usuário ligou o automático, o que for mais recente.
+    marcos = [d for d in (_data(ultima), _data(config.get('ativo_desde'))) if d]
+    anterior = ocorrencia_anterior(config, agora)
+    if anterior is None:
+        return False
+    if not marcos:
+        # ligada desde sempre (padrão) e nunca rodou: a rodada mais recente está devida
         return True
-
-    return proxima_execucao(config, quando) <= agora
+    return anterior > max(marcos)
 
 
 # --------------------------------------------------------------------- estado
@@ -227,6 +290,26 @@ def registrar_execucao(modulo: str, resultado: Dict[str, Any]) -> None:
         config = dados['modulos'].setdefault(modulo, dict(MODULOS[modulo]['padrao']))
         config['ultima_execucao'] = _agora().isoformat()
         config['ultimo_resultado'] = resultado
+        config.pop('ultimo_bloqueio', None)
+        salvar(dados)
+
+
+def registrar_bloqueio(modulo: str, motivo: str) -> None:
+    """Guarda por que uma rodada devida NÃO começou, para a tela mostrar.
+
+    Não mexe em `ultima_execucao`: a rodada continua devida e o agendador tenta de novo
+    no próximo ciclo (ex.: quando o teto for aumentado ou o mês virar).
+    """
+    with _LOCK:
+        dados = carregar()
+        config = dados['modulos'].setdefault(modulo, dict(MODULOS[modulo]['padrao']))
+        anterior = config.get('ultimo_bloqueio') or {}
+        config['ultimo_bloqueio'] = {
+            'desde': anterior.get('desde') if anterior.get('motivo') == motivo
+                     else _agora().isoformat(),
+            'em': _agora().isoformat(),
+            'motivo': motivo,
+        }
         salvar(dados)
 
 
@@ -238,11 +321,15 @@ def atualizar_modulo(modulo: str, novos: Dict[str, Any]) -> Dict[str, Any]:
     with _LOCK:
         dados = carregar()
         config = dados['modulos'][modulo]
+        estava_ativo = bool(config.get('ativo'))
         for chave in ('ativo', 'frequencia', 'dia_mes', 'dia_semana', 'hora', 'ajustar_dia_util'):
             if chave in novos:
                 config[chave] = novos[chave]
         config['ativo'] = bool(config.get('ativo'))
         config['ajustar_dia_util'] = bool(config.get('ajustar_dia_util'))
+        if config['ativo'] and not estava_ativo:
+            # ligou agora: horários que já passaram não contam como rodada perdida
+            config['ativo_desde'] = _agora().isoformat()
 
         erro = validar(config)
         if erro:
@@ -257,6 +344,8 @@ def resumo() -> Dict[str, Any]:
     modulos = []
     for nome, meta in MODULOS.items():
         config = dados['modulos'][nome]
+        atrasada = esta_vencida(config) and not _EM_EXECUCAO.get(nome)
+        anterior = ocorrencia_anterior(config) if atrasada else None
         modulos.append({
             'modulo': nome,
             'titulo': meta['titulo'],
@@ -272,6 +361,10 @@ def resumo() -> Dict[str, Any]:
             'ultimo_resultado': config.get('ultimo_resultado'),
             'proxima_execucao': (proxima_execucao(config).isoformat()
                                  if config.get('ativo') else None),
+            # rodada que já devia ter acontecido e ainda não aconteceu
+            'atrasada': atrasada,
+            'atrasada_desde': anterior.isoformat() if anterior else None,
+            'ultimo_bloqueio': config.get('ultimo_bloqueio'),
             'em_execucao': bool(_EM_EXECUCAO.get(nome)),
             'checkpoint': dados.get('checkpoints', {}).get(nome),
         })
@@ -343,6 +436,7 @@ def executar_modulo(modulo: str) -> Dict[str, Any]:
     pode, motivo = LimiteGastoService.pode_gastar()
     if not pode and modulo != 'caixa_postal':
         logger.warning('[AGENDA] %s não iniciado: %s', modulo, motivo)
+        registrar_bloqueio(modulo, motivo)
         pendentes = checkpoint(modulo).get('pendentes') or []
         return {
             'success': False,

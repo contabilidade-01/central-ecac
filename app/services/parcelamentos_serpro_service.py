@@ -70,6 +70,28 @@ def update_parcelamento_progress(
     db.session.commit()
 
 
+def registrar_resultado(company_id: int, tipo: str, etapa: str, ok: bool, mensagem: str) -> None:
+    """DESVIO 26: guarda o último resultado de pedidos/parcelas por tipo na empresa.
+
+    A tela mostra isso na "Situação por empresa" — o andamento (processing_*) é um só
+    por empresa e é sobrescrito pelo relatório; aqui fica o que houve em cada tipo.
+    """
+    company = db.session.get(Company, company_id)
+    if not company:
+        return
+    try:
+        dados = json.loads(company.parcelamento_resultado_json or "{}")
+    except ValueError:
+        dados = {}
+    dados.setdefault(tipo, {})[etapa] = {
+        "ok": bool(ok),
+        "mensagem": str(mensagem or "")[:600],
+        "em": datetime.now().isoformat(timespec="seconds"),
+    }
+    company.parcelamento_resultado_json = json.dumps(dados, ensure_ascii=False)
+    db.session.commit()
+
+
 # Lock para serializar emissão de PDF
 PDF_EMISSION_LOCK = threading.Lock()
 
@@ -501,10 +523,13 @@ class ParcelamentosSerproService:
                 if response and chave in response:
                     result[chave][tipo] = response[chave]
                     qtd = len(response[chave] or [])
-                    resumo.append(f"{label}: {response.get('message') or f'{qtd} encontrado(s)'}")
+                    texto = response.get('message') or f'{qtd} encontrado(s)'
+                    resumo.append(f"{label}: {texto}")
+                    registrar_resultado(company_id, tipo, chave, True, texto)
                 else:
                     erro = (response or {}).get("erro") or "sem resposta da SERPRO"
                     resumo.append(f"{label}: erro — {erro}")
+                    registrar_resultado(company_id, tipo, chave, False, erro)
         except Exception as e:  # noqa: BLE001 — a thread não tem quem ouça a exceção
             db.session.rollback()
             logger.exception(f"Erro em {etapa}: {e}")
@@ -545,73 +570,85 @@ class ParcelamentosSerproService:
         emitir_pdfs: bool = False,
         progress_callback: callable | None = None,
     ) -> Dict[str, Any] | None:
-        """Busca parcelas de um tipo específico."""
+        """Busca parcelas de um tipo específico.
+
+        DESVIO (o exe lia errado): a resposta de PARCELASPARAGERAR traz `dados` como
+        STRING JSON com `listaParcelas` ({parcela: AAAAMM, valor}) e o PDF sai de outra
+        chamada (GERARDAS…) com `parcelaParaEmitir`. O exe procurava `parcelamentos` no
+        corpo e mandava `parcelaParaEmitir: true` na consulta, então nunca salvava nada.
+
+        Agora reaproveita o caminho do portal (desvio 19), que já está certo:
+        `parcelas_service.consultar` (consulta do dia sem custo, limite diário) e
+        `das_emissao_service.emitir` (guia do dia reaproveitada, teto, procuração).
+        Só consulta tipo com pedido "Em parcelamento", como a tela promete.
+        """
+        from app.services import das_emissao_service, parcelas_service
+
+        if tipo not in PARCELAMENTO_TYPES:
+            return {"erro": f"Tipo inválido: {tipo}"}
+        if not self.empresa_tem_pedido_ativo(company.id, tipo):
+            return {"parcelas": [], "message": "sem pedido \"Em parcelamento\" (busque os pedidos antes)."}
+
         try:
-            if tipo not in PARCELAMENTO_TYPES:
-                return {"erro": f"Tipo inválido: {tipo}"}
-
-            cfg = PARCELAMENTO_TYPES[tipo]
-            serpro_service = self._create_serpro_service()
-            if not serpro_service:
-                return {"erro": "Erro ao criar SerproService"}
-
-            # POST para obter parcelas
-            endpoint = "Consultar"   # o exe usa o sufixo do gateway, nao o caminho inteiro
-            response = self._post_serpro(
-                serpro_service,
-                endpoint,
-                company.cnpj,
-                cfg["parcelas"],
-                {"parcelaParaEmitir": emitir_pdfs},
-            )
-
-            if not response:
-                return {"erro": "Erro ao consultar SERPRO"}
-
-            # Parse resposta
-            parcelas_data = response.get("parcelamentos", [])
-            parcelas_salvas = []
-
-            for i, parc in enumerate(parcelas_data):
-                parcela_key = self._parcela_key(parc)
-
-                # Salvar em BD
-                parcela_obj = ParcelamentoParcela(
-                    company_id=company.id,
-                    tipo=tipo,
-                    parcela=parcela_key,
-                    descricao=parc.get("descricao", ""),
-                    data_vencimento=self._parse_yyyymmdd(parc.get("dataVencimento")),
-                    valor_total=self._decimal(parc.get("valorTotal")),
-                    source_json=parc,
-                )
-
-                # Salvar PDF se presente
-                if emitir_pdfs and "pdf" in parc and parc["pdf"]:
-                    with PDF_EMISSION_LOCK:
-                        pdf_path = self._save_pdf_local(
-                            company, tipo, parcela_key, parc["pdf"]
-                        )
-                        parcela_obj.pdf_local_path = pdf_path
-
-                db.session.merge(parcela_obj)
-                parcelas_salvas.append(parcela_obj)
-
-                # Callback progress
-                if progress_callback:
-                    progress_callback(
-                        len(parcelas_salvas),
-                        len(parcelas_data),
-                        parcela_key,
-                        f"Processando parcela {i+1}/{len(parcelas_data)}",
-                    )
-
-            db.session.commit()
-            return {"tipo": tipo, "parcelas": parcelas_salvas}
-
-        except Exception as e:
+            consulta = parcelas_service.consultar(company.cnpj, tipo,
+                                                  solicitado_por="tela Parcelamentos")
+        except parcelas_service.ConsultaBloqueada as e:
+            return {"erro": str(e)}
+        except Exception as e:  # noqa: BLE001 — erro da SERPRO vira mensagem na tela
+            db.session.rollback()
             logger.exception(f"Erro em buscar_parcelas_tipo: {e}")
             return {"erro": str(e)}
+
+        itens = consulta.get("parcelas") or []
+        salvas, avisos = [], []
+        for i, item in enumerate(itens):
+            pa = item["parcela"]
+            # Emite ANTES de mexer no registro: um rollback por erro na emissão não
+            # pode levar junto o que já foi preenchido.
+            emissao, aviso = None, None
+            if emitir_pdfs:
+                try:
+                    emissao, _reuso = das_emissao_service.emitir(
+                        company.cnpj, tipo, pa, origem="parcelamentos",
+                        solicitado_por="tela Parcelamentos")
+                except das_emissao_service.EmissaoBloqueada as e:
+                    aviso = str(e)
+                except Exception as e:  # noqa: BLE001
+                    db.session.rollback()
+                    logger.exception(f"Erro ao emitir parcela {tipo} {pa}: {e}")
+                    aviso = str(e)
+                if aviso:
+                    avisos.append(f"{pa}: {aviso}")
+
+            parcela_obj = (db.session.query(ParcelamentoParcela)
+                           .filter_by(company_id=company.id, tipo=tipo, parcela=pa).first())
+            if not parcela_obj:
+                parcela_obj = ParcelamentoParcela(company_id=company.id, tipo=tipo, parcela=pa)
+                db.session.add(parcela_obj)
+            parcela_obj.descricao = f"Parcela {pa[4:]}/{pa[:4]}"
+            if item.get("valor") is not None:
+                parcela_obj.valor_total = self._decimal(item["valor"])
+            if emissao is not None:
+                parcela_obj.pdf_local_path = emissao.pdf_local_path
+                if emissao.vencimento:
+                    parcela_obj.data_vencimento = self._parse_yyyymmdd(emissao.vencimento)
+                if emissao.valor_total is not None:
+                    parcela_obj.valor_total = self._decimal(emissao.valor_total)
+            fonte = {**item, "aviso": aviso}
+            parcela_obj.source_json = fonte
+            db.session.commit()
+            salvas.append(parcela_obj)
+
+            if progress_callback:
+                progress_callback(len(salvas), len(itens), pa,
+                                  f"Processando parcela {i+1}/{len(itens)}")
+
+        msg = f"{len(salvas)} parcela(s)"
+        if consulta.get("mensagem") and not salvas:
+            msg += f" — {consulta['mensagem']}"
+        if avisos:
+            msg += " — sem PDF: " + "; ".join(avisos)
+        return {"tipo": tipo, "parcelas": salvas, "message": msg + "."}
 
     def buscar_parcelas_empresa(
         self, company_id: int, tipos: List[str] | None = None, emitir_pdfs: bool = False

@@ -28,6 +28,7 @@ import logging
 import os
 import threading
 import time
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,10 @@ INTERVALO_PADRAO_S = 300
 
 _thread: threading.Thread | None = None
 _parar = threading.Event()
+
+#: batimento do agendador, para a tela /agendamento mostrar se ele está vivo.
+#: Em memória basta: é o mesmo processo (1 worker) que serve a tela.
+_estado: dict = {'iniciado_em': None, 'ultimo_ciclo': None, 'ultimo_erro': None}
 
 
 def habilitado() -> bool:
@@ -48,6 +53,25 @@ def _intervalo() -> int:
         return INTERVALO_PADRAO_S
 
 
+def estado() -> dict:
+    """Situação da thread: ligada, viva, quando verificou pela última vez e último erro."""
+    return {
+        'habilitado': habilitado(),
+        'vivo': bool(_thread and _thread.is_alive()),
+        'intervalo_s': _intervalo(),
+        **_estado,
+    }
+
+
+def _erro(contexto: str) -> None:
+    import traceback
+    _estado['ultimo_erro'] = {
+        'em': datetime.now().isoformat(),
+        'onde': contexto,
+        'erro': traceback.format_exc(limit=3).strip().splitlines()[-1],
+    }
+
+
 def _ciclo(app) -> None:
     from app.services.agendamento_service import (
         MODULOS, carregar, esta_vencida, executar_modulo,
@@ -55,6 +79,7 @@ def _ciclo(app) -> None:
 
     intervalo = _intervalo()
     logger.info('[SCHEDULER] ligado — verificando a cada %ss', intervalo)
+    _estado['iniciado_em'] = datetime.now().isoformat()
 
     # respiro no start: evita disparar durante o boot do container
     if _parar.wait(30):
@@ -74,13 +99,19 @@ def _ciclo(app) -> None:
                                     feito['arquivo'], feito['tamanho_kb'])
                 except Exception:
                     logger.exception('[BACKUP] falha no backup automático')
+                    _erro('backup')
 
                 dados = carregar()
                 for modulo in MODULOS:
-                    config = dados['modulos'].get(modulo, {})
-                    if esta_vencida(config):
-                        logger.info('[SCHEDULER] disparando %s', modulo)
-                        executar_modulo(modulo)
+                    # um módulo com problema não pode impedir os outros de rodarem
+                    try:
+                        config = dados['modulos'].get(modulo, {})
+                        if esta_vencida(config):
+                            logger.info('[SCHEDULER] disparando %s', modulo)
+                            executar_modulo(modulo)
+                    except Exception:
+                        logger.exception('[SCHEDULER] erro ao verificar/disparar %s', modulo)
+                        _erro(modulo)
 
                 # DESVIO INTENCIONAL (18o) — fila de reprocessamento por empresa (pedidos
                 # do portal do cliente: "regere daqui a N dias úteis"). Mesmas travas do
@@ -92,8 +123,12 @@ def _ciclo(app) -> None:
                         logger.info('[FILA] reprocessamento: %s', resultado)
                 except Exception:
                     logger.exception('[FILA] erro ao drenar a fila de reprocessamento')
+                    _erro('fila')
         except Exception:
             logger.exception('[SCHEDULER] erro no ciclo de verificação')
+            _erro('ciclo')
+
+        _estado['ultimo_ciclo'] = datetime.now().isoformat()
 
         _parar.wait(intervalo)
 

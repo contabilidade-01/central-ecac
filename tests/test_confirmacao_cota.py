@@ -16,7 +16,6 @@ os.environ.setdefault('AUTH_USER', 'teste')
 os.environ.setdefault('AUTH_PASSWORD', 'teste')
 os.environ['LIMITE_GASTO_MENSAL'] = '0'
 os.environ['SCHEDULER_ENABLED'] = '0'
-os.environ['INTEGRACAO_MAX_CONFIRMACOES_DIA'] = '2'
 
 from app import create_app  # noqa: E402
 from app.extensions import db  # noqa: E402
@@ -26,7 +25,9 @@ CNPJ = '11222333000181'
 
 
 @pytest.fixture()
-def ambiente():
+def ambiente(monkeypatch):
+    # fixa a cota só neste arquivo: no import, vazaria para os outros testes
+    monkeypatch.setenv('INTEGRACAO_MAX_CONFIRMACOES_DIA', '2')
     app = create_app()
     app.config['TESTING'] = True
     with app.app_context():

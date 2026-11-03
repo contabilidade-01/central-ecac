@@ -40,7 +40,7 @@ def limite_diario() -> int:
 
 
 #: Teto de tentativas por empresa por dia, contando as que falharam. A cota paga
-#: (`limite_diario`) só conta o que deu certo, senão dois erros seguidos deixariam
+#: (`limite_diario`) só conta o que deu certo, senão uma sequência de erros deixaria
 #: a empresa sem consulta pelo resto do dia sem ter gasto nada. Este teto existe
 #: só para não ficar batendo na SERPRO sem fim quando ela está fora do ar.
 TENTATIVAS_POR_COTA = 3

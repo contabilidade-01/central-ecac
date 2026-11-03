@@ -21,6 +21,60 @@ import time
 from app.services.api_usage_service import ApiUsageService
 
 
+#: Protocolo do SITFIS e' de vida curta na SERPRO. Guardado por mais tempo que
+#: isto, ele ja' nao vale: reaproveita-lo faz a SERPRO devolver erro em toda
+#: tentativa seguinte. Entao o protocolo velho e' jogado fora e um novo e' pedido
+#: (pedir protocolo nao entra na conta de custo; so' a captura do relatorio entra).
+PROTOCOLO_VALIDADE = timedelta(minutes=30)
+
+
+def protocolo_reutilizavel(protocol, requested_at, now) -> bool:
+    """O protocolo guardado ainda serve para capturar o relatorio?"""
+    if not protocol:
+        return False
+    if not requested_at:
+        return False
+    return (now - requested_at) < PROTOCOLO_VALIDADE
+
+
+def explicar_falha_relatorio(error_msg: str) -> str:
+    """Mensagem que o usuario le' quando a captura do relatorio falha.
+
+    O texto cru da SERPRO ("Request failed with status code: 500") nao diz nada a
+    quem clicou o botao; aqui ele vira uma frase em portugues, sem perder o
+    original, que continua no fim entre parenteses para o suporte.
+    """
+    texto = str(error_msg or '').strip()
+    codigo = ''
+    marcador = 'status code:'
+    if marcador in texto:
+        codigo = texto.split(marcador, 1)[1].strip()
+
+    if codigo.startswith('5'):
+        base = ('A Receita (SERPRO) respondeu com erro e não entregou o relatório. '
+                'É problema do lado dela; tente de novo em alguns minutos.')
+    elif codigo in ('401', '403'):
+        base = ('A Receita recusou o acesso a esta empresa. Confira a procuração '
+                'eletrônica e o certificado do escritório.')
+    elif codigo == '404':
+        base = 'A Receita não encontrou o relatório desta empresa.'
+    else:
+        base = 'Não foi possível obter o relatório de situação fiscal.'
+
+    return f'{base} ({texto})' if texto else base
+
+
+def descartar_protocolo(company_id: int) -> None:
+    """Esquece o protocolo guardado para que a proxima tentativa comece do zero."""
+    company = db.session.get(Company, company_id)
+    if not company:
+        return
+    company.current_protocol = None
+    company.protocol_requested_at = None
+    company.protocol_wait_until = None
+    db.session.commit()
+
+
 def update_company_progress(
     company_id: int,
     *,
@@ -45,6 +99,9 @@ def update_company_progress(
 
     if status == 'processing' and not company.processing_started_at:
         company.processing_started_at = datetime.now()
+    if status in ('success', 'error'):
+        # terminou: solta o relogio, senao a proxima rodada nasce "velha"
+        company.processing_started_at = None
 
     if finished:
         company.last_processed_at = datetime.now()
@@ -184,6 +241,13 @@ class ReportService:
 
             protocol = company.current_protocol
 
+            if protocol and not protocolo_reutilizavel(
+                    protocol, company.protocol_requested_at, now):
+                # protocolo velho de uma tentativa que falhou: a SERPRO recusaria
+                descartar_protocolo(company_id)
+                company = db.session.get(Company, company_id)
+                protocol = None
+
             if not protocol:
                 update_company_progress(
                     company_id,
@@ -276,18 +340,18 @@ class ReportService:
                         company_id,
                     )
 
+                # o protocolo nao serve mais: sem isto, toda tentativa seguinte
+                # reusaria o mesmo e falharia igual, para sempre
+                descartar_protocolo(company_id)
+                texto = explicar_falha_relatorio(error_msg)
                 update_company_progress(
                     company_id,
                     status='error',
                     step='Erro ao obter relatório',
                     progress=0,
-                    message=f'Erro ao obter relatório: {error_msg}',
+                    message=texto,
                 )
-                return ProcessResult(
-                    False,
-                    f'Erro ao obter relatório: {error_msg}',
-                    company_id,
-                )
+                return ProcessResult(False, texto, company_id)
 
             update_company_progress(
                 company_id,
@@ -402,6 +466,9 @@ class ReportService:
 
         except Exception as e:
             db.session.rollback()
+
+            # a tentativa morreu no meio: o protocolo guardado nao vale mais
+            descartar_protocolo(company_id)
 
             update_company_progress(
                 company_id,

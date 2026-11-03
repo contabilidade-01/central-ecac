@@ -39,6 +39,32 @@ def limite_diario() -> int:
         return 2
 
 
+#: Teto de tentativas por empresa por dia, contando as que falharam. A cota paga
+#: (`limite_diario`) só conta o que deu certo, senão dois erros seguidos deixariam
+#: a empresa sem consulta pelo resto do dia sem ter gasto nada. Este teto existe
+#: só para não ficar batendo na SERPRO sem fim quando ela está fora do ar.
+TENTATIVAS_POR_COTA = 3
+
+
+def teto_tentativas_dia() -> int:
+    return limite_diario() * TENTATIVAS_POR_COTA
+
+
+def consumiu_cota(c: 'ConfirmacaoSitfis', agora: datetime) -> bool:
+    """A tentativa conta na cota paga do dia?
+
+    Só conta a que deu certo (relatório na mão, cobrança registrada) e a que ainda
+    pode dar certo. A que falhou não gastou nada na SERPRO: a cobrança só é
+    registrada quando o relatório chega, então ela não pode tomar a vaga.
+    """
+    if c.sucesso is True:
+        return True
+    if c.sucesso is False:
+        return False
+    # sem conclusão gravada: conta enquanto ainda estiver dentro da janela
+    return (agora - c.iniciado_em) < EM_ANDAMENTO_MAX
+
+
 def _digits(v: Any) -> str:
     return ''.join(ch for ch in str(v or '') if ch.isdigit())
 
@@ -119,12 +145,17 @@ def iniciar(cnpj: str, solicitado_por: Optional[str] = None, processar=None,
     if atual and serializar(atual)['status'] == 'em_andamento':
         return {**serializar(atual), 'reuso': True}
 
-    feitas = (ConfirmacaoSitfis.query
+    agora = datetime.utcnow()
+    do_dia = (ConfirmacaoSitfis.query
               .filter(ConfirmacaoSitfis.cnpj == cnpj, ConfirmacaoSitfis.iniciado_em >= _inicio_do_dia_utc())
-              .count())
+              .all())
+    feitas = sum(1 for c in do_dia if consumiu_cota(c, agora))
     if feitas >= limite_diario():
         raise ConfirmacaoBloqueada(f'Limite de {limite_diario()} confirmação(ões) por dia para esta empresa '
                                    'já atingido. A última consulta continua valendo.', 429)
+    if len(do_dia) >= teto_tentativas_dia():
+        raise ConfirmacaoBloqueada(f'Esta empresa já tentou {len(do_dia)} vezes hoje e as consultas não '
+                                   'completaram. Espere a Receita normalizar e tente amanhã.', 429)
 
     bloqueio = _bloqueio_custo(company)
     if bloqueio:

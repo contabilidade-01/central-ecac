@@ -468,10 +468,12 @@ def test_confirmar_pendencias_um_por_vez_e_limite_diario(ambiente, monkeypatch):
     j1 = r1.get_json()
     assert r1.status_code == 200 and j1['status'] == 'concluida' and j1['relatorio_id'] == ids['relatorio']
     assert j1['relatorio_data']
-    r2 = http.post('/api/interno/situacao/confirmar', json={'cnpj': CNPJ_A}, headers=TOKEN)
-    assert r2.status_code == 200
-    r3 = http.post('/api/interno/situacao/confirmar', json={'cnpj': CNPJ_A}, headers=TOKEN)
-    assert r3.status_code == 429 and len(chamadas) == 2
+    # limite padrão: 5 por dia por empresa (pedido do escritório, 03/11/2026)
+    for _ in range(4):
+        r = http.post('/api/interno/situacao/confirmar', json={'cnpj': CNPJ_A}, headers=TOKEN)
+        assert r.status_code == 200
+    r6 = http.post('/api/interno/situacao/confirmar', json={'cnpj': CNPJ_A}, headers=TOKEN)
+    assert r6.status_code == 429 and len(chamadas) == 5
     st = http.get(f'/api/interno/situacao/{CNPJ_A}/confirmacao', headers=TOKEN).get_json()
     assert st['status'] == 'concluida'
 

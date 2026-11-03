@@ -208,7 +208,7 @@ def test_500_persistente_traz_o_texto_da_serpro(monkeypatch):
     import json
     erro = json.dumps({'mensagens': [{'codigo': 'Erro-SITFIS-500',
                                       'texto': 'Falha ao gerar em 03/11/2026'}]})
-    svc, _ = _serpro_com_fila(monkeypatch, [(500, erro)] * 3)
+    svc, _ = _serpro_com_fila(monkeypatch, [(500, erro)] * 6)
     r = svc.get_report('11222333000181', 'P1')
     assert r['success'] is False
     assert 'status code: 500' in r['error']

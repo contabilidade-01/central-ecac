@@ -1,4 +1,5 @@
 import base64
+import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -21,12 +22,27 @@ from app.services.serpro_service import SerproService
 import time
 from app.services.api_usage_service import ApiUsageService
 
+logger = logging.getLogger(__name__)
+
 
 #: Protocolo do SITFIS e' de vida curta na SERPRO. Guardado por mais tempo que
 #: isto, ele ja' nao vale: reaproveita-lo faz a SERPRO devolver erro em toda
 #: tentativa seguinte. Entao o protocolo velho e' jogado fora e um novo e' pedido
 #: (pedir protocolo nao entra na conta de custo; so' a captura do relatorio entra).
 PROTOCOLO_VALIDADE = timedelta(minutes=30)
+
+
+#: Quantas vezes, numa mesma tentativa, pedir protocolo novo quando a SERPRO responde
+#: "[Erro-Sitfis-ER05] ... Inicie uma nova solicitação /apoiar" (o protocolo morreu do
+#: lado dela; repetir a captura com ele não adianta).
+RODADAS_PROTOCOLO = 3
+
+
+def pede_novo_protocolo(error_msg) -> bool:
+    """A SERPRO mandou recomeçar pelo /Apoiar (pedir protocolo de novo)?"""
+    texto = str(error_msg or '').lower()
+    return 'sitfis-er05' in texto or 'nova solicitação /apoiar' in texto \
+        or 'nova solicitacao /apoiar' in texto
 
 
 def protocolo_reutilizavel(protocol, requested_at, now) -> bool:
@@ -238,87 +254,105 @@ class ReportService:
                 consumer_secret=setting.serpro_consumer_secret,
             )
 
-            protocol = company.current_protocol
+            for rodada in range(RODADAS_PROTOCOLO):
+                if rodada:
+                    # a SERPRO mandou recomeçar pelo /Apoiar: protocolo novo
+                    descartar_protocolo(company_id)
+                    company = db.session.get(Company, company_id)
+                    now = datetime.now()
+                    update_company_progress(
+                        company_id, status='processing',
+                        step='Pedindo novo protocolo à Receita', progress=40,
+                        message=f'A Receita pediu um protocolo novo (tentativa {rodada + 1} de '
+                                f'{RODADAS_PROTOCOLO}).')
 
-            if protocol and not protocolo_reutilizavel(
-                    protocol, company.protocol_requested_at, now):
-                # protocolo velho de uma tentativa que falhou: a SERPRO recusaria
-                descartar_protocolo(company_id)
-                company = db.session.get(Company, company_id)
-                protocol = None
+                protocol = company.current_protocol
 
-            if not protocol:
+                if protocol and not protocolo_reutilizavel(
+                        protocol, company.protocol_requested_at, now):
+                    # protocolo velho de uma tentativa que falhou: a SERPRO recusaria
+                    descartar_protocolo(company_id)
+                    company = db.session.get(Company, company_id)
+                    protocol = None
+
+                if not protocol:
+                    update_company_progress(
+                        company_id,
+                        status='processing',
+                        step='Solicitando protocolo',
+                        progress=40,
+                        message=None,
+                    )
+
+                    protocol_response = serpro.request_protocol(company.cnpj)
+                    if not protocol_response['success']:
+                        update_company_progress(
+                            company_id,
+                            status='error',
+                            step='Erro ao solicitar protocolo',
+                            progress=0,
+                            message=f"Erro ao solicitar protocolo: {protocol_response.get('error')}",
+                        )
+                        return ProcessResult(
+                            False,
+                            f"Erro ao solicitar protocolo: {protocol_response.get('error')}",
+                            company_id,
+                        )
+
+                    protocol = protocol_response['protocol']
+                    wait_time_ms = int(protocol_response.get('wait_time', 30000) or 30000)
+                    wait_time_seconds = wait_time_ms / 1000
+
+                    company.current_protocol = protocol
+                    company.protocol_requested_at = now
+                    company.protocol_wait_until = now + timedelta(seconds=wait_time_seconds)
+                    db.session.commit()
+
+                    update_company_progress(
+                        company_id,
+                        status='processing',
+                        step='Aguardando liberação do relatório',
+                        progress=50,
+                        message=f'Protocolo gerado com sucesso. Aguardando cerca de '
+                                f'{wait_time_seconds} segundos antes da captura.',
+                    )
+
+                    time.sleep(wait_time_seconds)
+
+                    company = db.session.get(Company, company_id)
+                    protocol = company.current_protocol
+
+                elif company.protocol_wait_until and now < company.protocol_wait_until:
+                    remaining = int((company.protocol_wait_until - now).total_seconds())
+
+                    update_company_progress(
+                        company_id,
+                        status='processing',
+                        step='Aguardando liberação do relatório',
+                        progress=50,
+                        message=f'Relatório já solicitado. Aguarde cerca de {remaining} segundos.',
+                    )
+
+                    time.sleep(remaining)
+
+                    company = db.session.get(Company, company_id)
+                    protocol = company.current_protocol
+
                 update_company_progress(
                     company_id,
                     status='processing',
-                    step='Solicitando protocolo',
-                    progress=40,
+                    step='Capturando relatório',
+                    progress=60,
                     message=None,
                 )
 
-                protocol_response = serpro.request_protocol(company.cnpj)
-                if not protocol_response['success']:
-                    update_company_progress(
-                        company_id,
-                        status='error',
-                        step='Erro ao solicitar protocolo',
-                        progress=0,
-                        message=f"Erro ao solicitar protocolo: {protocol_response.get('error')}",
-                    )
-                    return ProcessResult(
-                        False,
-                        f"Erro ao solicitar protocolo: {protocol_response.get('error')}",
-                        company_id,
-                    )
-
-                protocol = protocol_response['protocol']
-                wait_time_ms = int(protocol_response.get('wait_time', 30000) or 30000)
-                wait_time_seconds = wait_time_ms / 1000
-
-                company.current_protocol = protocol
-                company.protocol_requested_at = now
-                company.protocol_wait_until = now + timedelta(seconds=wait_time_seconds)
-                db.session.commit()
-
-                update_company_progress(
-                    company_id,
-                    status='processing',
-                    step='Aguardando liberação do relatório',
-                    progress=50,
-                    message=f'Protocolo gerado com sucesso. Aguardando cerca de '
-                            f'{wait_time_seconds} segundos antes da captura.',
-                )
-
-                time.sleep(wait_time_seconds)
-
-                company = db.session.get(Company, company_id)
-                protocol = company.current_protocol
-
-            elif company.protocol_wait_until and now < company.protocol_wait_until:
-                remaining = int((company.protocol_wait_until - now).total_seconds())
-
-                update_company_progress(
-                    company_id,
-                    status='processing',
-                    step='Aguardando liberação do relatório',
-                    progress=50,
-                    message=f'Relatório já solicitado. Aguarde cerca de {remaining} segundos.',
-                )
-
-                time.sleep(remaining)
-
-                company = db.session.get(Company, company_id)
-                protocol = company.current_protocol
-
-            update_company_progress(
-                company_id,
-                status='processing',
-                step='Capturando relatório',
-                progress=60,
-                message=None,
-            )
-
-            report_response = serpro.get_report(company.cnpj, protocol)
+                report_response = serpro.get_report(company.cnpj, protocol)
+                if report_response['success'] or not pede_novo_protocolo(
+                        report_response.get('error')):
+                    break
+                logger.warning('SITFIS pediu novo protocolo para %s (rodada %s/%s): %s',
+                               company.cnpj, rodada + 1, RODADAS_PROTOCOLO,
+                               report_response.get('error'))
 
             if not report_response['success']:
                 error_msg = str(report_response.get('error', ''))

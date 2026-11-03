@@ -1,4 +1,5 @@
 import base64
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -45,10 +46,8 @@ def explicar_falha_relatorio(error_msg: str) -> str:
     original, que continua no fim entre parenteses para o suporte.
     """
     texto = str(error_msg or '').strip()
-    codigo = ''
-    marcador = 'status code:'
-    if marcador in texto:
-        codigo = texto.split(marcador, 1)[1].strip()
+    achou = re.search(r'status code:\s*(\d{3})', texto)
+    codigo = achou.group(1) if achou else ''
 
     if codigo.startswith('5'):
         base = ('A Receita (SERPRO) respondeu com erro e não entregou o relatório. '
@@ -324,8 +323,10 @@ class ReportService:
             if not report_response['success']:
                 error_msg = str(report_response.get('error', ''))
 
-                if ('202' in error_msg or '204' in error_msg
-                        or 'not ready' in error_msg.lower()):
+                # so' o codigo HTTP decide: o texto da SERPRO agora vem junto e pode
+                # trazer "2026" e afins, que antes casariam com '202' por engano
+                ainda_nao = re.search(r'status code:\s*(202|204)\b', error_msg)
+                if ainda_nao or 'not ready' in error_msg.lower():
                     update_company_progress(
                         company_id,
                         status='processing',

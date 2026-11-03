@@ -50,6 +50,13 @@ def _texto_serpro(response_text) -> str:
     return ''
 
 
+def _pede_novo_protocolo(response_text) -> bool:
+    """ER05: o protocolo morreu na SERPRO; repetir a captura com ele não adianta,
+    quem chama precisa pedir outro no /Apoiar."""
+    texto = str(response_text or '').lower()
+    return 'sitfis-er05' in texto or '/apoiar' in texto
+
+
 class SerproService:
 
     def __init__(self, certificate_content, certificate_password, contratante_cnpj,
@@ -337,7 +344,8 @@ class SerproService:
                         return {'success': False,
                                 'error': 'Report not ready after maximum retries'}
 
-                    if status_code >= 500 and erros_5xx < self.REPORT_5XX_TENTATIVAS - 1:
+                    if (status_code >= 500 and erros_5xx < self.REPORT_5XX_TENTATIVAS - 1
+                            and not _pede_novo_protocolo(response_text)):
                         # 5xx da SERPRO costuma ser instabilidade momentanea do SITFIS:
                         # o mesmo protocolo funciona alguns segundos depois. Nao conta
                         # nas tentativas normais nem gasta nada (so' captura com 200 conta).

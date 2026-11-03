@@ -235,3 +235,64 @@ def test_texto_com_2026_nao_vira_relatorio_em_processamento(ambiente, monkeypatc
 def test_404_com_texto_ainda_e_reconhecido():
     assert 'não encontrou' in rs.explicar_falha_relatorio(
         'Request failed with status code: 404 - qualquer coisa')
+
+
+# ------------------------------------- ER05: a SERPRO manda pedir protocolo novo
+
+ER05 = ('Request failed with status code: 500 - [Erro-Sitfis-ER05] Erro ao processar a '
+        'requisição. Inicie uma nova solicitação /apoiar.')
+
+
+def test_er05_pede_protocolo_novo_e_captura(ambiente, monkeypatch):
+    app, company_id = ambiente
+    from app.models import Company
+    _sem_rede(monkeypatch)
+    protocolos, capturas = [], []
+
+    class _Er05UmaVez(_SerproFalhando):
+        def request_protocol(self, cnpj):
+            protocolos.append(f'P{len(protocolos) + 1}')
+            return {'success': True, 'protocol': protocolos[-1], 'wait_time': 0}
+
+        def get_report(self, cnpj, protocol):
+            capturas.append(protocol)
+            if protocol == 'P1':
+                return {'success': False, 'error': ER05}
+            return {'success': False, 'error': 'Request failed with status code: 404'}
+
+    monkeypatch.setattr(rs, 'SerproService', _Er05UmaVez)
+    rs.ReportService().process_company(company_id)
+    assert capturas == ['P1', 'P2'], 'não pediu protocolo novo depois do ER05'
+    assert 'não encontrou' in db.session.get(Company, company_id).processing_message
+
+
+def test_er05_persistente_para_depois_das_rodadas(ambiente, monkeypatch):
+    app, company_id = ambiente
+    from app.models import Company
+    _sem_rede(monkeypatch)
+    pedidos = []
+
+    class _SempreEr05(_SerproFalhando):
+        def request_protocol(self, cnpj):
+            pedidos.append(1)
+            return {'success': True, 'protocol': f'P{len(pedidos)}', 'wait_time': 0}
+
+        def get_report(self, cnpj, protocol):
+            return {'success': False, 'error': ER05}
+
+    monkeypatch.setattr(rs, 'SerproService', _SempreEr05)
+    r = rs.ReportService().process_company(company_id)
+    assert r.success is False and len(pedidos) == rs.RODADAS_PROTOCOLO
+    empresa = db.session.get(Company, company_id)
+    assert empresa.processing_status == 'error' and empresa.current_protocol is None
+
+
+def test_get_report_nao_repete_captura_no_er05(monkeypatch):
+    import json
+    erro = json.dumps({'mensagens': [{'codigo': '[Erro-Sitfis-ER05]',
+                                      'texto': 'Inicie uma nova solicitação /apoiar.'}]})
+    fila = [(500, erro)] * 6
+    svc, _ = _serpro_com_fila(monkeypatch, fila)
+    r = svc.get_report('11222333000181', 'P1')
+    assert r['success'] is False and 'ER05' in r['error']
+    assert len(fila) == 5, 'repetiu a captura com protocolo morto'

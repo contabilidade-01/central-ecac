@@ -152,3 +152,86 @@ def test_protocolo_vencido_no_banco_e_trocado(ambiente, monkeypatch):
     rs.ReportService().process_company(company_id)
 
     assert usados == ['PROTO-NOVO'], f'usou o protocolo vencido: {usados}'
+
+
+# ------------------------------------------------ 5xx na captura (SerproService)
+
+class _CurlFalso:
+    """pycurl.Curl de mentira: devolve os status da fila, um por perform()."""
+
+    URL = WRITEDATA = POSTFIELDS = HTTPHEADER = SSLVERSION = TIMEOUT = 0
+
+    def __init__(self, fila):
+        self.fila = fila
+        self.buf = None
+
+    def setopt(self, opt, val):
+        if hasattr(val, 'write'):
+            self.buf = val
+
+    def perform(self):
+        status, corpo = self.fila[0]
+        self.atual = self.fila.pop(0)
+        self.buf.write(corpo.encode())
+
+    def getinfo(self, _):
+        return self.atual[0]
+
+    def close(self):
+        pass
+
+
+def _serpro_com_fila(monkeypatch, fila):
+    import json
+    from app.services import serpro_service as ss
+    curl = _CurlFalso(fila)
+    monkeypatch.setattr(ss.pycurl, 'Curl', lambda: curl)
+    monkeypatch.setattr(ss.time, 'sleep', lambda s: None)
+    svc = ss.SerproService.__new__(ss.SerproService)
+    svc.contratante_cnpj = svc.contador_cnpj = '12345678000199'
+    monkeypatch.setattr(svc, '_procurador_setting', lambda: None)
+    monkeypatch.setattr(svc, '_get_auth_token',
+                        lambda: {'jwt_token': 'j', 'access_token': 'a'})
+    return svc, json
+
+
+def test_500_momentaneo_na_captura_e_repetido(monkeypatch):
+    import json
+    pdf_ok = json.dumps({'dados': json.dumps([{'pdf': 'UERG'}])})
+    erro = json.dumps({'mensagens': [{'codigo': 'Erro-SITFIS-500', 'texto': 'Instável'}]})
+    svc, _ = _serpro_com_fila(monkeypatch, [(500, erro), (200, pdf_ok)])
+    r = svc.get_report('11222333000181', 'P1')
+    assert r == {'success': True, 'pdf_base64': 'UERG'}
+
+
+def test_500_persistente_traz_o_texto_da_serpro(monkeypatch):
+    import json
+    erro = json.dumps({'mensagens': [{'codigo': 'Erro-SITFIS-500',
+                                      'texto': 'Falha ao gerar em 03/11/2026'}]})
+    svc, _ = _serpro_com_fila(monkeypatch, [(500, erro)] * 3)
+    r = svc.get_report('11222333000181', 'P1')
+    assert r['success'] is False
+    assert 'status code: 500' in r['error']
+    assert 'Falha ao gerar' in r['error']
+    texto = rs.explicar_falha_relatorio(r['error'])
+    assert 'Receita' in texto
+
+
+def test_texto_com_2026_nao_vira_relatorio_em_processamento(ambiente, monkeypatch):
+    app, company_id = ambiente
+    from app.models import Company
+    _sem_rede(monkeypatch)
+
+    class _ComData(_SerproFalhando):
+        def get_report(self, cnpj, protocol):
+            return {'success': False, 'error':
+                    'Request failed with status code: 500 - Erro em 03/11/2026'}
+
+    monkeypatch.setattr(rs, 'SerproService', _ComData)
+    rs.ReportService().process_company(company_id)
+    assert db.session.get(Company, company_id).processing_status == 'error'
+
+
+def test_404_com_texto_ainda_e_reconhecido():
+    assert 'não encontrou' in rs.explicar_falha_relatorio(
+        'Request failed with status code: 404 - qualquer coisa')

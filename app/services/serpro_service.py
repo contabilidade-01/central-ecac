@@ -250,7 +250,7 @@ class SerproService:
             return {'success': False, 'error': str(e)}
 
     #: 5xx na captura: quantas vezes tentar no total e quanto esperar entre elas.
-    REPORT_5XX_TENTATIVAS = 3
+    REPORT_5XX_TENTATIVAS = 6  # a primeira + 5 novas tentativas
     REPORT_5XX_ESPERA = 20
 
     def get_report(self, cnpj, protocol, max_retries=2, retry_delay=60):

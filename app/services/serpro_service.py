@@ -21,6 +21,42 @@ from app.services.serpro_logging import (
 logger = logging.getLogger(__name__)
 
 
+def _texto_serpro(response_text) -> str:
+    """Texto legivel de uma resposta de erro da SERPRO ("mensagens"[].texto).
+
+    Sem isto o motivo real do erro (ex.: "[Erro-SITFIS-...] ...") era jogado fora e
+    a tela so' mostrava "status code: 500".
+    """
+    try:
+        body = json.loads(response_text or '')
+    except Exception:
+        return ''
+    if not isinstance(body, dict):
+        return ''
+    textos = []
+    for item in body.get('mensagens') or []:
+        if isinstance(item, dict):
+            partes = [str(item.get(k)).strip() for k in ('codigo', 'texto') if item.get(k)]
+            if partes:
+                textos.append(' '.join(partes))
+        elif isinstance(item, str) and item.strip():
+            textos.append(item.strip())
+    if textos:
+        return ' | '.join(textos)[:500]
+    for chave in ('description', 'message'):
+        extra = body.get(chave)
+        if extra and str(extra) not in ('Runtime Error', 'Status report'):
+            return str(extra)[:500]
+    return ''
+
+
+def _pede_novo_protocolo(response_text) -> bool:
+    """ER05: o protocolo morreu na SERPRO; repetir a captura com ele não adianta,
+    quem chama precisa pedir outro no /Apoiar."""
+    texto = str(response_text or '').lower()
+    return 'sitfis-er05' in texto or '/apoiar' in texto
+
+
 class SerproService:
 
     def __init__(self, certificate_content, certificate_password, contratante_cnpj,
@@ -194,8 +230,10 @@ class SerproService:
                     etag_match = re.search(r'etag:\s*"protocoloRelatorio:([^"]+)"',
                                            headers, re.IGNORECASE)
                     if etag_match:
+                        # wait_time e' em MILISSEGUNDOS (como o tempoEspera da SERPRO);
+                        # antes era 30 aqui, e o relatorio era capturado 0,03 s depois
                         return {'success': True, 'protocol': etag_match.group(1),
-                                'wait_time': 30}
+                                'wait_time': 30000}
                     raise Exception('Protocol not found in ETag header')
 
                 if status_code == 200:
@@ -206,7 +244,7 @@ class SerproService:
                             return {
                                 'success': True,
                                 'protocol': dados['protocoloRelatorio'],
-                                'wait_time': dados.get('tempoEspera', 30),
+                                'wait_time': dados.get('tempoEspera') or 30000,
                             }
                     raise Exception('Protocol not found in response body')
 
@@ -218,8 +256,15 @@ class SerproService:
             logger.error('Error requesting protocol: %s', e)
             return {'success': False, 'error': str(e)}
 
+    #: 5xx na captura: quantas vezes tentar no total e quanto esperar entre elas.
+    REPORT_5XX_TENTATIVAS = 6  # a primeira + 5 novas tentativas
+    REPORT_5XX_ESPERA = 20
+
     def get_report(self, cnpj, protocol, max_retries=2, retry_delay=60):
-        for attempt in range(max_retries):
+        erros_5xx = 0
+        attempt = -1
+        while attempt < max_retries - 1:
+            attempt += 1
             try:
                 setting = self._procurador_setting()
                 procurador_service = None
@@ -299,9 +344,27 @@ class SerproService:
                         return {'success': False,
                                 'error': 'Report not ready after maximum retries'}
 
+                    if (status_code >= 500 and erros_5xx < self.REPORT_5XX_TENTATIVAS - 1
+                            and not _pede_novo_protocolo(response_text)):
+                        # 5xx da SERPRO costuma ser instabilidade momentanea do SITFIS:
+                        # o mesmo protocolo funciona alguns segundos depois. Nao conta
+                        # nas tentativas normais nem gasta nada (so' captura com 200 conta).
+                        erros_5xx += 1
+                        logger.warning('SITFIS respondeu %s para %s; nova tentativa em %ss '
+                                       '(%s/%s): %s', status_code, cnpj,
+                                       self.REPORT_5XX_ESPERA, erros_5xx,
+                                       self.REPORT_5XX_TENTATIVAS - 1,
+                                       _texto_serpro(response_text))
+                        time.sleep(self.REPORT_5XX_ESPERA)
+                        attempt -= 1  # repete a mesma tentativa (nao gasta as normais)
+                        continue
+
                     if status_code != 200:
-                        return {'success': False,
-                                'error': f'Request failed with status code: {status_code}'}
+                        texto = _texto_serpro(response_text)
+                        erro = f'Request failed with status code: {status_code}'
+                        if texto:
+                            erro = f'{erro} - {texto}'
+                        return {'success': False, 'error': erro}
 
                     resultadopdf = json.loads(response_text)
                     dados_array = json.loads(resultadopdf['dados'])

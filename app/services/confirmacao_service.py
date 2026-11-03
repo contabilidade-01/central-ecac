@@ -34,9 +34,9 @@ class ConfirmacaoBloqueada(Exception):
 
 def limite_diario() -> int:
     try:
-        return max(1, int(os.getenv('INTEGRACAO_MAX_CONFIRMACOES_DIA', '2')))
+        return max(1, int(os.getenv('INTEGRACAO_MAX_CONFIRMACOES_DIA', '5')))
     except ValueError:
-        return 2
+        return 5
 
 
 #: Teto de tentativas por empresa por dia, contando as que falharam. A cota paga

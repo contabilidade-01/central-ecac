@@ -38,6 +38,10 @@ PROTOCOLO_VALIDADE = timedelta(minutes=30)
 RODADAS_PROTOCOLO = 3
 
 
+#: marcador interno: a Receita devolveu o mesmo protocolo que acabou de falhar
+PROTOCOLO_REPETIDO = 'protocolo-repetido-apos-er05'
+
+
 def pede_novo_protocolo(error_msg) -> bool:
     """A SERPRO mandou recomeçar pelo /Apoiar (pedir protocolo de novo)?"""
     texto = str(error_msg or '').lower()
@@ -62,6 +66,10 @@ def explicar_falha_relatorio(error_msg: str) -> str:
     original, que continua no fim entre parenteses para o suporte.
     """
     texto = str(error_msg or '').strip()
+    if texto == PROTOCOLO_REPETIDO:
+        return ('A Receita devolveu o mesmo protocolo que acabou de falhar, então não '
+                'adianta insistir agora: ela só emite outro depois que esse vencer. '
+                'Tente de novo daqui a alguns minutos.')
     achou = re.search(r'status code:\s*(\d{3})', texto)
     codigo = achou.group(1) if achou else ''
 
@@ -254,6 +262,11 @@ class ReportService:
                 consumer_secret=setting.serpro_consumer_secret,
             )
 
+            # protocolos que ja' deram ER05 nesta execucao: a SERPRO pode devolver
+            # o MESMO protocolo no /Apoiar (resposta 304, protocolo no ETag), e ai'
+            # tentar de novo com ele so' repete o erro
+            queimados: set = set()
+
             for rodada in range(RODADAS_PROTOCOLO):
                 if rodada:
                     # a SERPRO mandou recomeçar pelo /Apoiar: protocolo novo
@@ -346,10 +359,19 @@ class ReportService:
                     message=None,
                 )
 
+                if protocol in queimados:
+                    # a Receita nao emitiu outro protocolo: insistir no mesmo so'
+                    # repete o ER05 e gasta as rodadas a' toa
+                    logger.warning('SITFIS devolveu o mesmo protocolo para %s depois do '
+                                   'ER05; parando de insistir', company.cnpj)
+                    report_response = {'success': False, 'error': PROTOCOLO_REPETIDO}
+                    break
+
                 report_response = serpro.get_report(company.cnpj, protocol)
                 if report_response['success'] or not pede_novo_protocolo(
                         report_response.get('error')):
                     break
+                queimados.add(protocol)
                 logger.warning('SITFIS pediu novo protocolo para %s (rodada %s/%s): %s',
                                company.cnpj, rodada + 1, RODADAS_PROTOCOLO,
                                report_response.get('error'))

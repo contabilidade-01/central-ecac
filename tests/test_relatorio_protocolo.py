@@ -296,3 +296,37 @@ def test_get_report_nao_repete_captura_no_er05(monkeypatch):
     r = svc.get_report('11222333000181', 'P1')
     assert r['success'] is False and 'ER05' in r['error']
     assert len(fila) == 5, 'repetiu a captura com protocolo morto'
+
+
+def test_mesmo_protocolo_de_volta_nao_gasta_as_rodadas(ambiente, monkeypatch):
+    """A Receita pode devolver o MESMO protocolo no /Apoiar (resposta 304, ETag).
+
+    Insistir nele depois do ER05 só repete o erro e queima as três rodadas.
+    """
+    app, company_id = ambiente
+    from app.models import Company
+    _sem_rede(monkeypatch)
+    capturas = []
+
+    class _SempreOMesmoProtocolo(_SerproFalhando):
+        def request_protocol(self, cnpj):
+            return {'success': True, 'protocol': 'P-UNICO', 'wait_time': 0}
+
+        def get_report(self, cnpj, protocol):
+            capturas.append(protocol)
+            return {'success': False, 'error': ER05}
+
+    monkeypatch.setattr(rs, 'SerproService', _SempreOMesmoProtocolo)
+    r = rs.ReportService().process_company(company_id)
+
+    assert r.success is False
+    assert capturas == ['P-UNICO'], f'insistiu no mesmo protocolo: {capturas}'
+    empresa = db.session.get(Company, company_id)
+    assert empresa.current_protocol is None
+    assert 'mesmo protocolo' in (empresa.processing_message or '')
+
+
+def test_mensagem_do_protocolo_repetido_nao_mostra_o_marcador():
+    texto = rs.explicar_falha_relatorio(rs.PROTOCOLO_REPETIDO)
+    assert rs.PROTOCOLO_REPETIDO not in texto
+    assert 'alguns minutos' in texto

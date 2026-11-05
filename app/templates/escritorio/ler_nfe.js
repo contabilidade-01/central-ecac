@@ -149,14 +149,40 @@
   $('#lnkArquivos').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); inputSoltos.click(); });
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
-  drop.addEventListener('drop', async (e) => { e.preventDefault(); drop.classList.remove('dragover'); await carregar(e.dataTransfer.files); });
+  drop.addEventListener('drop', async (e) => {
+    e.preventDefault(); drop.classList.remove('dragover');
+    await carregar(await arquivosDoDrop(e.dataTransfer));
+  });
+
+  // Pastas arrastadas (ex.: xmlE e xmlS juntas) chegam como "entradas" de diretório:
+  // percorre cada uma e devolve os arquivos de dentro. Sem suporte, usa a lista simples.
+  async function arquivosDoDrop(dt) {
+    const itens = [...(dt.items || [])].map((it) => (it.webkitGetAsEntry ? it.webkitGetAsEntry() : null)).filter(Boolean);
+    if (!itens.length || !itens.some((en) => en.isDirectory)) return dt.files;
+    const saida = [];
+    const lerArquivo = (en) => new Promise((ok) => en.file(ok, () => ok(null)));
+    const lerPasta = (en) => new Promise((ok) => {
+      const leitor = en.createReader(), todos = [];
+      const lote = () => leitor.readEntries((l) => { if (!l.length) ok(todos); else { todos.push(...l); lote(); } }, () => ok(todos));
+      lote();
+    });
+    async function visitar(en) {
+      if (en.isFile) { const f = await lerArquivo(en); if (f) saida.push(f); }
+      else if (en.isDirectory) { for (const filho of await lerPasta(en)) await visitar(filho); }
+    }
+    for (const en of itens) await visitar(en);
+    return saida;
+  }
   inputPasta.addEventListener('change', async (e) => { await carregar(e.target.files); inputPasta.value = ''; });
   inputSoltos.addEventListener('change', async (e) => { await carregar(e.target.files); inputSoltos.value = ''; });
 
+  // Os XMLs se SOMAM aos já carregados: dá para carregar a pasta de saídas e depois a de
+  // entradas (onde ficam as devoluções emitidas pela empresa, CFOP 1202/2202). Duplicados
+  // (mesma chave) são ignorados no relatório; "Gerar Outra Empresa" limpa a lista.
   async function carregar(files) {
-    arquivos = [];
     btnAnalisar.classList.remove('btn-pulse');
     if (!files || !files.length) return;
+    const antes = arquivos.length;
     progress.style.display = 'block'; bar.style.width = '0%';
     loading('Carregando XMLs...', 'Lendo arquivos XML/ZIP...');
     let i = 0, erros = 0;
@@ -186,7 +212,10 @@
       const cont = arquivos.reduce((a, f) => { a[f.tipo] = (a[f.tipo] || 0) + 1; return a; }, {});
       const partes = [['nfe', 'NF-e/NFC-e'], ['evento', 'evento(s)'], ['cte', 'CT-e'], ['inut', 'inutilização(ões)'], ['outro', 'outro(s)']]
         .filter(([k]) => cont[k]).map(([k, rot]) => `${cont[k]} ${rot}`);
-      status.textContent = `XMLs carregados: ${arquivos.length} (${partes.join(', ')})` + (erros ? ` • ${erros} arquivo(s) não puderam ser lidos` : '');
+      const novos = arquivos.length - antes;
+      status.textContent = `XMLs carregados: ${arquivos.length} (${partes.join(', ')})` +
+        (antes ? ` • ${novos} adicionado(s) agora aos ${antes} anteriores` : '') +
+        (erros ? ` • ${erros} arquivo(s) não puderam ser lidos` : '');
       if (!cont.nfe) avisar('Nenhuma NF-e nos arquivos', 'Os arquivos carregados não têm XML de NF-e/NFC-e (ex.: só CT-e). Carregue os XMLs de venda.');
       btnAnalisar.classList.add('btn-pulse');
     } else {
@@ -341,6 +370,7 @@
     if (notaEmit) { nomeExib = notaEmit.nomeEmp; cnpjExib = notaEmit.cnpjEmp; }
     U.totais = totais; U.linhas = linhas; U.nome = nomeExib; U.cnpj = cnpjExib; U.mes = mes; U.ano = ano;
     U.cfops = new Set(Object.keys(totais)); U.pg = null;
+    U.qtdEmit = notas.filter((nt) => nt.ehEmit).length;
 
     const fora = [];
     if (porTipo.cte.length) fora.push(`${porTipo.cte.length} CT-e`);
@@ -395,8 +425,14 @@
       } catch (e) { /* sem rede: segue sem vínculo */ }
     }
     const cnpjFmt = digitos(U.cnpj).replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') || '-';
+    // Devolução de venda emitida pela própria empresa é nota de ENTRADA (tpNF=0, CFOP 1202/2202):
+    // o portal/ERP costuma entregá-la junto com as entradas, não com as vendas.
+    const semDevolucao = U.qtdEmit > 0 && !Object.keys(U.totais || {}).some((c) => DEVOL_CONVERTIDOS.has(c));
     headerEmp.innerHTML = `<h3>${esc(U.nome || '-')}</h3><p>CNPJ ${esc(cnpjFmt)} • ${esc(U.mes)}/${esc(U.ano)}</p>` +
       (extra ? `<div class="aviso-emp">⚠ ${esc(extra)}</div>` : '') +
+      (semDevolucao ? '<div class="aviso-emp">↩ Nenhuma devolução nos XMLs carregados. As devoluções de venda emitidas pela ' +
+        'empresa (CFOP 1202/2202) são notas de <b>entrada</b>: se a pasta de entradas (ex.: xmlE) não foi carregada, ' +
+        'carregue-a também (os XMLs se somam aos já carregados) e gere o relatório de novo.</div>' : '') +
       (U.cte && (U.cte.qtd || U.cte.outros) ? `<div class="aviso-emp">🚚 CT-e na competência: ${U.cte.qtd} de frete tomado pela empresa (${brl(U.cte.valor)})` +
         (U.cte.outros ? ` • ${U.cte.outros} de outros tomadores` : '') + ' — não entram na receita.</div>' : '');
   }

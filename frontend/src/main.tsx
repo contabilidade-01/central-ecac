@@ -1,6 +1,6 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
+import { BrowserRouter, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { api, type Eu } from "./api";
 import { Paleta } from "./componentes/Paleta";
 import { Empresa } from "./paginas/Empresa";
@@ -19,6 +19,9 @@ function App() {
   const [eu, setEu] = useState<Eu | null>(null);
   const [paleta, setPaleta] = useState(false);
   const [tema, setTema] = useState(temaInicial);
+  const local = useLocation();
+  // A ficha da empresa é aberta a partir da Mesa do dia: o menu continua mostrando onde você está.
+  const naMesa = local.pathname === "/" || local.pathname.startsWith("/empresas");
 
   useEffect(() => { api.eu().then(setEu).catch(() => undefined); }, []);
   useEffect(() => {
@@ -37,7 +40,7 @@ function App() {
     <div className="app">
       <nav className="menu" aria-label="Menu principal">
         <div className="marca"><i>eC</i><div>Central Ecac<small>Nescon Contabilidade</small></div></div>
-        <NavLink to="/" end className={({ isActive }) => `item${isActive ? " ativo" : ""}`}>
+        <NavLink to="/" end className={`item${naMesa ? " ativo" : ""}`} aria-current={naMesa ? "page" : undefined}>
           <span>Mesa do dia</span><span className="novo">novo</span></NavLink>
         {eu?.menu.map((g) => (
           <div key={g.titulo}>

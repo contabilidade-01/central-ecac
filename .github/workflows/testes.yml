@@ -1,0 +1,33 @@
+name: Testes
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+      - name: Bibliotecas de sistema (pycurl e lxml)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libssl-dev libxml2-dev libxslt1-dev
+      - name: Dependências
+        env:
+          PYCURL_SSL_LIBRARY: openssl
+        run: pip install -r requirements.txt pytest
+      - name: Testes (sem rede, sem chamada paga)
+        env:
+          SCHEDULER_ENABLED: '0'
+          TZ: America/Sao_Paulo
+        run: |
+          for arquivo in tests/test_*.py; do
+            echo "::group::$arquivo"
+            python -m pytest "$arquivo" -q -p no:cacheprovider
+            echo "::endgroup::"
+          done

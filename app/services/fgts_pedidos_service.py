@@ -30,7 +30,9 @@ from app.integracao_models import FgtsPedido
 logger = logging.getLogger(__name__)
 
 ACOES = ('consultar', 'emitir')
-ABERTOS = ('fila', 'executando', 'aguardando_captcha', 'aguardando_escolha')
+# `verificar_portal` conta como aberto: emissão interrompida bloqueia novo pedido da empresa
+# até alguém conferir no portal se a guia saiu (evita guia em dobro).
+ABERTOS = ('fila', 'executando', 'aguardando_captcha', 'aguardando_escolha', 'verificar_portal')
 
 # Etapas na ordem em que o cliente as vê na página (chave → rótulo).
 ETAPAS = [
@@ -52,17 +54,22 @@ class PedidoRecusado(Exception):
 
 
 def habilitado() -> bool:
-    return os.getenv('FGTS_DIGITAL_HABILITADO', '0').strip().lower() in ('1', 'true', 'sim')
+    from app.services.fgts import parametros
+    return bool(parametros.valor('habilitado'))
+
+
+def no_piloto(cnpj: str) -> bool:
+    """Com a lista do piloto preenchida, só esses CNPJs; vazia = todos."""
+    from app.services.fgts import parametros
+    lista = parametros.valor('cnpjs_piloto')
+    return not lista or cnpj in lista
 
 
 def liberado_para(cnpj: str) -> bool:
-    """Piloto: com `FGTS_DIGITAL_CNPJS` (lista separada por vírgula) só esses CNPJs veem
-    o FGTS no link; vazio = todos. Serve para validar com uma empresa antes de abrir."""
-    if not habilitado():
-        return False
-    lista = {''.join(ch for ch in c if ch.isdigit()) for c in os.getenv('FGTS_DIGITAL_CNPJS', '').split(',')}
-    lista.discard('')
-    return not lista or cnpj in lista
+    """FGTS no link sem senha do cliente. Desligado por padrão desde 09/11/2026 (só o
+    escritório pede FGTS); o parâmetro `link_cliente` religa, sempre respeitando o piloto."""
+    from app.services.fgts import parametros
+    return habilitado() and bool(parametros.valor('link_cliente')) and no_piloto(cnpj)
 
 
 def max_pedidos_dia() -> int:
@@ -102,7 +109,8 @@ def normalizar_competencia(valor: Any) -> str:
 
 
 def ultima_consulta_hoje(cnpj: str) -> Optional[FgtsPedido]:
-    inicio = datetime.utcnow() - timedelta(hours=12)
+    from app.services.fgts import parametros
+    inicio = datetime.utcnow() - timedelta(hours=parametros.valor('validade_consulta_h'))
     return (FgtsPedido.query
             .filter_by(cnpj=cnpj, acao='consultar', status='concluido')
             .filter(FgtsPedido.concluido_em >= inicio)
@@ -133,6 +141,7 @@ def criar(*, company_id: int, cnpj: str, acao: str, competencia: Any = None,
           solicitado_por: Optional[str] = None, data_pagamento: Any = None) -> FgtsPedido:
     # Link do cliente: respeita o piloto por CNPJ. Escritório (AtendeChat, sem link):
     # basta o robô estar ligado — é assim que se valida antes de abrir o link.
+    # O piloto por CNPJ vale só para o link do cliente; o escritório pede de qualquer empresa.
     liberado = liberado_para(cnpj) if link_id is not None else habilitado()
     if not liberado:
         raise PedidoRecusado('O FGTS por aqui ainda não está ligado. Fale com o escritório.', 503)
@@ -163,15 +172,19 @@ def criar(*, company_id: int, cnpj: str, acao: str, competencia: Any = None,
         competencia = escolha[0]
     else:
         competencia = None
+    from app.services.fgts import parametros
+    executor = parametros.valor('executor')
     pedido = FgtsPedido(company_id=company_id, cnpj=cnpj, link_id=link_id, acao=acao,
-                        competencia=competencia, status='fila', etapa='fila',
+                        competencia=competencia, status='fila', etapa='fila', executor=executor,
                         origem=origem[:20], solicitado_por=(solicitado_por or '')[:120] or None)
     if escolha:
         gravar_resultado(pedido, {'escolha': escolha, 'data_pagamento': data_ok})
     db.session.add(pedido)
     db.session.commit()
-    from app.services import fgts_digital_robo
-    fgts_digital_robo.robo().enfileirar(pedido.id)
+    if executor == 'vps':
+        from app.services import fgts_digital_robo
+        fgts_digital_robo.robo().enfileirar(pedido.id)
+    # executor 'agente': o pedido fica na fila até um agente com login ativo reservá-lo.
     return pedido
 
 

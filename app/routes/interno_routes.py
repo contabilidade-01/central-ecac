@@ -345,10 +345,21 @@ def revogar_acesso_links():
 # ------------------------------------------------------------------- FGTS (desvio 22)
 @interno_bp.get('/fgts/estado')
 def fgts_estado():
-    """Saúde do robô do FGTS Digital (custo zero, não abre navegador)."""
+    """Saúde do FGTS Digital (custo zero, não abre navegador): executor e prontidão."""
     from app.services import fgts_digital_robo, fgts_pedidos_service as fgts
-    return jsonify({'success': True, 'habilitado': fgts.habilitado(),
-                    'robo': fgts_digital_robo.robo().estado() if fgts.habilitado() else None})
+    from app.services.fgts import agentes as fgts_agentes
+    prontidao = fgts_agentes.prontidao()
+    robo = (fgts_digital_robo.robo().estado()
+            if fgts.habilitado() and prontidao['executor'] == 'vps' else None)
+    return jsonify({'success': True, 'habilitado': fgts.habilitado(), 'robo': robo, 'prontidao': prontidao})
+
+
+@interno_bp.get('/fgts/config')
+def fgts_config():
+    """Parâmetros públicos do FGTS para os consumidores (atendechat e portal), sem cópia lá."""
+    from app.services.fgts import agentes as fgts_agentes, parametros as fgts_parametros
+    return jsonify({'success': True, 'config': fgts_parametros.publicos(),
+                    'prontidao': fgts_agentes.prontidao()})
 
 
 @interno_bp.get('/fgts/pedidos')
@@ -396,6 +407,11 @@ def fgts_criar_pedido():
     if not company.ativo:
         return _erro('Empresa inativa no Central e-CAC.', 409)
     origem = str(corpo.get('origem') or 'atendechat')[:20]
+    from app.services.fgts import parametros as fgts_parametros
+    chave = {'atendechat': 'atendechat_habilitado', 'portal': 'portal_habilitado',
+             'escritorio': 'portal_habilitado'}.get(origem)
+    if chave and not fgts_parametros.valor(chave):
+        return _erro('O FGTS está desligado para este sistema na Central.', 503)
     try:
         pedido = fgts.criar(company_id=company.id, cnpj=company.cnpj,
                             acao=str(corpo.get('acao') or 'consultar'),

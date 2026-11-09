@@ -1,3 +1,42 @@
+# FGTS Digital
+
+> **Atualização de 09/11/2026 (desvio 27):** o gov.br recusou o login automatizado na VPS.
+> A Central passou a ser dona da fila, dos parâmetros e das guias, e quem executa no portal
+> fica atrás do parâmetro `executor`: `agente` (PC do escritório, padrão) ou `vps` (robô
+> abaixo). O FGTS no link do cliente nasce desligado (`link_cliente`), e o cliente não pede
+> FGTS por enquanto. O texto abaixo da seção "Executor plugável" descreve o robô da VPS.
+
+## Executor plugável (desvio 27)
+
+| Peça | Onde |
+| --- | --- |
+| Parâmetros (tela `/fgts`, só admin, com histórico) | `services/fgts/parametros.py` |
+| Agentes, fila e reserva | `services/fgts/agentes.py` |
+| Guia recebida (PDF, CNPJ no texto, Pix com CRC, número único) | `services/fgts/guias.py` |
+| API do agente (`X-Agente-Token`) | `routes/fgts_agente_routes.py` |
+| Tela e API admin | `routes/fgts_routes.py` |
+| Para atendechat e portal | `GET /api/interno/fgts/config`, `GET /api/interno/fgts/estado` |
+
+**API do agente** (o agente só faz chamadas de saída; a Central nunca chama o PC):
+
+| Método | Rota | O que faz |
+| --- | --- | --- |
+| POST | `/api/fgts-agente/sinal` | versão, login ativo, máquina; devolve a configuração |
+| POST | `/api/fgts-agente/proximo` | reserva o pedido mais antigo (204 = nada a fazer) |
+| POST | `/api/fgts-agente/pedidos/<id>/progresso` | etapa (`perfil`, `consultando`, `captcha`, `emitindo`) e mensagem |
+| POST | `/api/fgts-agente/pedidos/<id>/guias` | multipart `pdf` + `meta` (numero, competencia, grupo, valor, vencimento, data_pagamento, pix) |
+| POST | `/api/fgts-agente/pedidos/<id>/resultado` | competências e dias liberados, ou `erro {codigo, mensagem}` |
+
+**Regras:** um agente só recebe trabalho com sinal recente, login ativo, versão aceita e
+dentro da janela de operação. A reserva vence em `reserva_min`: consulta volta para a
+fila; emissão vai para `verificar_portal` e bloqueia a empresa até um humano conferir no
+portal (tela `/fgts`, aba Pedidos). Nenhuma tabela guarda CPF ou nome de trabalhador.
+
+**Ligar:** na tela `/fgts`, gerar o token do agente (aparece uma vez), conferir os
+parâmetros e ligar o módulo. Consumidores devem migrar para `INTEGRACAO_TOKENS`.
+
+---
+
 # Robô do FGTS Digital — recálculo de guia pelo link sem senha (desvio 22)
 
 > Pedido do Jean (23/10/2026). O cliente pede pelo AtendeChat (link `/g/<token>`), o robô

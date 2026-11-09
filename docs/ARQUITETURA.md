@@ -34,7 +34,7 @@ verdade, não funcionavam.
 
 ---
 
-## Os desvios intencionais (18 numerados aqui; 19 a 21 nos seus docs; 22 = FGTS Digital)
+## Os desvios intencionais (18 numerados aqui; 19 a 21 nos seus docs; 22 e 27 = FGTS Digital)
 
 | # | O quê | Por quê | Onde |
 |---|---|---|---|
@@ -190,6 +190,7 @@ indicador é gratuito, conforme o próprio frontend do exe declara.
 | 24 | Andamento da busca de pedidos/parcelas | o exe não atualizava `processing_*` nessa busca e engolia o erro da SERPRO: o Acompanhamento mostrava o último relatório e a empresa sumia de "Pedidos encontrados" sem explicação. Agora a rota marca "Na fila" antes da thread (senão a tela parava de atualizar), cada tipo publica o andamento e o resultado/erro vai para a mensagem; "todas" só roda as empresas com tipo marcado; `/pedidos` e `/parcelas` passam a respeitar `company_id` e `tipo` que a tela já mandava | `routes/parcelamentos.py`, `services/parcelamentos_serpro_service.py` |
 | 25 | Baixa de parcelas da tela Parcelamentos | o exe procurava `parcelamentos` no corpo de PARCELASPARAGERAR (a lista vem em `dados.listaParcelas`, string JSON) e mandava `parcelaParaEmitir: true` na consulta, então nunca salvava parcela nem PDF. Agora reaproveita o caminho do portal (desvio 19): `parcelas_service.consultar` (consulta do dia sem custo) e `das_emissao_service.emitir` (guia reaproveitada, teto, procuração, limite diário). Só consulta tipo com pedido "Em parcelamento"; aviso de PDF não emitido aparece na tabela | `services/parcelamentos_serpro_service.py`, `routes/parcelamentos.py` |
 | 26 | "Situação por empresa" na tela Parcelamentos | a tela não dizia, por empresa e tipo, se havia pedido, se a consulta trouxe parcela, se o PDF saiu ou por quê. `GET /api/parcelamentos/resumo` junta pedido, última consulta, parcelas/PDF e o último resultado (gravado em `companies.parcelamento_resultado_json`, com a mensagem da SERPRO) numa frase com cor. A tela foi reorganizada: ações juntas (1 pedidos, 2 parcelas e PDF), Acompanhamento, Situação por empresa e o histórico de parcelas. Bundle renomeado para `-p2` | `routes/parcelamentos.py`, `services/parcelamentos_serpro_service.py`, `models.py`, `migrations.py`, `static/app/assets/index-BV8l56Oy-p2.js` |
+| 27 | **FGTS com executor plugável** (agente no PC ou robô na VPS) | pedido do Jean (09/11/2026): o gov.br recusou o login automatizado na VPS; a Central vira a dona da fila, dos parâmetros e das guias, e quem executa no portal fica atrás de um parâmetro (`executor`). O Agente FGTS roda no PC do escritório, com login e captcha feitos por uma pessoa, e só pede trabalho por HTTPS de saída (`/api/fgts-agente/*`, token próprio). Emissão interrompida vira `verificar_portal`, nunca é repetida sozinha. Parâmetros editáveis na tela `/fgts` (admin), com histórico. Tokens de integração por consumidor (`INTEGRACAO_TOKENS`). Ver `docs/FGTS_DIGITAL.md`. Testes: `tests/test_fgts_agente.py` | `fgts_models.py`, `services/fgts/*`, `routes/fgts_routes.py`, `routes/fgts_agente_routes.py`, `services/fgts_pedidos_service.py`, `services/integracao_token.py`, `security.py`, `migrations.py` |
 
 ## Versão do Python (corrigindo um engano)
 

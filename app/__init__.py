@@ -144,6 +144,8 @@ def create_app() -> Flask:
                 # DESVIO INTENCIONAL (17o): area Escritorio (telas modeladas no
                 # visual do Integra Contador), servida pelo Flask.
                 or path == '/mei'
+                # DESVIO INTENCIONAL (27o): tela do FGTS Digital.
+                or path == '/fgts'
                 or path == '/escritorio'
                 or path.startswith('/escritorio/')
                 # DESVIO INTENCIONAL (21o): página pública de guias sem senha.
@@ -158,6 +160,8 @@ def create_app() -> Flask:
         # DESVIO INTENCIONAL (18o) — tabelas da integração com o portal do cliente, FORA
         # de models.py (regra 3). Importadas antes do create_all para nascerem juntas.
         from app import integracao_models  # noqa: F401
+        # DESVIO INTENCIONAL (27o) — FGTS com executor plugável (agente no PC ou VPS).
+        from app import fgts_models  # noqa: F401
         db.create_all()
         run_migrations()
         unlock_stale_processing()
@@ -198,6 +202,12 @@ def create_app() -> Flask:
     # Tela /filtros — filtrar empresas por tipo de pendência/débito.
     from app.routes.filtros import filtros_bp
     app.register_blueprint(filtros_bp)
+
+    # DESVIO INTENCIONAL (27o) — FGTS Digital: tela /fgts (admin) e API do agente do PC.
+    from app.routes.fgts_routes import fgts_bp
+    from app.routes.fgts_agente_routes import fgts_agente_bp
+    app.register_blueprint(fgts_bp)
+    app.register_blueprint(fgts_agente_bp)
 
     # Tela /relatorios — navegar e visualizar PDFs armazenados.
     from app.routes.relatorios_tela import relatorios_tela_bp

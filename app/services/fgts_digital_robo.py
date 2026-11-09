@@ -233,10 +233,12 @@ class RoboFgts:
             with self.app.app_context():
                 from app.extensions import db
                 from app.integracao_models import FgtsPedido
-                for p in FgtsPedido.query.filter(FgtsPedido.status.in_(('executando', 'aguardando_captcha', 'aguardando_escolha'))).all():
+                # Desvio 27: pedido do agente do PC nunca é retomado pelo robô.
+                do_robo = FgtsPedido.executor.is_(None) | (FgtsPedido.executor == 'vps')
+                for p in FgtsPedido.query.filter(do_robo, FgtsPedido.status.in_(('executando', 'aguardando_captcha', 'aguardando_escolha'))).all():
                     p.status, p.etapa = 'fila', 'fila'
                 db.session.commit()
-                for p in FgtsPedido.query.filter_by(status='fila').order_by(FgtsPedido.id).all():
+                for p in FgtsPedido.query.filter(do_robo, FgtsPedido.status == 'fila').order_by(FgtsPedido.id).all():
                     self.fila.put(p.id)
         except Exception:
             logger.exception('FGTS: falha ao retomar pedidos pendentes')

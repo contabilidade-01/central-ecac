@@ -39,7 +39,7 @@ import threading
 import time
 from datetime import timedelta
 
-from flask import (Response, jsonify, redirect, render_template_string, request,
+from flask import (Response, g, jsonify, redirect, render_template_string, request,
                    session, url_for)
 
 from app.services import integracao_token, permissoes, usuarios_service
@@ -203,9 +203,21 @@ def registrar_seguranca(app) -> None:
             if not integracao_token.habilitado():
                 return jsonify({'success': False,
                                 'message': 'Integração desligada: defina INTEGRACAO_TOKEN.'}), 503
-            if not integracao_token.token_valido(request.headers.get(integracao_token.CABECALHO)):
+            quem = integracao_token.consumidor(request.headers.get(integracao_token.CABECALHO))
+            if not quem:
                 app.logger.warning('[INTEGRACAO] token recusado em %s (%s)', caminho, _ip())
                 return jsonify({'success': False, 'message': 'Token de integração inválido.'}), 401
+            g.integracao_consumidor = quem
+            return None
+
+        # Agente FGTS (PC do escritório): vale só o token do agente, e só em /api/fgts-agente/.
+        from app.services.fgts import agentes as fgts_agentes
+        if fgts_agentes.caminho_do_agente(caminho):
+            agente = fgts_agentes.autenticar(request.headers.get(fgts_agentes.CABECALHO))
+            if not agente:
+                app.logger.warning('[FGTS] token de agente recusado em %s (%s)', caminho, _ip())
+                return jsonify({'success': False, 'message': 'Token do agente inválido ou revogado.'}), 401
+            g.fgts_agente_id = agente.id
             return None
 
         if not usuarios_service.configurado():

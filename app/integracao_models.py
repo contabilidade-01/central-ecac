@@ -229,3 +229,7 @@ class FgtsPedido(db.Model):
     concluido_em = db.Column(db.DateTime, nullable=True)
     origem = db.Column(db.String(20), nullable=False, default='link')   # link | atendechat | escritorio
     solicitado_por = db.Column(db.String(120), nullable=True)
+    # Desvio 27: quem executa (agente | vps), qual agente reservou e até quando.
+    executor = db.Column(db.String(10), nullable=True, index=True)
+    agente_id = db.Column(db.Integer, nullable=True, index=True)
+    reservado_ate = db.Column(db.DateTime, nullable=True)

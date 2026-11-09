@@ -44,15 +44,47 @@ def token_configurado() -> str:
     return valor
 
 
+def tokens_por_consumidor() -> dict[str, str]:
+    """Um token por sistema consumidor, para rotacionar ou revogar um sem derrubar o outro.
+
+    `INTEGRACAO_TOKENS="portal=<token>;atendechat=<token>"`. O `INTEGRACAO_TOKEN` antigo
+    continua valendo, com o nome `legado`, até todos os consumidores migrarem.
+    """
+    saida: dict[str, str] = {}
+    for par in (os.getenv('INTEGRACAO_TOKENS') or '').split(';'):
+        nome, _, valor = par.partition('=')
+        nome, valor = nome.strip().lower(), valor.strip()
+        if not nome or not valor:
+            continue
+        if len(valor) < TAMANHO_MINIMO:
+            logger.warning('[INTEGRACAO] token de %s com menos de %s caracteres — ignorado.',
+                           nome, TAMANHO_MINIMO)
+            continue
+        saida[nome] = valor
+    legado = token_configurado()
+    if legado:
+        saida.setdefault('legado', legado)
+    return saida
+
+
+def consumidor(apresentado: str | None) -> str | None:
+    """Nome do sistema dono do token, ou None. Compara todos em tempo constante."""
+    if not apresentado:
+        return None
+    recebido = str(apresentado).strip().encode('utf-8')
+    achado = None
+    for nome, valor in tokens_por_consumidor().items():
+        if hmac.compare_digest(valor.encode('utf-8'), recebido):
+            achado = nome
+    return achado
+
+
 def habilitado() -> bool:
-    return bool(token_configurado())
+    return bool(tokens_por_consumidor())
 
 
 def token_valido(apresentado: str | None) -> bool:
-    esperado = token_configurado()
-    if not esperado or not apresentado:
-        return False
-    return hmac.compare_digest(esperado.encode('utf-8'), str(apresentado).strip().encode('utf-8'))
+    return consumidor(apresentado) is not None
 
 
 def caminho_interno(caminho: str) -> bool:

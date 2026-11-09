@@ -254,4 +254,13 @@ def run_migrations():
         'ALTER TABLE caixa_postal_mensagens ADD COLUMN visualizada_at DATETIME'
     )
 
+    # Desvio 27 — executor plugável do FGTS (agente no PC ou robô na VPS).
+    if table_exists('fgts_pedidos'):
+        add_column_if_not_exists('fgts_pedidos', 'executor',
+                                 'ALTER TABLE fgts_pedidos ADD COLUMN executor VARCHAR(10)')
+        add_column_if_not_exists('fgts_pedidos', 'agente_id',
+                                 'ALTER TABLE fgts_pedidos ADD COLUMN agente_id INTEGER')
+        add_column_if_not_exists('fgts_pedidos', 'reservado_ate',
+                                 'ALTER TABLE fgts_pedidos ADD COLUMN reservado_ate DATETIME')
+
     current_app.logger.info('Migrações executadas com sucesso.')

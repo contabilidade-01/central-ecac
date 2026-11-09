@@ -123,7 +123,17 @@ def emitir(pagina, cnpj: str, competencia: str, data_pagamento: Optional[str],
     portal._perfil_cnpj = cnpj
     pdfs: Dict[str, bytes] = {}
     portal._receber_pdf = lambda _cnpj, nome, conteudo: pdfs.__setitem__(nome, conteudo)
-    guias = portal.emitir(cnpj, competencia, data_pagamento)
+    try:
+        # A tela confere "Empregador: <CNPJ>" antes de qualquer clique em "Emitir".
+        guias = portal.emitir(cnpj, competencia, data_pagamento)
+    except FalhaFgts as exc:
+        if 'outra empresa' not in str(exc):
+            raise
+        # A tela ainda não refletiu o perfil definido por JSON: escolhe pela própria tela
+        # ("Definir Perfil") e tenta uma vez. Nada foi emitido até aqui.
+        portal._perfil_cnpj = None
+        portal.definir_perfil(cnpj)
+        guias = portal.emitir(cnpj, competencia, data_pagamento)
     for g in guias:
         g['pdf'] = pdfs.get(g.get('arquivo'))
         if g['pdf'] and not pdf_e_da_empresa(g['pdf'], cnpj):

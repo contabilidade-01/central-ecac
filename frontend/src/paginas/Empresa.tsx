@@ -34,7 +34,7 @@ export function Empresa() {
         </div>
         <div className="linha">
           <a className="botao" href="/?aba=das">Gerar DAS</a>
-          <a className="botao" href="/fgts">FGTS Digital</a>
+          <Link className="botao" to="/fgts">FGTS Digital</Link>
         </div>
       </div>
       <div className="duas">

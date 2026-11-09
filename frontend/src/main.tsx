@@ -4,6 +4,7 @@ import { BrowserRouter, NavLink, Route, Routes, useLocation } from "react-router
 import { api, type Eu } from "./api";
 import { Paleta } from "./componentes/Paleta";
 import { Empresa } from "./paginas/Empresa";
+import { Fgts } from "./paginas/Fgts";
 import { Mesa } from "./paginas/Mesa";
 import "./estilo.css";
 
@@ -45,7 +46,10 @@ function App() {
         {eu?.menu.map((g) => (
           <div key={g.titulo}>
             <div className="grupo">{g.titulo}</div>
-            {g.itens.filter((i) => i.chave !== "dashboard").map((i) => (
+            {g.itens.filter((i) => i.chave !== "dashboard").map((i) => i.chave === "fgts" ? (
+              <NavLink key={i.chave} to="/fgts" className={({ isActive }) => `item${isActive ? " ativo" : ""}`}>
+                <span>{i.rotulo}</span><span className="novo">novo</span></NavLink>
+            ) : (
               <a key={i.chave} className="item" href={destinoAntigo(i)}><span>{i.rotulo}</span></a>
             ))}
           </div>
@@ -67,6 +71,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Mesa />} />
             <Route path="/empresas/:id" element={<Empresa />} />
+            <Route path="/fgts" element={<Fgts />} />
             <Route path="*" element={<div className="vazio">Tela não encontrada.</div>} />
           </Routes>
         </main>

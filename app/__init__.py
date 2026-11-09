@@ -146,6 +146,8 @@ def create_app() -> Flask:
                 or path == '/mei'
                 # DESVIO INTENCIONAL (27o): tela do FGTS Digital.
                 or path == '/fgts'
+                # DESVIO INTENCIONAL (28o): novo frontend da Central.
+                or path == '/app' or path.startswith('/app/')
                 or path == '/escritorio'
                 or path.startswith('/escritorio/')
                 # DESVIO INTENCIONAL (21o): página pública de guias sem senha.
@@ -208,6 +210,10 @@ def create_app() -> Flask:
     from app.routes.fgts_agente_routes import fgts_agente_bp
     app.register_blueprint(fgts_bp)
     app.register_blueprint(fgts_agente_bp)
+
+    # DESVIO INTENCIONAL (28o) — novo frontend (/app) e a API do painel (/api/painel/*).
+    from app.routes.painel_routes import painel_bp
+    app.register_blueprint(painel_bp)
 
     # Tela /relatorios — navegar e visualizar PDFs armazenados.
     from app.routes.relatorios_tela import relatorios_tela_bp

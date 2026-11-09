@@ -25,7 +25,7 @@ TODAS = 'todas'
 ROTINAS: Dict[str, Dict[str, Any]] = {
     'dashboard': {
         'nome': 'Dashboard',
-        'prefixos': ['/api/dashboard', '/api/reports'],
+        'prefixos': ['/api/dashboard', '/api/reports', '/api/painel', '/app'],
         'admin': False,
     },
     'configuracoes': {

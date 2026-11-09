@@ -106,6 +106,76 @@ def listar_guias():
                                                consulta.order_by(FgtsGuia.id.desc()).limit(200).all()]})
 
 
+@fgts_bp.get('/api/fgts/empresas')
+def listar_empresas():
+    """Empresas ativas com a última posição lida do FGTS (custo zero, sem ir ao portal)."""
+    from app.models import Company
+    from app.services import fgts_pedidos_service as servico
+    busca = (request.args.get('q') or '').strip().lower()
+    saida = []
+    for c in Company.query.filter_by(ativo=True).order_by(Company.razao_social).all():
+        if busca and busca not in c.razao_social.lower() and busca not in c.cnpj:
+            continue
+        consulta = servico.ultima_consulta_hoje(c.cnpj)
+        aberto = servico.pedido_aberto(c.cnpj)
+        comps = servico.resultado(consulta).get('competencias', []) if consulta else []
+        saida.append({'company_id': c.id, 'razao_social': c.razao_social, 'cnpj': c.cnpj,
+                      'consultado_em': consulta.concluido_em.isoformat() if consulta and consulta.concluido_em else None,
+                      'vencidas': sum(1 for x in comps if x.get('situacao') == 'vencida'),
+                      'total_aberto': round(sum(x.get('total') or 0 for x in comps), 2),
+                      'pedido_aberto': servico.serializar(aberto) if aberto else None})
+        if len(saida) >= 200:
+            break
+    return jsonify({'success': True, 'empresas': saida})
+
+
+@fgts_bp.get('/api/fgts/empresas/<int:company_id>')
+def ver_empresa(company_id: int):
+    from app.models import Company
+    from app.services import fgts_pedidos_service as servico
+    c = db.session.get(Company, company_id)
+    if not c:
+        return _erro('Empresa não encontrada.', 404)
+    consulta = servico.ultima_consulta_hoje(c.cnpj)
+    aberto = servico.pedido_aberto(c.cnpj)
+    recentes = FgtsGuia.query.filter_by(cnpj=c.cnpj).order_by(FgtsGuia.id.desc()).limit(20).all()
+    return jsonify({'success': True, 'empresa': {'company_id': c.id, 'razao_social': c.razao_social, 'cnpj': c.cnpj},
+                    'consulta': servico.serializar(consulta) if consulta else None,
+                    'pedido_aberto': servico.serializar(aberto) if aberto else None,
+                    'guias': [guias.serializar(g) for g in recentes]})
+
+
+@fgts_bp.post('/api/fgts/empresas/<int:company_id>/pedidos')
+def pedir(company_id: int):
+    """Admin pede pela tela: `{acao: consultar}` ou `{acao: emitir, competencias, data_pagamento?}`."""
+    from app.models import Company
+    from app.services import fgts_pedidos_service as servico
+    c = db.session.get(Company, company_id)
+    if not c or not c.ativo:
+        return _erro('Empresa não encontrada ou inativa.', 404)
+    corpo = request.get_json(silent=True) or {}
+    try:
+        pedido = servico.criar(company_id=c.id, cnpj=c.cnpj, acao=str(corpo.get('acao') or 'consultar'),
+                               competencia=corpo.get('competencias'), link_id=None, origem='central',
+                               solicitado_por=f'central:{_quem()}', data_pagamento=corpo.get('data_pagamento'))
+    except servico.PedidoRecusado as exc:
+        return _erro(str(exc), exc.status)
+    return jsonify({'success': True, 'pedido': servico.serializar(pedido)})
+
+
+@fgts_bp.get('/api/fgts/guias/<int:guia_id>/pdf')
+def baixar_guia(guia_id: int):
+    from pathlib import Path
+    from flask import send_file
+    from app.services import fgts_pedidos_service as servico
+    g = db.session.get(FgtsGuia, guia_id)
+    if not g or not Path(g.pdf_path).is_file():
+        return _erro('PDF não encontrado.', 404)
+    if Path(g.pdf_path).resolve().parent != servico.pasta_pdfs(g.cnpj).resolve():
+        return _erro('PDF fora da pasta da empresa.', 403)
+    return send_file(g.pdf_path, mimetype='application/pdf', download_name=f'FGTS_{g.cnpj}_{g.competencia}.pdf')
+
+
 @fgts_bp.get('/api/fgts/eventos')
 def listar_eventos():
     itens = FgtsEvento.query.order_by(FgtsEvento.id.desc()).limit(100).all()
@@ -129,9 +199,10 @@ PAGINA = """<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 <div class="wrap">
 <h1>FGTS Digital</h1><p class="sub">Prontidão da automação, parâmetros, agentes e pedidos. Datas, valores e encargos vêm sempre do portal.</p>
 <div class="luzes" id="luzes"></div>
-<div class="abas"><button class="ativa" data-aba="parametros">Configurações</button><button data-aba="agentes">Agentes</button><button data-aba="pedidos">Pedidos</button></div>
+<div class="abas"><button class="ativa" data-aba="empresas">Empresas</button><button data-aba="parametros">Configurações</button><button data-aba="agentes">Agentes</button><button data-aba="pedidos">Pedidos</button></div>
 <div id="msg"></div>
-<section class="card" id="aba-parametros"></section>
+<section class="card" id="aba-empresas"></section>
+<section class="card" id="aba-parametros" hidden></section>
 <section class="card" id="aba-agentes" hidden></section>
 <section class="card" id="aba-pedidos" hidden></section>
 </div>
@@ -142,7 +213,7 @@ async function api(m,u,b){try{const r=await fetch(u,{method:m,headers:{'Content-
  const t=await r.text();let j;try{j=JSON.parse(t)}catch(e){return{success:r.ok,message:'HTTP '+r.status}}return j}catch(e){return{success:false,message:'Sem conexão: '+e.message}}}
 function aviso(t,erro){$('#msg').innerHTML=t?`<div class="msg ${erro?'bad':'ok'}">${esc(t)}</div>`:''}
 document.querySelectorAll('.abas button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.abas button').forEach(x=>x.classList.toggle('ativa',x===b));
- ['parametros','agentes','pedidos'].forEach(a=>$('#aba-'+a).hidden=a!==b.dataset.aba);({parametros:carregarParametros,agentes:carregarAgentes,pedidos:carregarPedidos})[b.dataset.aba]()});
+ ['empresas','parametros','agentes','pedidos'].forEach(a=>$('#aba-'+a).hidden=a!==b.dataset.aba);({empresas:carregarEmpresas,parametros:carregarParametros,agentes:carregarAgentes,pedidos:carregarPedidos})[b.dataset.aba]()});
 async function luzes(){const e=await api('GET','/api/fgts/estado');if(!e.success)return;
  const l=(c,t)=>`<span class="luz"><i class="${c}"></i>${esc(t)}</span>`;
  $('#luzes').innerHTML=l(e.habilitado?'ok':'erro',e.habilitado?'Módulo ligado':'Módulo desligado')+l('ok','Executor: '+(e.executor==='agente'?'agente no PC':'robô na VPS'))
@@ -181,7 +252,32 @@ async function carregarPedidos(){const r=await api('GET','/api/fgts/pedidos');if
  <td>${esc(p.executor||'vps')}</td><td>${esc(p.origem)}</td><td>${p.criado_em?esc(new Date(p.criado_em+'Z').toLocaleString('pt-BR')):''}</td>
  <td>${p.status==='verificar_portal'?`<button onclick="conferir(${p.id},true)">A guia saiu</button><button onclick="conferir(${p.id},false)">Não saiu</button>`:''}</td></tr>`).join('')||'<tr><td colspan=8>Nenhum pedido.</td></tr>'}</table></div>`}
 async function conferir(id,saiu){const r=await api('POST',`/api/fgts/pedidos/${id}/conferido`,{guia_saiu:saiu});aviso(r.success?'Registrado.':r.message,!r.success);carregarPedidos()}
-luzes();carregarParametros();setInterval(luzes,30000);
+
+const brl=v=>v==null?'—':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const comp=c=>c?c.slice(4)+'/'+c.slice(0,4):'';
+let EMP=null,TIMER=null;
+async function carregarEmpresas(){const q=($('#buscaEmp')||{}).value||'';const r=await api('GET','/api/fgts/empresas?q='+encodeURIComponent(q));if(!r.success){aviso(r.message,true);return}
+ $('#aba-empresas').innerHTML=`<div class="grade"><input id="buscaEmp" placeholder="Buscar empresa ou CNPJ" value="${esc(q)}" onkeydown="if(event.key==='Enter')carregarEmpresas()"><button onclick="carregarEmpresas()">Buscar</button></div>
+ <div class="table-wrap" style="margin-top:12px"><table><tr><th>Empresa</th><th>Última consulta</th><th>Vencidas</th><th>Em aberto</th><th></th></tr>
+ ${r.empresas.map(e=>`<tr><td><b>${esc(e.razao_social)}</b><br><small>${esc(e.cnpj)}</small></td><td>${e.consultado_em?esc(new Date(e.consultado_em+'Z').toLocaleString('pt-BR')):'—'}</td>
+ <td>${e.vencidas?`<span class="badge bad">${e.vencidas}</span>`:'—'}</td><td>${e.consultado_em?brl(e.total_aberto):'—'}</td><td><button class="azul" onclick="abrirEmpresa(${e.company_id})">Abrir</button></td></tr>`).join('')||'<tr><td colspan=5>Nenhuma empresa.</td></tr>'}</table></div><div id="painelEmp"></div>`}
+async function abrirEmpresa(id){EMP=id;clearTimeout(TIMER);const r=await api('GET','/api/fgts/empresas/'+id);if(!r.success){aviso(r.message,true);return}
+ const e=r.empresa,c=r.consulta,a=r.pedido_aberto;let h=`<h2 style="margin-top:20px">${esc(e.razao_social)} <small>${esc(e.cnpj)}</small></h2>`;
+ if(a){h+=`<div class="aviso">Pedido em andamento: <b>${esc(a.acao)}</b> · ${esc(ROT[a.status]||a.status)} ${a.mensagem?'· '+esc(a.mensagem):''}</div>`;TIMER=setTimeout(()=>abrirEmpresa(id),4000)}
+ else h+=`<button class="azul" onclick="pedir('consultar')">Buscar pendências no FGTS Digital</button>`;
+ if(c&&c.competencias.length){h+=`<p class="dica" style="margin-top:12px">Consulta de ${esc(new Date(c.concluido_em+'Z').toLocaleString('pt-BR'))}. Marque as competências e gere as guias para pagar hoje.</p>
+  <div class="table-wrap"><table><tr><th></th><th>Competência</th><th>Vencimento</th><th>Situação</th><th>Total</th></tr>
+  ${c.competencias.map(x=>`<tr><td><input type="checkbox" class="marca" value="${esc(x.competencia)}" ${x.tem_guia&&x.situacao==='em_dia'?'':''}></td><td>${comp(x.competencia)}</td><td>${x.vencimento?esc(x.vencimento.split('-').reverse().join('/')):'—'}</td>
+  <td><span class="badge ${x.situacao==='vencida'?'bad':'ok'}">${x.situacao==='vencida'?'Vencida':'Em dia'}</span>${x.tem_guia?' <span class="badge mute">já tem guia</span>':''}</td><td>${brl(x.total)}</td></tr>`).join('')}</table></div>
+  ${a?'':`<button class="azul" style="margin-top:10px" onclick="gerar()">Gerar guias das competências marcadas</button>`}`}
+ else if(c)h+=`<p class="dica" style="margin-top:12px">Nenhum débito em aberto na última consulta.</p>`;
+ if(r.guias.length)h+=`<h2 style="margin-top:18px">Guias emitidas</h2><div class="table-wrap"><table><tr><th>Competência</th><th>Número</th><th>Valor</th><th>Pagar até</th><th>Pix</th><th></th></tr>
+  ${r.guias.map(g=>`<tr><td>${comp(g.competencia)}</td><td>${esc(g.numero)}</td><td>${brl(g.valor)}</td><td>${g.vencimento?esc(g.vencimento.split('-').reverse().join('/')):'—'}</td><td>${g.tem_pix?'<span class="badge ok">sim</span>':'<span class="badge mute">não</span>'}</td><td><a href="/api/fgts/guias/${g.id}/pdf" target="_blank">PDF</a></td></tr>`).join('')}</table></div>`;
+ $('#painelEmp').innerHTML=h}
+async function pedir(acao,competencias){const r=await api('POST',`/api/fgts/empresas/${EMP}/pedidos`,{acao,competencias});aviso(r.success?(acao==='consultar'?'Busca enviada ao agente.':'Emissão enviada ao agente.'):r.message,!r.success);abrirEmpresa(EMP)}
+function gerar(){const m=[...document.querySelectorAll('.marca:checked')].map(x=>x.value);if(!m.length){aviso('Marque ao menos uma competência.',true);return}
+ if(!window.confirm(`Gerar ${m.length} guia(s) REAL(IS) no FGTS Digital para pagar hoje: ${m.map(comp).join(', ')}?`))return;pedir('emitir',m)}
+luzes();carregarEmpresas();setInterval(luzes,30000);
 </script>{{ fim|safe }}</body></html>"""
 
 

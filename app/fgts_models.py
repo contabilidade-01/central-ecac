@@ -81,3 +81,16 @@ class FgtsEvento(db.Model):
     cnpj = db.Column(db.String(14), nullable=True, index=True)
     mensagem = db.Column(db.String(500), nullable=True)
     em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class FgtsEmpresa(db.Model):
+    """Empresa tem FGTS a recolher? Vem do portal (funcionários ativos) ou de exceção do admin."""
+    __tablename__ = 'fgts_empresas'
+
+    company_id = db.Column(db.Integer, primary_key=True)
+    cnpj = db.Column(db.String(14), nullable=False, index=True)
+    funcionarios = db.Column(db.Integer, nullable=True)          # None = o portal não conhece a empresa
+    sincronizado_em = db.Column(db.DateTime, nullable=True)
+    excecao = db.Column(db.Boolean, nullable=True)               # None = segue o portal; True/False = admin
+    excecao_por = db.Column(db.String(120), nullable=True)
+    excecao_em = db.Column(db.DateTime, nullable=True)

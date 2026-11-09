@@ -62,10 +62,12 @@ def ambiente(monkeypatch):
     from app.services.fgts import agentes
     monkeypatch.setattr(agentes, 'dentro_da_janela', lambda agora=None: True)
     with app.app_context():
-        from app.fgts_models import FgtsAgente, FgtsEvento, FgtsGuia, FgtsParametro, FgtsParametroHistorico
+        from app.fgts_models import (FgtsAgente, FgtsEmpresa, FgtsEvento, FgtsGuia, FgtsParametro,
+                                     FgtsParametroHistorico)
         from app.integracao_models import FgtsPedido
         from app.models import Company
-        for m in (FgtsGuia, FgtsEvento, FgtsAgente, FgtsParametro, FgtsParametroHistorico, FgtsPedido, Company):
+        for m in (FgtsGuia, FgtsEvento, FgtsAgente, FgtsParametro, FgtsParametroHistorico, FgtsPedido, FgtsEmpresa,
+                  Company):
             m.query.delete()
         db.session.add_all([Company(razao_social='J F DA SILVA', cnpj=CNPJ, ativo=True),
                             Company(razao_social='OUTRA', cnpj=OUTRO, ativo=True)])
@@ -350,3 +352,36 @@ def test_backup_restaura_o_banco(ambiente):
         assert con.execute('SELECT count(*) FROM companies').fetchone()[0] == 2
     finally:
         con.close()
+
+
+def test_so_empresa_com_funcionario_pede_fgts_e_excecao_libera(ambiente, monkeypatch):
+    app, http = ambiente
+    from app.services import nescon_service
+    from app.services.fgts import empresas
+    monkeypatch.setattr(nescon_service, '_chamar', lambda m, c, **kw: {
+        'empresas': [{'cnpj': CNPJ, 'funcionarios': 2}, {'cnpj': OUTRO, 'funcionarios': 0}]})
+    with app.app_context():
+        assert empresas.sincronizar()['empresas_com_funcionarios'] == 1
+    assert _consultar(http, CNPJ)
+    r = http.post('/api/interno/fgts/pedidos', json={'cnpj': OUTRO, 'acao': 'consultar'}, headers=ATENDE)
+    assert r.status_code == 409 and 'funcionário' in r.get_json()['message']
+    from app.models import Company
+    with app.app_context():
+        outro = Company.query.filter_by(cnpj=OUTRO).first()
+        empresas.definir_excecao(outro.id, OUTRO, True, 'jean')
+    assert http.post('/api/interno/fgts/pedidos', json={'cnpj': OUTRO, 'acao': 'consultar'},
+                     headers=ATENDE).status_code == 200
+
+
+def test_antes_de_sincronizar_nada_e_bloqueado(ambiente):
+    app, http = ambiente
+    assert _consultar(http, OUTRO)
+
+
+def test_portal_fora_do_ar_nao_apaga_a_lista(ambiente, monkeypatch):
+    app, _ = ambiente
+    from app.services import nescon_service
+    from app.services.fgts import empresas
+    monkeypatch.setattr(nescon_service, '_chamar', lambda m, c, **kw: {'status': 'erro_rede', 'motivo': 'sem rede'})
+    with app.app_context():
+        assert empresas.sincronizar() == {'ok': False, 'motivo': 'sem rede'}

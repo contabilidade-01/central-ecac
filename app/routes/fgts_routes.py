@@ -111,15 +111,21 @@ def listar_empresas():
     """Empresas ativas com a última posição lida do FGTS (custo zero, sem ir ao portal)."""
     from app.models import Company
     from app.services import fgts_pedidos_service as servico
+    from app.services.fgts import empresas as fgts_empresas
+    fgts_empresas.sincronizar_se_velho()
     busca = (request.args.get('q') or '').strip().lower()
+    todas = request.args.get('todas') == '1'
     saida = []
     for c in Company.query.filter_by(ativo=True).order_by(Company.razao_social).all():
         if busca and busca not in c.razao_social.lower() and busca not in c.cnpj:
             continue
+        sit = fgts_empresas.situacao(c.id)
+        if not todas and not sit['aplicavel']:
+            continue
         consulta = servico.ultima_consulta_hoje(c.cnpj)
         aberto = servico.pedido_aberto(c.cnpj)
         comps = servico.resultado(consulta).get('competencias', []) if consulta else []
-        saida.append({'company_id': c.id, 'razao_social': c.razao_social, 'cnpj': c.cnpj,
+        saida.append({**sit, 'company_id': c.id, 'razao_social': c.razao_social, 'cnpj': c.cnpj,
                       'consultado_em': consulta.concluido_em.isoformat() if consulta and consulta.concluido_em else None,
                       'vencidas': sum(1 for x in comps if x.get('situacao') == 'vencida'),
                       'total_aberto': round(sum(x.get('total') or 0 for x in comps), 2),
@@ -127,6 +133,28 @@ def listar_empresas():
         if len(saida) >= 200:
             break
     return jsonify({'success': True, 'empresas': saida})
+
+
+@fgts_bp.post('/api/fgts/empresas/sincronizar')
+def sincronizar_empresas():
+    from app.services.fgts import empresas as fgts_empresas
+    r = fgts_empresas.sincronizar()
+    return (jsonify({'success': True, **r}) if r['ok'] else _erro(r['motivo'], 502))
+
+
+@fgts_bp.put('/api/fgts/empresas/<int:company_id>/excecao')
+def excecao(company_id: int):
+    """`{valor: true|false|null}`: liga, desliga ou volta a seguir o portal."""
+    from app.models import Company
+    from app.services.fgts import empresas as fgts_empresas
+    c = db.session.get(Company, company_id)
+    if not c:
+        return _erro('Empresa não encontrada.', 404)
+    valor = (request.get_json(silent=True) or {}).get('valor')
+    if valor not in (True, False, None):
+        return _erro('Use true, false ou null.')
+    fgts_empresas.definir_excecao(c.id, c.cnpj, valor, _quem())
+    return jsonify({'success': True, **fgts_empresas.situacao(c.id)})
 
 
 @fgts_bp.get('/api/fgts/empresas/<int:company_id>')
@@ -139,7 +167,9 @@ def ver_empresa(company_id: int):
     consulta = servico.ultima_consulta_hoje(c.cnpj)
     aberto = servico.pedido_aberto(c.cnpj)
     recentes = FgtsGuia.query.filter_by(cnpj=c.cnpj).order_by(FgtsGuia.id.desc()).limit(20).all()
-    return jsonify({'success': True, 'empresa': {'company_id': c.id, 'razao_social': c.razao_social, 'cnpj': c.cnpj},
+    from app.services.fgts import empresas as fgts_empresas
+    return jsonify({'success': True, 'empresa': {'company_id': c.id, 'razao_social': c.razao_social, 'cnpj': c.cnpj,
+                                                 **fgts_empresas.situacao(c.id)},
                     'consulta': servico.serializar(consulta) if consulta else None,
                     'pedido_aberto': servico.serializar(aberto) if aberto else None,
                     'guias': [guias.serializar(g) for g in recentes]})
@@ -255,14 +285,18 @@ async function conferir(id,saiu){const r=await api('POST',`/api/fgts/pedidos/${i
 
 const brl=v=>v==null?'—':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const comp=c=>c?c.slice(4)+'/'+c.slice(0,4):'';
-let EMP=null,TIMER=null;
-async function carregarEmpresas(){const q=($('#buscaEmp')||{}).value||'';const r=await api('GET','/api/fgts/empresas?q='+encodeURIComponent(q));if(!r.success){aviso(r.message,true);return}
- $('#aba-empresas').innerHTML=`<div class="grade"><input id="buscaEmp" placeholder="Buscar empresa ou CNPJ" value="${esc(q)}" onkeydown="if(event.key==='Enter')carregarEmpresas()"><button onclick="carregarEmpresas()">Buscar</button></div>
+let EMP=null,TIMER=null,TODAS=false;
+async function sincronizar(){aviso('Consultando o portal…');const r=await api('POST','/api/fgts/empresas/sincronizar');aviso(r.success?`${r.empresas_com_funcionarios} empresa(s) com funcionários.`:r.message,!r.success);carregarEmpresas()}
+async function excecao(v){const r=await api('PUT',`/api/fgts/empresas/${EMP}/excecao`,{valor:v});aviso(r.success?'Exceção registrada.':r.message,!r.success);abrirEmpresa(EMP)}
+async function carregarEmpresas(){const q=($('#buscaEmp')||{}).value||'';const r=await api('GET','/api/fgts/empresas?q='+encodeURIComponent(q)+(TODAS?'&todas=1':''));if(!r.success){aviso(r.message,true);return}
+ $('#aba-empresas').innerHTML=`<div class="grade"><input id="buscaEmp" placeholder="Buscar empresa ou CNPJ" value="${esc(q)}" onkeydown="if(event.key==='Enter')carregarEmpresas()"><button onclick="carregarEmpresas()">Buscar</button><label style="font-size:13px"><input type="checkbox" id="todasEmp" ${TODAS?'checked':''} onchange="TODAS=this.checked;carregarEmpresas()"> mostrar também empresas sem funcionário</label><button onclick="sincronizar()">Atualizar funcionários do portal</button></div>
  <div class="table-wrap" style="margin-top:12px"><table><tr><th>Empresa</th><th>Última consulta</th><th>Vencidas</th><th>Em aberto</th><th></th></tr>
- ${r.empresas.map(e=>`<tr><td><b>${esc(e.razao_social)}</b><br><small>${esc(e.cnpj)}</small></td><td>${e.consultado_em?esc(new Date(e.consultado_em+'Z').toLocaleString('pt-BR')):'—'}</td>
+ ${r.empresas.map(e=>`<tr><td><b>${esc(e.razao_social)}</b><br><small>${esc(e.cnpj)} · ${esc(e.motivo)}</small></td><td>${e.consultado_em?esc(new Date(e.consultado_em+'Z').toLocaleString('pt-BR')):'—'}</td>
  <td>${e.vencidas?`<span class="badge bad">${e.vencidas}</span>`:'—'}</td><td>${e.consultado_em?brl(e.total_aberto):'—'}</td><td><button class="azul" onclick="abrirEmpresa(${e.company_id})">Abrir</button></td></tr>`).join('')||'<tr><td colspan=5>Nenhuma empresa.</td></tr>'}</table></div><div id="painelEmp"></div>`}
 async function abrirEmpresa(id){EMP=id;clearTimeout(TIMER);const r=await api('GET','/api/fgts/empresas/'+id);if(!r.success){aviso(r.message,true);return}
- const e=r.empresa,c=r.consulta,a=r.pedido_aberto;let h=`<h2 style="margin-top:20px">${esc(e.razao_social)} <small>${esc(e.cnpj)}</small></h2>`;
+ const e=r.empresa,c=r.consulta,a=r.pedido_aberto;let h=`<h2 style="margin-top:20px">${esc(e.razao_social)} <small>${esc(e.cnpj)}</small></h2><p class="dica">FGTS ${e.aplicavel?'<span class="badge ok">se aplica</span>':'<span class="badge mute">não se aplica</span>'} · ${esc(e.motivo)}
+ · Exceção: <button onclick="excecao(true)">ligar</button><button onclick="excecao(false)">desligar</button>${e.excecao!==null?'<button onclick="excecao(null)">seguir o portal</button>':''}</p>`;
+ if(!e.aplicavel){$('#painelEmp').innerHTML=h;return}
  if(a){h+=`<div class="aviso">Pedido em andamento: <b>${esc(a.acao)}</b> · ${esc(ROT[a.status]||a.status)} ${a.mensagem?'· '+esc(a.mensagem):''}</div>`;TIMER=setTimeout(()=>abrirEmpresa(id),4000)}
  else h+=`<button class="azul" onclick="pedir('consultar')">Buscar pendências no FGTS Digital</button>`;
  if(c&&c.competencias.length){h+=`<p class="dica" style="margin-top:12px">Consulta de ${esc(new Date(c.concluido_em+'Z').toLocaleString('pt-BR'))}. Marque as competências e gere as guias para pagar hoje.</p>

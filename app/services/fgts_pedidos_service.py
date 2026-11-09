@@ -147,6 +147,11 @@ def criar(*, company_id: int, cnpj: str, acao: str, competencia: Any = None,
         raise PedidoRecusado('O FGTS por aqui ainda não está ligado. Fale com o escritório.', 503)
     if acao not in ACOES:
         raise PedidoRecusado('Ação inválida.')
+    from app.services.fgts import empresas as fgts_empresas
+    situacao_fgts = fgts_empresas.situacao(company_id)
+    if not situacao_fgts['aplicavel']:
+        raise PedidoRecusado(f"FGTS não se aplica a esta empresa: {situacao_fgts['motivo']}. "
+                             'O administrador pode abrir exceção na tela FGTS Digital.', 409)
     aberto = pedido_aberto(cnpj)
     if aberto:
         # Não é erro: a página retoma o acompanhamento do pedido que já está andando.

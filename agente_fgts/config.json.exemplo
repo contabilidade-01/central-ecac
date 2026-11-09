@@ -1,0 +1,7 @@
+{
+  "central_url": "https://ecac.gestaoempresa.com",
+  "token": "fgag_cole_aqui_o_token_gerado_na_tela_/fgts",
+  "nome_maquina": "",
+  "porta_chrome": 9222,
+  "perfil_chrome": "%LOCALAPPDATA%\Nescon\agente-fgts-chrome"
+}

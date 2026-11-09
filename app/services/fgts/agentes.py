@@ -274,7 +274,8 @@ def resultado(agente: FgtsAgente, pedido_id: int, dados: Dict[str, Any]) -> Dict
             raise RecusaAgente('Nenhuma guia foi entregue para este pedido de emissão.')
         atual['executor'] = 'agente'
         servico.gravar_resultado(pedido, atual)
-        servico.atualizar(pedido, status='concluido', etapa='concluido', mensagem=None)
+        pedido.mensagem = None   # tira o último 'Consultando…' do progresso
+        servico.atualizar(pedido, status='concluido', etapa='concluido')
         evento('pedido_concluido', pedido.acao, pedido_id=pedido.id, agente_id=agente.id, cnpj=pedido.cnpj)
     pedido.reservado_ate = None   # agente_id fica: registra quem executou
     agente.pedido_atual_id = None

@@ -55,7 +55,7 @@ function App() {
           </div>
         ))}
         <div className="grupo">Sessão</div>
-        <a className="item" href="/">Tela antiga</a>
+        <a className="item" href="/?antiga=1">Tela antiga</a>
         <a className="item" href="/logout">Sair</a>
       </nav>
       <div className="principal">

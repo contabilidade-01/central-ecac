@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, request, jsonify
+from flask import Flask, send_from_directory, request, jsonify, redirect
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 from pathlib import Path
@@ -247,6 +247,14 @@ def create_app() -> Flask:
 
     @app.get('/')
     def index():
+        # DESVIO INTENCIONAL (28o): a interface nova é a tela inicial. Com query string
+        # (?aba=..., ?antiga=1) segue para a SPA antiga, que os itens do menu novo ainda usam.
+        if not request.query_string:
+            from app.security import usuario_atual
+            from app.services import permissoes as _perm
+            usuario = usuario_atual()
+            if usuario and _perm.pode_rotina(usuario, 'dashboard'):
+                return redirect('/app')
         static_dir = Path(app.static_folder)
         return send_from_directory(static_dir, 'index.html')
 

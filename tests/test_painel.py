@@ -100,3 +100,11 @@ def test_busca_por_nome_e_cnpj(ambiente):
 def test_sem_login_nao_abre(ambiente):
     _app, http, _ = ambiente
     assert http.get('/api/painel/mesa').status_code == 401
+
+
+def test_raiz_abre_a_interface_nova(ambiente):
+    _app, http, _ = ambiente
+    r = http.get('/', headers=BASIC)
+    assert r.status_code == 302 and r.headers['Location'].endswith('/app')
+    assert http.get('/?antiga=1', headers=BASIC).status_code == 200
+    assert http.get('/?aba=das', headers=BASIC).status_code == 200

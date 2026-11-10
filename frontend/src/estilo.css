@@ -123,3 +123,9 @@ tr.clicavel:hover, tr.clicavel:focus-visible { background: var(--painel-2); }
 .luz i { width: 8px; height: 8px; border-radius: 50%; }
 details.regra summary { cursor: pointer; color: var(--destaque); font-size: 12px; font-weight: 700; margin-top: 6px; }
 details.regra ul { margin: 6px 0 0; padding-left: 18px; color: var(--suave); font-size: 12px; }
+
+.botao:disabled { opacity: .5; cursor: not-allowed; }
+input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--destaque); cursor: pointer; }
+.progresso { padding: 8px 0; border-bottom: 1px solid color-mix(in srgb, var(--linha) 60%, transparent); }
+.barra-progresso { height: 7px; border-radius: 99px; background: var(--linha); overflow: hidden; margin-top: 6px; }
+.barra-progresso div { height: 100%; background: var(--destaque); border-radius: inherit; transition: width .3s; }

@@ -14,6 +14,7 @@ from app.models import Company
 from app.services import painel_service, permissoes
 
 painel_bp = Blueprint('painel', __name__)
+_NA_FILA: list = []   # empresas pedidas em /api/painel/consultar que ainda não começaram
 PASTA_NOVO = Path(__file__).resolve().parents[1] / 'static' / 'novo'
 
 
@@ -58,6 +59,65 @@ def contato(company_id: int):
         return jsonify({'success': True, 'disponivel': False, 'motivo': r.get('motivo')})
     return jsonify({'success': True, 'disponivel': True, 'vinculada': bool(r.get('vinculada')),
                     'whatsapp_valido': bool(r.get('whatsapp_valido')), 'motivo': r.get('motivo')})
+
+
+@painel_bp.post('/api/painel/consultar')
+def consultar():
+    """Consulta a situação fiscal (paga, SERPRO) das empresas escolhidas, uma de cada vez.
+
+    Corpo: {"company_ids": [..]} ou {"todas": true}. Mesmo caminho do "processar todas" da
+    tela antiga (ReportService.process_company), só que restrito às empresas pedidas e às
+    liberadas para o usuário. Empresa já em processamento é pulada.
+    """
+    import threading
+    from flask import current_app
+    from app.services.report_service import ReportService
+    usuario = _usuario()
+    corpo = request.get_json(silent=True) or {}
+    visiveis = {c.id: c for c in painel_service._empresas_visiveis(usuario)}
+    if corpo.get('todas'):
+        ids = list(visiveis)
+    else:
+        ids = [int(i) for i in corpo.get('company_ids') or [] if str(i).isdigit() and int(i) in visiveis]
+    ids = [i for i in ids if visiveis[i].processing_status != 'processing']
+    if not ids:
+        return jsonify({'success': False,
+                        'message': 'Nenhuma empresa para consultar (ou todas já estão em consulta).'}), 400
+
+    novos = [i for i in ids if i not in _NA_FILA]
+    _NA_FILA.extend(novos)
+
+    def rodar(app, lista):
+        with app.app_context():
+            servico = ReportService()
+            for cid in lista:
+                if cid in _NA_FILA:
+                    _NA_FILA.remove(cid)
+                try:
+                    c = db.session.get(Company, cid)
+                    if c and c.ativo and c.processing_status != 'processing':
+                        servico.process_company(cid)
+                except Exception:
+                    db.session.rollback()
+                    app.logger.exception('[PAINEL] consulta da empresa %s falhou', cid)
+
+    if not novos:
+        return jsonify({'success': False, 'message': 'Essas empresas já estão na fila de consulta.'}), 400
+    threading.Thread(target=rodar, args=(current_app._get_current_object(), novos), daemon=True).start()
+    return jsonify({'success': True, 'quantidade': len(novos)})
+
+
+@painel_bp.get('/api/painel/consultas')
+def consultas():
+    """Andamento das consultas: empresas em processamento agora e as que terminaram com erro."""
+    saida = []
+    for c in painel_service._empresas_visiveis(_usuario()):
+        if c.processing_status in ('processing', 'error'):
+            saida.append({'company_id': c.id, 'razao_social': c.razao_social, 'status': c.processing_status,
+                          'etapa': c.processing_step, 'progresso': c.processing_progress or 0,
+                          'mensagem': c.processing_message})
+    return jsonify({'success': True, 'em_andamento': sum(1 for s in saida if s['status'] == 'processing'),
+                    'na_fila': len(_NA_FILA), 'empresas': saida})
 
 
 @painel_bp.get('/api/painel/status')

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type Contato, type Ficha, type Pendencia } from "../api";
+import { Consultas } from "../componentes/Consultas";
 import { brl, cnpj, COR_FAIXA, dataBr, dataCurta, ROTULO_FAIXA } from "../formatos";
 
 const COR_EVENTO: Record<string, string> = { relatorio: "c-info", guia: "c-ok", mensagem: "c-alerta" };
@@ -30,6 +31,13 @@ export function Empresa() {
   const [f, setF] = useState<Ficha | null>(null);
   const [contato, setContato] = useState<Contato | null>(null);
   const [erro, setErro] = useState("");
+  const [gatilho, setGatilho] = useState(0);
+
+  const consultar = async () => {
+    if (!f || !window.confirm(`Consultar a situação fiscal de ${f.empresa.razao_social} no e-CAC agora? É uma consulta paga na SERPRO.`)) return;
+    try { await api.consultar({ company_ids: [f.empresa.company_id] }); setGatilho((g) => g + 1); }
+    catch (e: any) { window.alert(e.message); }
+  };
 
   useEffect(() => {
     setF(null); setErro(""); setContato(null);
@@ -56,9 +64,11 @@ export function Empresa() {
         <div className="linha">
           {f.portal_url && <a className="botao" href={f.portal_url} target="_blank" rel="noreferrer">Abrir no Portal</a>}
           {f.fgts.aplicavel && <Link className="botao" to={`/fgts?empresa=${f.empresa.company_id}`}>FGTS Digital</Link>}
+          <button className="botao" type="button" onClick={consultar}>Consultar no e-CAC</button>
           <a className="botao primario" href="/?aba=das">Gerar DAS</a>
         </div>
       </div>
+      <Consultas gatilho={gatilho} aoTerminar={() => api.ficha(Number(id)).then(setF).catch(() => undefined)} />
       <div className="duas">
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="cartao">

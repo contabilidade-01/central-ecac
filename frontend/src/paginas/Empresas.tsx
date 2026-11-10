@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type Empresas as Dados, type LinhaEmpresa } from "../api";
+import { Consultas } from "../componentes/Consultas";
 import { brl, cnpj, COR_FAIXA, dataBr, ROTULO_FAIXA } from "../formatos";
 
 const FILTROS = [
@@ -25,9 +26,31 @@ export function Empresas() {
   const [erro, setErro] = useState("");
   const [filtro, setFiltro] = useState<string>("todas");
   const [busca, setBusca] = useState("");
+  const [marcadas, setMarcadas] = useState<Set<number>>(new Set());
+  const [aviso, setAviso] = useState("");
+  const [gatilho, setGatilho] = useState(0);
   const ir = useNavigate();
 
-  useEffect(() => { api.empresas().then(setDados).catch((e) => setErro(e.message)); }, []);
+  const carregar = () => { api.empresas().then(setDados).catch((e) => setErro(e.message)); };
+  useEffect(carregar, []);
+
+  const marcar = (id: number) => setMarcadas((m) => { const n = new Set(m); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  // Cada empresa é uma consulta paga na SERPRO: confirma a quantidade antes.
+  const consultar = async (todas: boolean) => {
+    const qtd = todas ? (dados?.empresas.length ?? 0) : marcadas.size;
+    if (!qtd) return;
+    if (!window.confirm(`Consultar a situação fiscal de ${qtd} empresa(s) no e-CAC?
+
+Cada empresa é uma consulta paga na SERPRO. `
+      + "As consultas rodam uma de cada vez; você pode sair desta tela.")) return;
+    setAviso(""); setErro("");
+    try {
+      const r = await api.consultar(todas ? { todas: true } : { company_ids: [...marcadas] });
+      setAviso(`${r.quantidade} empresa(s) na fila de consulta.`);
+      setMarcadas(new Set()); setGatilho((g) => g + 1);
+    } catch (e: any) { setErro(e.message); }
+  };
 
   const linhas = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -46,8 +69,16 @@ export function Empresas() {
           <h1>Empresas</h1>
           <p className="sub">Saúde fiscal de cada empresa, da pior para a melhor. Clique para abrir a ficha.</p>
         </div>
+        <div className="linha">
+          <button className="botao" type="button" disabled={!marcadas.size} onClick={() => consultar(false)}>
+            Consultar selecionadas{marcadas.size ? ` (${marcadas.size})` : ""}</button>
+          <button className="botao primario" type="button" disabled={!dados} onClick={() => consultar(true)}>
+            Consultar todas no e-CAC</button>
+        </div>
       </div>
       {erro && <div className="erro">{erro}</div>}
+      {aviso && <div className="cartao">{aviso}</div>}
+      <Consultas gatilho={gatilho} aoTerminar={carregar} />
       <div className="indicadores">
         <div className="cartao indicador"><span>Empresas</span><strong>{dados ? total : "—"}</strong>
           <small className="suave">nota média {dados ? media : "—"}</small></div>
@@ -77,12 +108,18 @@ export function Empresas() {
         {dados && !linhas.length && <div className="vazio">Nenhuma empresa neste filtro.</div>}
         {!!linhas.length && (
           <div className="tabela"><table>
-            <thead><tr><th>Saúde</th><th>Empresa</th><th>O que mais pesa</th><th>Vencidos</th><th>FGTS</th>
+            <thead><tr><th><input type="checkbox" aria-label="Selecionar todas as empresas do filtro"
+              checked={linhas.length > 0 && linhas.every((e) => marcadas.has(e.company_id))}
+              onChange={(ev) => setMarcadas(ev.target.checked ? new Set(linhas.map((e) => e.company_id)) : new Set())} /></th>
+              <th>Saúde</th><th>Empresa</th><th>O que mais pesa</th><th>Vencidos</th><th>FGTS</th>
               <th>Caixa Postal</th><th>Procuração</th><th>Situação fiscal de</th></tr></thead>
             <tbody>{linhas.map((e) => (
               <tr key={e.company_id} className="clicavel" tabIndex={0}
                 onClick={() => ir(`/empresas/${e.company_id}`)}
                 onKeyDown={(k) => { if (k.key === "Enter") ir(`/empresas/${e.company_id}`); }}>
+                <td onClick={(ev) => ev.stopPropagation()}>
+                  <input type="checkbox" checked={marcadas.has(e.company_id)} onChange={() => marcar(e.company_id)}
+                    aria-label={`Selecionar ${e.razao_social}`} /></td>
                 <td><Nota e={e} /></td>
                 <td><b>{e.razao_social}</b><div className="suave pequeno">{cnpj(e.cnpj)}</div></td>
                 <td className="pequeno">{e.motivo_principal || <span className="suave">Nada reduz a nota</span>}</td>

@@ -131,3 +131,21 @@ def test_ficha_traz_link_do_portal(ambiente, monkeypatch):
     monkeypatch.setenv('NESCON_PORTAL_URL', 'https://portal.exemplo/')
     d = http.get(f"/api/painel/empresas/{ids['A']}", headers=BASIC).get_json()
     assert d['portal_url'] == 'https://portal.exemplo/admin/empresas?busca=11222333000181'
+
+
+def test_consultar_selecionadas_roda_uma_de_cada_vez(ambiente, monkeypatch):
+    import time
+    _app, http, ids = ambiente
+    chamadas = []
+    from app.services import report_service
+    monkeypatch.setattr(report_service.ReportService, 'process_company', lambda self, cid: chamadas.append(cid))
+    r = http.post('/api/painel/consultar', json={'company_ids': [ids['B'], 999999]}, headers=BASIC)
+    assert r.status_code == 200 and r.get_json()['quantidade'] == 1     # 999999 não existe: ignorada
+    for _ in range(50):
+        if chamadas:
+            break
+        time.sleep(0.05)
+    assert chamadas == [ids['B']]
+    assert http.post('/api/painel/consultar', json={'company_ids': []}, headers=BASIC).status_code == 400
+    d = http.get('/api/painel/consultas', headers=BASIC).get_json()
+    assert d['na_fila'] == 0

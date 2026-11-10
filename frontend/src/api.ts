@@ -52,6 +52,19 @@ async function get<T>(caminho: string): Promise<T> {
   return corpo as T;
 }
 
+async function post<T>(caminho: string, corpo: unknown): Promise<T> {
+  const r = await fetch(caminho, { method: "POST", credentials: "same-origin",
+    headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(corpo) });
+  let dados: any = null;
+  try { dados = await r.json(); } catch { /* corpo vazio */ }
+  if (!r.ok || dados?.success === false) throw new ErroApi(r.status, dados?.message || `Erro ${r.status}`);
+  return dados as T;
+}
+
+export interface Consultas { em_andamento: number; na_fila: number;
+  empresas: { company_id: number; razao_social: string; status: "processing" | "error"; etapa: string | null;
+              progresso: number; mensagem: string | null }[] }
+
 export const api = {
   mesa: () => get<Mesa>("/api/painel/mesa"),
   ficha: (id: number) => get<Ficha>(`/api/painel/empresas/${id}`),
@@ -60,5 +73,8 @@ export const api = {
   eu: () => get<Eu>("/api/painel/eu"),
   empresas: () => get<Empresas>("/api/painel/empresas"),
   status: () => get<Status>("/api/painel/status"),
+  consultar: (corpo: { company_ids?: number[]; todas?: boolean }) =>
+    post<{ quantidade: number }>("/api/painel/consultar", corpo),
+  consultas: () => get<Consultas>("/api/painel/consultas"),
   contato: (id: number) => get<Contato>(`/api/painel/empresas/${id}/contato`),
 };

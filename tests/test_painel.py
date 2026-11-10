@@ -108,3 +108,26 @@ def test_raiz_abre_a_interface_nova(ambiente):
     assert r.status_code == 302 and r.headers['Location'].endswith('/app')
     assert http.get('/?antiga=1', headers=BASIC).status_code == 200
     assert http.get('/?aba=das', headers=BASIC).status_code == 200
+
+
+def test_empresas_ordena_pela_pior_nota(ambiente):
+    _app, http, ids = ambiente
+    d = http.get('/api/painel/empresas', headers=BASIC).get_json()
+    nomes = [e['razao_social'] for e in d['empresas']]
+    assert nomes[0] == 'ALFA COMERCIO'           # vencido + mensagem: nota menor
+    alfa = d['empresas'][0]
+    assert alfa['vencidos'] == 1 and alfa['total_vencido'] == 515.0 and alfa['nao_lidas'] == 1
+    assert sum(d['faixas'].values()) == 2 and 'atraso_por_tributo' in d['pesos']
+
+
+def test_status_conta_menu(ambiente):
+    _app, http, _ = ambiente
+    d = http.get('/api/painel/status', headers=BASIC).get_json()
+    assert d['caixa_postal'] == 1 and d['mesa'] >= 3
+
+
+def test_ficha_traz_link_do_portal(ambiente, monkeypatch):
+    _app, http, ids = ambiente
+    monkeypatch.setenv('NESCON_PORTAL_URL', 'https://portal.exemplo/')
+    d = http.get(f"/api/painel/empresas/{ids['A']}", headers=BASIC).get_json()
+    assert d['portal_url'] == 'https://portal.exemplo/admin/empresas?busca=11222333000181'

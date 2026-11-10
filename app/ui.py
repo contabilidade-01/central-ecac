@@ -275,7 +275,8 @@ def lateral(ativo: str = '', usuario=None) -> str:
     tem_mesa = any(i['chave'] == 'dashboard' for g in menu for i in g['itens'])
     blocos = []
     if tem_mesa:
-        blocos.append('<a class="item" href="/app"><span>Mesa do dia</span><span class="novo">novo</span></a>')
+        blocos.append('<a class="item" href="/app"><span>Mesa do dia</span><span class="novo">novo</span></a>'
+                      '<a class="item" href="/app/empresas"><span>Empresas</span><span class="novo">novo</span></a>')
     for grupo in menu:
         itens = [i for i in grupo['itens'] if i['chave'] != 'dashboard']
         if not itens:

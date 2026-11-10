@@ -12,9 +12,10 @@ export interface Mesa {
          sem_dado_recente: number; empresas: number };
 }
 export interface Pendencia { tipo: string; rotulo: string; competencia: string; vencimento: string | null;
-  valor: number; em_atraso: boolean; guia: string | null }
+  valor: number; em_atraso: boolean; guia: string | null; origem?: "fgts" }
 export interface Ficha {
   empresa: { company_id: number; razao_social: string; cnpj: string; ativo: boolean };
+  portal_url: string | null; pesos: Record<string, number>;
   pendencias: Pendencia[]; omissoes: { tipo: string; ano: string; meses: string[] }[];
   parcelamento: string | null; pgfn: string | null;
   relatorio: { data_hora: string | null; situacao: string | null } | null;
@@ -27,6 +28,14 @@ export interface Ficha {
   saude: { nota: number; faixa: "boa" | "atencao" | "critica"; itens: { motivo: string; pontos: number }[] };
   linha_do_tempo: { em: string; tipo: string; texto: string }[];
 }
+export interface LinhaEmpresa { company_id: number; razao_social: string; cnpj: string; nota: number;
+  faixa: "boa" | "atencao" | "critica"; motivo_principal: string; vencidos: number; total_vencido: number;
+  fgts: { aplicavel: boolean; vencidas: number; consultado: boolean }; nao_lidas: number; procuracao: string; relatorio_em: string | null }
+export interface Empresas { empresas: LinhaEmpresa[]; faixas: { critica: number; atencao: number; boa: number };
+  pesos: Record<string, number> }
+export interface Status { mesa: number; caixa_postal: number; fgts_empresas_vencidas: number; procuracoes_problema: number;
+  fgts: { habilitado: boolean; executor: string; agentes_online: number; agentes_com_login: number } | null }
+export interface Contato { disponivel: boolean; vinculada?: boolean; whatsapp_valido?: boolean; motivo?: string }
 export interface Eu { nome: string; admin: boolean;
   menu: { titulo: string; itens: { chave: string; rotulo: string; url?: string; spa?: string }[] }[] }
 
@@ -49,4 +58,7 @@ export const api = {
   busca: (q: string) => get<{ empresas: { company_id: number; razao_social: string; cnpj: string }[] }>(
     `/api/painel/busca?q=${encodeURIComponent(q)}`),
   eu: () => get<Eu>("/api/painel/eu"),
+  empresas: () => get<Empresas>("/api/painel/empresas"),
+  status: () => get<Status>("/api/painel/status"),
+  contato: (id: number) => get<Contato>(`/api/painel/empresas/${id}/contato`),
 };

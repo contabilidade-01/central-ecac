@@ -62,9 +62,24 @@ def _fgts(company_id: int, cnpj: str) -> Dict[str, Any]:
         return {'aplicavel': sit['aplicavel'], 'motivo': sit['motivo'],
                 'consultado_em': consulta.concluido_em.isoformat() if consulta and consulta.concluido_em else None,
                 'vencidas': sum(1 for c in comps if c.get('situacao') == 'vencida'),
-                'total_aberto': round(sum(c.get('total') or 0 for c in comps), 2)}
+                'total_aberto': round(sum(c.get('total') or 0 for c in comps), 2),
+                'competencias': [{'competencia': str(c.get('competencia') or ''), 'total': c.get('total'),
+                                  'vencimento': c.get('vencimento'), 'situacao': c.get('situacao')} for c in comps]}
     except Exception:
-        return {'aplicavel': False, 'motivo': 'indisponível', 'consultado_em': None, 'vencidas': 0, 'total_aberto': 0}
+        return {'aplicavel': False, 'motivo': 'indisponível', 'consultado_em': None, 'vencidas': 0, 'total_aberto': 0,
+                'competencias': []}
+
+
+def _linhas_fgts(fgts: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Competências da última consulta do FGTS no mesmo formato das pendências da Receita."""
+    linhas = []
+    for c in fgts.get('competencias') or []:
+        comp = c['competencia']
+        linhas.append({'tipo': 'FGTS', 'rotulo': 'FGTS', 'origem': 'fgts',
+                       'competencia': f'{comp[4:6]}/{comp[:4]}' if len(comp) == 6 else comp,
+                       'vencimento': c.get('vencimento'), 'valor': round(c.get('total') or 0, 2),
+                       'em_atraso': c.get('situacao') == 'vencida', 'guia': None})
+    return linhas
 
 
 def saude(dados: Dict[str, Any], procuracao: Dict[str, Any], nao_lidas: int, fgts: Dict[str, Any],
@@ -199,13 +214,85 @@ def ficha(company: Company, hoje: Optional[date] = None) -> Dict[str, Any]:
     from app.services import das_emissao_service
     guias = [das_emissao_service.serializar(e) for e in
              DasEmissao.query.filter_by(cnpj=company.cnpj).order_by(DasEmissao.id.desc()).limit(10)]
+    pendencias = _agrupar_atraso(dados['debitos'])
+    if fgts.get('aplicavel'):
+        pendencias += _linhas_fgts(fgts)
+    pendencias.sort(key=lambda p: (not p['em_atraso'], str(p.get('vencimento') or '9999')))
     return {'empresa': {'company_id': company.id, 'razao_social': company.razao_social, 'cnpj': company.cnpj,
                         'ativo': bool(company.ativo)},
-            'pendencias': _agrupar_atraso(dados['debitos']), 'omissoes': dados['omissoes'],
+            'portal_url': portal_da_empresa(company.cnpj), 'pesos': PESOS,
+            'pendencias': pendencias, 'omissoes': dados['omissoes'],
             'parcelamento': dados['parcelamento'], 'pgfn': dados['pgfn'], 'relatorio': dados['relatorio'],
             'resumo': dados['resumo'], 'procuracao': {'situacao': proc.get('situacao', 'desconhecida')},
             'caixa_postal': {'nao_lidas': nao_lidas}, 'fgts': fgts, 'guias': guias,
             'saude': saude(dados, proc, nao_lidas, fgts, hoje), 'linha_do_tempo': _linha_do_tempo(company)}
+
+
+def portal_da_empresa(cnpj: str) -> Optional[str]:
+    """Link da empresa no portal do cliente (tela de empresas já filtrada pelo CNPJ)."""
+    import os
+    base = (os.getenv('NESCON_PORTAL_URL') or os.getenv('NESCON_API_URL') or '').strip().rstrip('/')
+    return f'{base}/admin/empresas?busca={cnpj}' if base else None
+
+
+def empresas(usuario: Dict[str, Any], hoje: Optional[date] = None) -> Dict[str, Any]:
+    """Uma linha por empresa com a nota de saúde e o que mais pesa nela (tela Empresas)."""
+    hoje = hoje or pend.hoje_brasil()
+    lista = _empresas_visiveis(usuario)
+    nao_lidas = _nao_lidas(c.id for c in lista)
+    saida = []
+    for c in lista:
+        dados = pend.pendencias_da_empresa(c, hoje=hoje)
+        proc = _procuracao(c)
+        fgts = _fgts(c.id, c.cnpj)
+        n = nao_lidas.get(c.id, 0)
+        vencidas = [l for l in _agrupar_atraso(dados['debitos']) if l['em_atraso']]
+        s = saude(dados, proc, n, fgts, hoje)
+        saida.append({'company_id': c.id, 'razao_social': c.razao_social, 'cnpj': c.cnpj,
+                      'nota': s['nota'], 'faixa': s['faixa'],
+                      'motivo_principal': min(s['itens'], key=lambda i: i['pontos'])['motivo'] if s['itens'] else '',
+                      'vencidos': len(vencidas), 'total_vencido': round(sum(l['valor'] for l in vencidas), 2),
+                      'fgts': {'aplicavel': fgts['aplicavel'], 'vencidas': fgts['vencidas'],
+                               'consultado': bool(fgts['consultado_em'])},
+                      'nao_lidas': n, 'procuracao': proc.get('situacao', 'desconhecida'),
+                      'relatorio_em': (dados.get('relatorio') or {}).get('data_hora')})
+    saida.sort(key=lambda e: (e['nota'], e['razao_social']))
+    faixas = {f: sum(1 for e in saida if e['faixa'] == f) for f in ('critica', 'atencao', 'boa')}
+    return {'empresas': saida, 'faixas': faixas, 'pesos': PESOS}
+
+
+_STATUS_CACHE: Dict[Any, tuple] = {}
+
+
+def status(usuario: Dict[str, Any], segundos: int = 120) -> Dict[str, Any]:
+    """Contadores do menu e luzes do topo. Cache curto: é chamado a cada tela aberta."""
+    import time
+    from app.services import permissoes
+    chave = usuario.get('id')
+    agora = time.monotonic()
+    guardado = _STATUS_CACHE.get(chave)
+    if guardado and agora - guardado[0] < segundos:
+        return guardado[1]
+    m = mesa(usuario)
+    fgts_vencidas = 0
+    for c in _empresas_visiveis(usuario):
+        f = _fgts(c.id, c.cnpj)
+        if f['aplicavel'] and f['vencidas']:
+            fgts_vencidas += 1
+    dados = {'mesa': m['total_fila'], 'caixa_postal': m['kpi']['mensagens_nao_lidas'],
+             'fgts_empresas_vencidas': fgts_vencidas,
+             'procuracoes_problema': sum(1 for i in m['fila'] if i['tipo'] == 'procuracao'),
+             'fgts': None}
+    if permissoes.e_admin(usuario):
+        try:
+            from app.services.fgts import agentes
+            p = agentes.prontidao()
+            dados['fgts'] = {'habilitado': bool(p['habilitado']), 'executor': p['executor'],
+                             'agentes_online': p['agentes_online'], 'agentes_com_login': p['agentes_com_login']}
+        except Exception:
+            dados['fgts'] = None
+    _STATUS_CACHE[chave] = (agora, dados)
+    return dados
 
 
 def buscar(usuario: Dict[str, Any], termo: str, limite: int = 12) -> List[Dict[str, Any]]:

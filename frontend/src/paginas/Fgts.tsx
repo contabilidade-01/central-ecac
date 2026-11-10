@@ -50,6 +50,11 @@ export function Fgts() {
     setEscolhida(id);
     chamar<any>("GET", `/api/fgts/empresas/${id}`).then((r) => { setFicha(r); }).catch((e) => setAviso({ texto: e.message, erro: true }));
   }, []);
+  // Vindo da ficha da empresa (/fgts?empresa=ID): já abre a empresa.
+  useEffect(() => {
+    const id = Number(new URLSearchParams(window.location.search).get("empresa"));
+    if (id) abrir(id);
+  }, [abrir]);
   useEffect(() => {
     if (!escolhida || !ficha?.pedido_aberto) return;
     const t = setTimeout(() => abrir(escolhida), 4000);

@@ -7,6 +7,7 @@ interface Opcao { rotulo: string; detalhe: string; ir: () => void }
 
 const ATALHOS: { rotulo: string; detalhe: string; destino: string }[] = [
   { rotulo: "Mesa do dia", detalhe: "Tela", destino: "/app" },
+  { rotulo: "Empresas", detalhe: "Tela", destino: "/app/empresas" },
   { rotulo: "FGTS Digital", detalhe: "Tela", destino: "/app/fgts" },
   { rotulo: "Caixa Postal", detalhe: "Tela antiga", destino: "/?aba=caixa_postal" },
   { rotulo: "Procurações", detalhe: "Tela", destino: "/procuracoes" },

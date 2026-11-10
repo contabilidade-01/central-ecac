@@ -227,7 +227,8 @@
           var temMesa = (EU.menu || []).some(function (g) {
             return g.itens.some(function (i) { return i.chave === 'dashboard'; });
           });
-          if (temMesa) html += '<a class="item" href="/app"><span>Mesa do dia</span><span class="novo">novo</span></a>';
+          if (temMesa) html += '<a class="item" href="/app"><span>Mesa do dia</span><span class="novo">novo</span></a>'
+            + '<a class="item" href="/app/empresas"><span>Empresas</span><span class="novo">novo</span></a>';
           (EU.menu || []).forEach(function (grupo) {
             var itens = grupo.itens.filter(function (i) { return i.chave !== 'dashboard'; });
             if (!itens.length) return;

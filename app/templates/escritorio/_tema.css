@@ -4,42 +4,39 @@
    ===================================================================== */
 :root{
   color-scheme: dark;
-  --bg:#0b1220; --bg-soft:#121a2b;
-  --panel:rgba(15,23,42,.88); --panel-2:rgba(15,23,42,.72); --panel-3:rgba(255,255,255,.04);
-  --card-border:rgba(148,163,184,.14);
-  --text:#e5e7eb; --muted:#94a3b8; --title:#f8fafc;
-  --brand:#4f7df0; --brand-2:#22d3ee; --brand-3:#6366f1;
-  --success:#22c55e; --warning:#f59e0b; --danger:#ef4444;
-  --shadow:0 20px 50px rgba(0,0,0,.28); --shadow-soft:0 10px 30px rgba(2,6,23,.22);
-  --radius-xl:24px; --radius-lg:18px; --radius-md:14px;
+  --bg:#070b14; --bg-soft:#070b14;
+  --panel:#0e1421; --panel-2:#151d2e; --panel-3:rgba(255,255,255,.03);
+  --card-border:#26324a;
+  --text:#f2f5fa; --muted:#a3afc4; --title:#f2f5fa;
+  --brand:#4d8dff; --brand-2:#6aa0ff; --brand-3:#4d8dff;
+  --success:#3ddc84; --warning:#ff9f43; --danger:#ff7b7b;
+  --shadow:none; --shadow-soft:none;
+  --radius-xl:16px; --radius-lg:13px; --radius-md:11px;
   --line-grad:linear-gradient(90deg, rgba(79,125,240,0), rgba(34,211,238,.85), rgba(99,102,241,0));
   /* nomes usados pelas telas de formulário (Configuração, Caminhos) */
-  --ink:var(--text); --line:rgba(148,163,184,.18); --card:rgba(15,23,42,.88);
-  --p1:#6366f1; --p2:#22d3ee; --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+  --ink:var(--text); --line:#26324a; --card:#0e1421;
+  --p1:#4d8dff; --p2:#6aa0ff; --ok:#3ddc84; --bad:#ff7b7b; --warn:#ff9f43;
 }
 body.light{
   color-scheme: light;
-  --bg:#f5f7fb; --bg-soft:#eef3fb;
-  --panel:rgba(255,255,255,.92); --panel-2:rgba(255,255,255,.82); --panel-3:rgba(79,125,240,.05);
-  --card-border:rgba(15,23,42,.08);
-  --text:#1e293b; --muted:#64748b; --title:#0f172a;
+  --bg:#f4f6fb; --bg-soft:#f4f6fb;
+  --panel:#ffffff; --panel-2:#eef2f9; --panel-3:rgba(31,95,214,.04);
+  --card-border:#d7deea; --brand:#1f5fd6; --brand-2:#1a4fb3; --brand-3:#1f5fd6;
+  --text:#0f172a; --muted:#55627a; --title:#0f172a;
   --shadow:0 20px 50px rgba(15,23,42,.10); --shadow-soft:0 10px 24px rgba(15,23,42,.08);
   --line-grad:linear-gradient(90deg, rgba(79,125,240,0), rgba(79,125,240,.55), rgba(34,211,238,0));
-  --ink:#0f172a; --line:rgba(15,23,42,.12); --card:rgba(255,255,255,.92);
+  --ink:#0f172a; --line:#d7deea; --card:#ffffff;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 /* com html{zoom} a página fica menor que a janela: o fundo do html cobre a sobra */
-html{background:#0b1220}
-html:has(body.light){background:#f5f7fb}
+html{background:#070b14}
+html:has(body.light){background:#f4f6fb}
 body{
   min-height:100vh;
-  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-family:Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;
   color:var(--text);
-  background:
-    radial-gradient(circle at top left, rgba(79,125,240,.22), transparent 28%),
-    radial-gradient(circle at top right, rgba(34,211,238,.14), transparent 24%),
-    linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+  background:var(--bg);
   background-attachment:fixed;
   transition:background .25s ease, color .2s ease;
 }

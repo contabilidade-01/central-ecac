@@ -242,7 +242,7 @@ def api_marcar_mei(company_id: int):
 
 
 PAGINA = """<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
-<title>MEI · Central e-CAC</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MEI · Central Ecac</title><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>{{ css|safe }}
  .linha{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
  table{width:100%;border-collapse:collapse;background:var(--superficie);border-radius:var(--raio);overflow:hidden;box-shadow:var(--sombra)}
@@ -250,26 +250,26 @@ PAGINA = """<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
  .tag{padding:2px 8px;border-radius:99px;font-size:12px}
  .gerada{background:var(--ok-bg);color:var(--ok-tx)}.erro{background:var(--erro-bg);color:var(--erro-tx)}
  .pendente{background:var(--alerta-bg);color:var(--alerta-tx)}
- button{padding:8px 14px;border-radius:9px;border:0;background:var(--primaria);color:#fff;cursor:pointer}
- input,select{padding:7px;border:1px solid var(--borda);border-radius:8px}
-</style></head><body><div class="app">{{ menu|safe }}
-<div style="padding:22px">
-<h2>MEI</h2>
-<p style="color:var(--suave)">Marque as guias que o empresário quer pagar. Só elas são geradas (chamada paga). Guia já guardada e válida é reaproveitada sem custo.</p>
+ .linha label{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--suave);font-weight:700}
+ .linha button{margin:0}
+</style></head><body>{{ menu|safe }}
+<div class="wrap">
+<h1>MEI</h1>
+<p class="sub">Marque as guias que o empresário quer pagar. Só elas são geradas (chamada paga). Guia já guardada e válida é reaproveitada sem custo.</p>
 <div class="linha">
  <label>Competência <input id="comp" type="month"></label>
  <label>Data de pagamento <input id="data" type="date"></label>
- <button onclick="gerar()">Gerar guias marcadas</button>
+ <button class="primario" onclick="gerar()">Gerar guias marcadas</button>
  <button onclick="enviar(false)">Enviar por WhatsApp</button>
  <button onclick="enviar(true)" title="Reenvia as que falharam">Reenviar falhas</button>
  <button onclick="vinculo()">Verificar vínculo no Nescon</button>
  <span id="msg" style="color:var(--suave)"></span>
 </div>
-<table><thead><tr><th>Pagar</th><th>Empresa</th><th>CNPJ</th><th>Situação</th><th>Guia</th><th>Envio</th><th>Vínculo</th></tr></thead><tbody id="corpo"></tbody></table>
+<div class="card"><div class="table-wrap"><table><thead><tr><th>Pagar</th><th>Empresa</th><th>CNPJ</th><th>Situação</th><th>Guia</th><th>Envio</th><th>Vínculo</th></tr></thead><tbody id="corpo"></tbody></table></div></div>
 <div class="linha" id="admin" style="margin-top:18px">
  <select id="cand"></select><button onclick="incluir()">Incluir como MEI (admin)</button>
 </div>
-</div></div>
+</div>{{ fim|safe }}
 <script>
 const $=id=>document.getElementById(id);
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -309,4 +309,4 @@ const h=new Date();$('comp').value=h.getFullYear()+'-'+String(h.getMonth()+1).pa
 
 @mei_bp.get('/mei')
 def pagina_mei():
-    return render_template_string(PAGINA, css=CSS, menu=lateral('mei'))
+    return render_template_string(PAGINA, css=CSS, menu=lateral('mei'), fim=FIM)

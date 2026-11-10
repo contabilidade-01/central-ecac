@@ -1,22 +1,23 @@
 // Tema claro/escuro compartilhado entre o painel e as telas (mesma chave).
 (function(){
-  var CHAVE = 'escritorio_tema';
+  var CHAVE = 'central_tema';  // mesma chave do /app e das demais telas
   var botao = document.getElementById('themeToggle');
   function aplicar(tema){
     var claro = tema === 'light';
     document.body.classList.toggle('light', claro);
+    if (claro) document.documentElement.dataset.tema = 'claro'; else delete document.documentElement.dataset.tema;
     if (botao) {
       botao.textContent = claro ? '🌙' : '☀️';
       botao.title = claro ? 'Ativar modo escuro' : 'Ativar modo claro';
     }
   }
   var salvo = 'dark';
-  try { salvo = localStorage.getItem(CHAVE) === 'light' ? 'light' : 'dark'; } catch(e){}
+  try { salvo = localStorage.getItem(CHAVE) === 'claro' ? 'light' : 'dark'; } catch(e){}
   aplicar(salvo);
   if (botao) botao.addEventListener('click', function(){
     var proximo = document.body.classList.contains('light') ? 'dark' : 'light';
     aplicar(proximo);
-    try { localStorage.setItem(CHAVE, proximo); } catch(e){}
+    try { localStorage.setItem(CHAVE, proximo === 'light' ? 'claro' : 'escuro'); } catch(e){}
   });
 })();
 

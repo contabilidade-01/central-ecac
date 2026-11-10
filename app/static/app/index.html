@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Integra Contador Desktop</title>
+    <title>Central Ecac</title>
     <script type="module" crossorigin src="/assets/index-BV8l56Oy-p2.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-BrQWbY9G.css">
   </head>
@@ -27,63 +27,125 @@
       observer.observe(document.getElementById('root'), { childList: true, subtree: true });
     </script>
 
+    <script>try{if(localStorage.getItem('central_tema')==='claro')document.documentElement.dataset.tema='claro';}catch(e){}</script>
     <style>
-      /* DESVIO INTENCIONAL (14o) — barra lateral por cima da SPA compilada.
-         Nomes de classe conferidos contra o CSS do bundle: nenhuma colisão. */
+      /* DESVIO INTENCIONAL (14o, revisto no 28o) — barra lateral por cima da SPA compilada,
+         com o mesmo visual do novo frontend (/app) e das telas do Flask (app/ui.py):
+         escuro com destaque azul, claro opcional pela chave `central_tema`.
+         O bundle não tem fonte; as classes dele são recoloridas aqui, por cima. */
+      :root { color-scheme: dark;
+        --fundo:#070b14; --superficie:#0e1421; --superficie-2:#151d2e; --borda:#26324a;
+        --texto:#f2f5fa; --suave:#a3afc4; --primaria:#4d8dff; --primaria-h:#6aa0ff; --primaria-tx:#06122b;
+        --ok-bg:rgba(61,220,132,.14); --ok-tx:#3ddc84; --alerta-bg:rgba(255,159,67,.14); --alerta-tx:#ff9f43;
+        --erro-bg:rgba(255,123,123,.14); --erro-tx:#ff7b7b; --info-bg:rgba(77,141,255,.16); --info-tx:#8db6ff;
+        --neutro-bg:rgba(163,175,196,.12); --neutro-tx:#a3afc4;
+        --fonte: Manrope, system-ui, -apple-system, "Segoe UI", sans-serif; }
+      :root[data-tema="claro"] { color-scheme: light;
+        --fundo:#f4f6fb; --superficie:#ffffff; --superficie-2:#eef2f9; --borda:#d7deea;
+        --texto:#0f172a; --suave:#55627a; --primaria:#1f5fd6; --primaria-h:#1a4fb3; --primaria-tx:#ffffff;
+        --ok-bg:#dcfce7; --ok-tx:#15803d; --alerta-bg:#fef3c7; --alerta-tx:#b45309;
+        --erro-bg:#fee2e2; --erro-tx:#b91c1c; --info-bg:#dbeafe; --info-tx:#1e40af;
+        --neutro-bg:#eef2f9; --neutro-tx:#475569; }
       .header { display: none !important; }
-      body { margin: 0; background: #f1f5f9; }
+      body { margin: 0; background: var(--fundo) !important; color: var(--texto) !important;
+             font-family: var(--fonte) !important; font-weight: 500; }
       .app { display: flex; min-height: 100vh; }
-      .lateral { width: 252px; flex: 0 0 252px; background: #0f172a; color: #cbd5e1;
+      .lateral { width: 236px; flex: 0 0 236px; color: var(--texto); border-right: 1px solid var(--borda);
+                 background: color-mix(in srgb, var(--fundo) 70%, var(--superficie));
                  display: flex; flex-direction: column; position: sticky; top: 0;
                  height: 100vh; overflow-y: auto;
-                 transition: margin-left .18s ease, opacity .18s ease;
-                 font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; }
+                 transition: margin-left .18s ease, opacity .18s ease; font-family: var(--fonte); }
       .lateral::-webkit-scrollbar { width: 6px; }
-      .lateral::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+      .lateral::-webkit-scrollbar-thumb { background: var(--borda); border-radius: 3px; }
       .marca-topo { display: flex; align-items: center; gap: 11px; padding: 18px 18px 14px; }
-      .marca { width: 36px; height: 36px; border-radius: 10px; flex: 0 0 auto;
-               background: linear-gradient(135deg,#2563eb,#1e40af); color: #fff;
+      .marca { width: 32px; height: 32px; border-radius: 9px; flex: 0 0 auto;
+               background: var(--primaria); color: var(--primaria-tx);
                display: flex; align-items: center; justify-content: center;
-               font-weight: 700; font-size: 13px; }
-      .marca-topo b { display: block; font-size: 14px; color: #fff; line-height: 1.25; }
-      .marca-topo span { display: block; font-size: 11px; color: #94a3b8; }
+               font-weight: 800; font-size: 13px; }
+      .marca-topo b { display: block; font-size: 15px; font-weight: 800; color: var(--texto); line-height: 1.25; }
+      .marca-topo span { display: block; font-size: 11px; color: var(--suave); }
       .lateral nav { padding: 4px 10px 16px; flex: 1; }
-      .secao { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;
-               letter-spacing: .09em; padding: 14px 10px 6px; }
-      .item { display: flex; align-items: center; gap: 11px; padding: 9px 10px;
-              border-radius: 9px; color: #cbd5e1; text-decoration: none; font-size: 13.5px;
+      .secao { font-size: 11px; font-weight: 700; color: var(--suave); padding: 14px 10px 5px; }
+      .item { display: flex; align-items: center; gap: 11px; padding: 9px 10px; position: relative;
+              border-radius: 9px; color: var(--texto); text-decoration: none; font-size: 13.5px; font-weight: 600;
               cursor: pointer; border: 0; background: transparent; width: 100%;
-              text-align: left; font-family: inherit; margin-bottom: 1px; }
+              text-align: left; font-family: inherit; margin-bottom: 1px; transition: background .15s, color .15s; }
       .item svg { width: 17px; height: 17px; flex: 0 0 auto; stroke: currentColor;
-                  fill: none; stroke-width: 1.8; stroke-linecap: round;
-                  stroke-linejoin: round; }
-      .item:hover { background: #1e293b; color: #fff; }
-      .item.ativo { background: #1d4ed8; color: #fff; font-weight: 600; }
-      .item.sair { color: #fca5a5; }
-      .item.sair:hover { background: #7f1d1d; color: #fff; }
-      .lateral-rodape { padding: 14px 18px 18px; font-size: 11px; color: #64748b;
-                        border-top: 1px solid #1e293b; }
-      .conteudo { flex: 1; min-width: 0; display: flex; flex-direction: column;
-                 overflow-x: auto; }
-      .barra { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 22px;
+                  fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .item:hover { background: var(--superficie-2); }
+      .item.ativo { background: var(--primaria); color: var(--primaria-tx); font-weight: 800;
+                    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primaria) 60%, transparent),
+                                0 6px 18px color-mix(in srgb, var(--primaria) 35%, transparent); }
+      .item.ativo::before { content: ""; position: absolute; left: -10px; top: 8px; bottom: 8px; width: 4px;
+                            border-radius: 0 4px 4px 0; background: var(--primaria); }
+      .item .novo { margin-left: auto; font-size: 10px; border: 1px solid currentColor; border-radius: 99px;
+                    padding: 0 6px; opacity: .8; }
+      .item.sair { color: var(--erro-tx); }
+      .item.sair:hover { background: var(--erro-bg); }
+      .lateral-rodape { padding: 14px 18px 18px; font-size: 11px; color: var(--suave);
+                        border-top: 1px solid var(--borda); }
+      .conteudo { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-x: auto; }
+      .barra { background: color-mix(in srgb, var(--fundo) 70%, var(--superficie));
+               border-bottom: 1px solid var(--borda); padding: 12px 22px;
                display: flex; align-items: center; gap: 14px; position: sticky; top: 0;
-               z-index: 20;
-               font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; }
-      .barra b { font-size: 14px; font-weight: 600; color: #0f172a; }
+               z-index: 20; font-family: var(--fonte); }
       .barra .fim { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-      .alternar { background: transparent; border: 1px solid #e2e8f0; border-radius: 8px;
-                  padding: 6px 9px; cursor: pointer; color: #64748b; line-height: 0;
-                  margin: 0; }
-      .alternar:hover { background: #f1f5f9; color: #0f172a; }
+      .barra .nome-usuario { font-size: 12px; color: var(--suave); }
+      .busca-topo { flex: 0 1 420px; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+                    border: 1px solid var(--borda); background: var(--superficie); border-radius: 10px;
+                    padding: 8px 12px; color: var(--suave); text-decoration: none; font-size: 13px; }
+      .busca-topo:hover { border-color: var(--primaria); }
+      .busca-topo kbd { font: 700 11px var(--fonte); border: 1px solid var(--borda); border-radius: 5px;
+                        padding: 1px 6px; color: var(--texto); }
+      .alternar, .alternar-tema { background: var(--superficie-2); border: 1px solid var(--borda); border-radius: 9px;
+                  cursor: pointer; color: var(--texto); margin: 0; font: 700 13px var(--fonte); }
+      .alternar { padding: 6px 9px; line-height: 0; }
+      .alternar-tema { padding: 8px 14px; }
+      .alternar:hover, .alternar-tema:hover { border-color: var(--primaria); }
       .alternar svg { width: 17px; height: 17px; stroke: currentColor; fill: none;
                       stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-      .pilula { display: inline-flex; align-items: center; gap: 7px; font-size: 12px;
-                font-weight: 500; color: #15803d; background: #dcfce7; padding: 5px 12px;
-                border-radius: 999px;
-                font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; }
-      .pilula i { width: 7px; height: 7px; border-radius: 50%; background: currentColor;
-                  display: block; }
-      .app.retraida .lateral { margin-left: -252px; opacity: 0; pointer-events: none; }
+      .app.retraida .lateral { margin-left: -236px; opacity: 0; pointer-events: none; }
+
+      /* ---- recoloração das classes do bundle compilado ---- */
+      #root input, #root .input, #root select, #root textarea { background: var(--superficie) !important;
+        color: var(--texto) !important; border-color: var(--borda) !important; font-family: var(--fonte); }
+      #root input[type=checkbox], #root input[type=radio] { accent-color: var(--primaria); }
+      #root input:focus, #root select:focus { outline: 2px solid var(--primaria); outline-offset: 1px; }
+      #root label { color: var(--suave) !important; }
+      #root .card, #root .modal, #root .company-tile, #root .progress-card, #root .metric-pill {
+        background: var(--superficie) !important; color: var(--texto) !important;
+        border: 1px solid var(--borda) !important; box-shadow: none !important; border-radius: 13px !important; }
+      #root .metric-pill.debt { border-color: color-mix(in srgb, var(--erro-tx) 45%, var(--borda)) !important; }
+      #root .metric-pill.debt .metric-pill-label, #root .metric-pill.debt strong, #root .metric-pill-detail { color: var(--erro-tx) !important; }
+      #root .card-title, #root .small, #root .empty, #root .metric-pill-label, #root .panel-heading p,
+      #root .company-tile-cnpj, #root .company-tile-meta, #root .progress-card-meta,
+      #root .progress-card-title span, #root .progress-card-top span { color: var(--suave) !important; }
+      #root .company-tile-head strong, #root .progress-card-top strong, #root .progress-card-title strong,
+      #root .progress-message, #root h1, #root h2, #root h3 { color: var(--texto) !important; }
+      #root .btn { border-radius: 9px !important; font-weight: 700; font-family: var(--fonte); }
+      #root .btn.primary { background: var(--primaria) !important; color: var(--primaria-tx) !important; }
+      #root .btn.primary:hover { background: var(--primaria-h) !important; }
+      #root .btn.secondary { background: var(--superficie-2) !important; color: var(--texto) !important;
+                             border: 1px solid var(--borda) !important; }
+      #root .btn.ghost, #root .company-actions .btn.ghost { background: transparent !important;
+                         color: var(--texto) !important; border: 1px solid var(--borda) !important; }
+      #root .btn:hover { border-color: var(--primaria) !important; }
+      #root table { background: transparent !important; }
+      #root th { background: transparent !important; color: var(--suave) !important; font-size: 11.5px; }
+      #root th, #root td { border-bottom-color: var(--borda) !important; }
+      #root tbody tr:hover { background: var(--superficie-2); }
+      #root .badge.ok { background: var(--ok-bg) !important; color: var(--ok-tx) !important; }
+      #root .badge.warn { background: var(--alerta-bg) !important; color: var(--alerta-tx) !important; }
+      #root .badge.danger { background: var(--erro-bg) !important; color: var(--erro-tx) !important; }
+      #root .badge.pending { background: var(--info-bg) !important; color: var(--info-tx) !important; }
+      #root .badge.muted { background: var(--neutro-bg) !important; color: var(--neutro-tx) !important; }
+      #root .segmented-control { background: var(--superficie-2) !important; border-color: var(--borda) !important; }
+      #root .segmented-control button { color: var(--suave) !important; }
+      #root .segmented-control button.active { background: var(--primaria) !important; color: var(--primaria-tx) !important; box-shadow: none !important; }
+      #root .metric-pill-track, #root .progress-bar-modern { background: var(--borda) !important; }
+      #root .parcel-warning { color: var(--alerta-tx) !important; }
+      .modal-backdrop { background: rgba(2,6,23,.6) !important; }
+      .modal { background: var(--superficie) !important; color: var(--texto) !important; border: 1px solid var(--borda); }
 
       /* Visão "Quadrados" do painel: o nome da empresa vinha com white-space:nowrap
          dentro de um flex nowrap, entao ele nunca quebrava e empurrava o badge e o
@@ -97,13 +159,13 @@
       .company-tile-head strong { white-space: normal !important; overflow-wrap: anywhere !important; }
       /* Checkbox "Escritório" injetado nos cards de empresa (Configurações) */
       .ecac-esc-check { display:flex; align-items:center; gap:8px; margin-top:10px; padding:8px 10px;
-        border-radius:10px; background:#eef2ff; border:1px solid #c7d2fe; font:600 12px ui-sans-serif,system-ui,"Segoe UI",sans-serif; color:#3730a3; cursor:pointer; }
-      .ecac-esc-check input { width:16px; height:16px; accent-color:#7c3aed; margin:0; }
-      .ecac-esc-check[data-off="1"] { background:#f8fafc; border-color:#e2e8f0; color:#64748b; }
+        border-radius:10px; background:var(--info-bg); border:1px solid var(--borda); font:700 12px var(--fonte); color:var(--info-tx); cursor:pointer; }
+      .ecac-esc-check input { width:16px; height:16px; accent-color:var(--primaria); margin:0; }
+      .ecac-esc-check[data-off="1"] { background:transparent; border-color:var(--borda); color:var(--suave); }
       .ecac-esc-banner { position:sticky; top:52px; z-index:15; margin:0 0 12px; padding:10px 14px;
-        background:#312e81; color:#e0e7ff; border-radius:12px; font:600 13px ui-sans-serif,system-ui,"Segoe UI",sans-serif;
+        background:var(--info-bg); color:var(--texto); border:1px solid var(--borda); border-radius:12px; font:600 13px var(--fonte);
         display:none; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-      .ecac-esc-banner a { color:#c7d2fe; font-weight:700; }
+      .ecac-esc-banner a { color:var(--primaria); font-weight:700; }
       @media (max-width: 760px) {
         .lateral { position: fixed; z-index: 40; box-shadow: 0 0 40px rgba(0,0,0,.4);
                    margin-left: -252px; opacity: 0; pointer-events: none; }
@@ -158,16 +220,27 @@
           lateral.className = 'lateral';
 
           var html = '<div class="marca-topo"><div class="marca">eC</div>'
-            + '<div><b>Central e-CAC</b><span>Pendências &amp; débitos</span></div></div><nav>';
+            + '<div><b>Central Ecac</b><span>Nescon Contabilidade</span></div></div><nav>';
 
+          // Mesmo menu do novo frontend: "Mesa do dia" no lugar do Dashboard antigo
+          // e o FGTS abrindo na tela nova.
+          var temMesa = (EU.menu || []).some(function (g) {
+            return g.itens.some(function (i) { return i.chave === 'dashboard'; });
+          });
+          if (temMesa) html += '<a class="item" href="/app"><span>Mesa do dia</span><span class="novo">novo</span></a>';
           (EU.menu || []).forEach(function (grupo) {
+            var itens = grupo.itens.filter(function (i) { return i.chave !== 'dashboard'; });
+            if (!itens.length) return;
             html += '<div class="secao">' + grupo.titulo + '</div>';
-            grupo.itens.forEach(function (item) {
-              var attrs = item.url
-                ? 'href="' + item.url + '"'
+            itens.forEach(function (item) {
+              var novo = '';
+              var url = item.url;
+              if (item.chave === 'fgts') { url = '/app/fgts'; novo = '<span class="novo">novo</span>'; }
+              var attrs = url
+                ? 'href="' + url + '"'
                 : 'href="#" data-spa="' + (item.spa || '') + '"';
               html += '<a class="item" ' + attrs + '>' + svg(item.icone)
-                + '<span>' + item.rotulo + '</span></a>';
+                + '<span>' + item.rotulo + '</span>' + novo + '</a>';
             });
           });
 
@@ -187,8 +260,11 @@
           barra.innerHTML =
             '<button class="alternar" title="Recolher menu">'
             + '<svg viewBox="0 0 24 24"><path d="M3 4h18v16H3zM9 4v16"/></svg></button>'
-            + '<b>Central Pendências e-CAC</b>'
-            + '<div class="fim"><span class="pilula"><i></i>Sistema no ar</span></div>';
+            + '<a class="busca-topo" href="/app">Buscar empresa, CNPJ ou tela <kbd>Ctrl K</kbd></a>'
+            + '<div class="fim"><button type="button" class="alternar-tema">'
+            + (document.documentElement.dataset.tema === 'claro' ? 'Tema escuro' : 'Tema claro') + '</button>'
+            + (EU.id && EU.id !== 'ambiente' ? '<span class="nome-usuario">' + (EU.nome || EU.usuario || '') + '</span>' : '')
+            + '</div>';
           conteudo.appendChild(barra);
 
           app.appendChild(lateral);
@@ -197,6 +273,13 @@
           conteudo.appendChild(raiz);   // a SPA passa a viver dentro do conteúdo
 
           // ------------------------------------------------------------- ações
+          barra.querySelector('.alternar-tema').addEventListener('click', function () {
+            var claro = document.documentElement.dataset.tema !== 'claro';
+            if (claro) document.documentElement.dataset.tema = 'claro';
+            else delete document.documentElement.dataset.tema;
+            try { localStorage.setItem('central_tema', claro ? 'claro' : 'escuro'); } catch (e) {}
+            this.textContent = claro ? 'Tema escuro' : 'Tema claro';
+          });
           barra.querySelector('.alternar').addEventListener('click', function () {
             var estreito = window.matchMedia('(max-width: 760px)').matches;
             if (estreito) { app.classList.toggle('aberta'); return; }
@@ -236,7 +319,7 @@
             });
             if (alvo) { setTimeout(function () { alvo.click(); }, 60); return; }
           }
-          marcarAtivo(inicial);
+          marcarAtivo(null);
         }
 
         fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; })

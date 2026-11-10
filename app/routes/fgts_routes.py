@@ -219,7 +219,7 @@ PAGINA = """<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 <style>{{ css|safe }}
  .luzes{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
  .luz{display:flex;gap:8px;align-items:center;background:var(--superficie);border:1px solid var(--borda);border-radius:12px;padding:10px 14px;font-size:13px}
- .luz i{width:10px;height:10px;border-radius:50%;background:#94a3b8}.luz i.ok{background:#16a34a}.luz i.alerta{background:#d97706}.luz i.erro{background:#dc2626}
+ .luz i{width:10px;height:10px;flex:none;padding:0;margin:0;border-radius:50%;background:var(--suave)}.luz i.ok{background:var(--ok-tx)}.luz i.alerta{background:var(--alerta-tx)}.luz i.erro{background:var(--erro-tx)}
  .abas{display:flex;gap:6px;margin-bottom:14px}.abas button.ativa{background:var(--primaria);color:#fff;border-color:var(--primaria)}
  .grupo{margin-bottom:18px}.grupo h3{font-size:13px;margin:0 0 8px;color:var(--suave);text-transform:uppercase;letter-spacing:.05em}
  .campo{display:grid;grid-template-columns:minmax(220px,1fr) 220px minmax(120px,auto);gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--borda);font-size:13px}

@@ -31,7 +31,7 @@ th.col-chk{width:44px}
       <div class="brand-badge"><i class="fa-solid fa-building"></i></div>
       <div class="brand-text">
         <h1>Empresas • Cadastro e gestão</h1>
-        <p>Ticar para incluir no Escritório{% if cfg and cfg.office_name %} · {{ cfg.office_name }}{% endif %}</p>
+        <p>Marque para incluir no Tudo Contado{% if cfg and cfg.office_name %} · {{ cfg.office_name }}{% endif %}</p>
       </div>
     </div>
     <div class="topbar-actions">
@@ -44,13 +44,13 @@ th.col-chk{width:44px}
 <div class="container">
   <div class="metrics-grid auto" style="margin-bottom:14px">
     <div class="metric-card"><div class="metric-label">No cadastro</div><div class="metric-value">{{ m.total }}</div><div class="metric-sub">Visíveis para você</div></div>
-    <div class="metric-card"><div class="metric-label">No Escritório</div><div class="metric-value" id="mIncluidos">{{ m.incluidos }}</div><div class="metric-sub">Ticadas</div></div>
+    <div class="metric-card"><div class="metric-label">No Tudo Contado</div><div class="metric-value" id="mIncluidos">{{ m.incluidos }}</div><div class="metric-sub">Ticadas</div></div>
     <div class="metric-card"><div class="metric-label">Ativas</div><div class="metric-value">{{ m.ativos }}</div><div class="metric-sub">Flag ativo no cadastro</div></div>
   </div>
 
   <div class="aviso">
     Cadastro (razão, CNPJ, ativo) fica em <a href="{{ cfg.url_configuracoes if cfg else '/?aba=configuracoes' }}" target="_top">Configurações</a>.
-    Aqui — ou na mesma aba Configurações — você <b>tica</b> quais entram no Escritório (Lançamentos, Transmitir, Caminhos…).
+    Aqui — ou na mesma aba Configurações — você <b>tica</b> quais entram no Tudo Contado (Lançamentos, Transmitir, Caminhos…).
   </div>
 
   {% if not empresas %}
@@ -61,8 +61,8 @@ th.col-chk{width:44px}
   <div class="card filtros-emp">
     <div class="grupo">
       <input type="search" id="fBusca" placeholder="Filtrar por razão ou CNPJ" aria-label="Filtrar por razão ou CNPJ" autocomplete="off">
-      <select id="fEscritorio" aria-label="Situação no Escritório">
-        <option value="">Escritório: todas</option>
+      <select id="fEscritorio" aria-label="Situação no Tudo Contado">
+        <option value="">Tudo Contado: todas</option>
         <option value="1">Incluídas</option>
         <option value="0">Fora</option>
       </select>
@@ -75,13 +75,13 @@ th.col-chk{width:44px}
       <span class="contador-emp" id="contador"></span>
     </div>
     <div class="grupo">
-      <button type="button" class="btn-primario" id="btnMarcarTodos" title="Inclui no Escritório todas as empresas ATIVAS visíveis com os filtros">Marcar todos</button>
-      <button type="button" class="btn-sec" id="btnDesmarcarTodos" title="Tira do Escritório todas as empresas visíveis com os filtros">Desmarcar todos</button>
+      <button type="button" class="btn-primario" id="btnMarcarTodos" title="Inclui no Tudo Contado todas as empresas ATIVAS visíveis com os filtros">Marcar todos</button>
+      <button type="button" class="btn-sec" id="btnDesmarcarTodos" title="Tira do Tudo Contado todas as empresas visíveis com os filtros">Desmarcar todos</button>
     </div>
   </div>
   <div class="card" style="padding:0;overflow:auto">
     <table class="lista">
-      <thead><tr><th>Escritório</th><th>Razão</th><th>CNPJ</th><th>Cadastro</th></tr></thead>
+      <thead><tr><th>Tudo Contado</th><th>Razão</th><th>CNPJ</th><th>Cadastro</th></tr></thead>
       <tbody>
       {% for e in empresas %}
         <tr class="{{ '' if e.incluso else 'badge-off' }}" data-id="{{ e.id }}" data-ativo="{{ 1 if e.ativo else 0 }}"
@@ -89,7 +89,7 @@ th.col-chk{width:44px}
           <td>
             <label class="switch-emp">
               <input type="checkbox" class="js-incluso" {{ 'checked' if e.incluso }} {{ '' if e.ativo else 'disabled' }}
-                     title="{{ 'Incluir no Escritório' if e.ativo else 'Ative a empresa em Configurações antes' }}">
+                     title="{{ 'Incluir no Tudo Contado' if e.ativo else 'Ative a empresa em Configurações antes' }}">
               <span>{{ 'Incluída' if e.incluso else 'Fora' }}</span>
             </label>
           </td>
@@ -207,7 +207,7 @@ th.col-chk{width:44px}
       return;
     }
     var filtrado = visiveis().length !== linhas.length;
-    var msg = (incluso ? 'Incluir ' : 'Tirar ') + alvo.length + ' empresa(s) ' + (incluso ? 'no' : 'do') + ' Escritório' +
+    var msg = (incluso ? 'Incluir ' : 'Tirar ') + alvo.length + ' empresa(s) ' + (incluso ? 'no' : 'do') + ' Tudo Contado' +
       (filtrado ? ' (só as visíveis com os filtros atuais).' : '.') +
       (inativas ? '\n' + inativas + ' inativa(s) no cadastro não serão marcadas.' : '');
     if (!await confirmar(incluso ? 'Marcar todos' : 'Desmarcar todos', msg, incluso ? 'Marcar' : 'Desmarcar')) return;
@@ -251,7 +251,7 @@ th.col-chk{width:44px}
         .then(function (x) {
           if (!x.ok) { chk.checked = !incluso; aviso(x.j.mensagem || 'Não foi possível salvar.'); return; }
           aplicarEstado(tr, incluso); atualizarMetrica(); filtrar();
-          aviso(incluso ? 'Incluída no Escritório.' : 'Removida do Escritório.');
+          aviso(incluso ? 'Incluída no Tudo Contado.' : 'Removida do Tudo Contado.');
         })
         .catch(function () { chk.checked = !incluso; aviso('Falha de rede.'); })
         .finally(function () { chk.disabled = tr.dataset.ativo !== '1'; });

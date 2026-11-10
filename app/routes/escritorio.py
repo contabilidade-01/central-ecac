@@ -185,40 +185,63 @@ def _config_sistema() -> dict:
 
 # Cards do painel, na mesma ordem e cor do original. `rota` = tela já modelada;
 # sem rota, o card aparece igual mas avisa que a tela ainda não foi modelada.
-CARDS = [
-    {'titulo': 'Empresas', 'sub': 'Cadastro e gestão', 'cor': ('#5b21b6', '#7c3aed'),
-     'rota': 'empresas'},
-    # Oculto: Configuração própria do Escritório — usar Configurações do sistema
-    # ({'titulo': 'Configuração', 'sub': 'Dados do Escritório', 'cor': ('#581c87', '#7e22ce'),
-    #  'rota': 'configuracao', 'cert': True}),
-    {'titulo': 'Simples Nacional', 'sub': 'Lançamentos', 'cor': ('#064e3b', '#065f46'),
-     'rota': 'simples/lancamentos'},
-    {'titulo': 'Simples Nacional', 'sub': 'Enviar PGDAS-D', 'cor': ('#064e3b', '#065f46'),
-     'rota': 'simples/transmitir'},
-    {'titulo': 'Caminhos XMLs', 'sub': 'Automação', 'cor': ('#14532d', '#166534'),
-     'rota': 'xml/caminhos'},
-    {'titulo': 'Ler XML NFSe', 'sub': 'Automação', 'cor': ('#166534', '#15803d'),
-     'rota': 'xml/nfse'},
-    {'titulo': 'Ler XML NFe', 'sub': 'Automação', 'cor': ('#166534', '#15803d'),
-     'rota': 'xml/nfe'},
-    {'titulo': 'NCM × CST', 'sub': 'PIS/COFINS monofásicos', 'cor': ('#1e3a8a', '#2563eb'),
-     'rota': 'ncm'},
-    {'titulo': 'Upload PGDAS-D', 'sub': 'RBT12', 'cor': ('#166534', '#15803d'),
-     'rota': 'simples/rbt12'},
-    {'titulo': 'Saldo Portal NFSe', 'sub': 'Facilitador', 'cor': ('#22c55e', '#4ade80')},
-    {'titulo': 'Saldo Sefaz', 'sub': 'Facilitador', 'cor': ('#22c55e', '#4ade80')},
-    {'titulo': 'Valor Folha', 'sub': 'Cálculo do Fator R', 'cor': ('#0f766e', '#14b8a6')},
-    {'titulo': 'Opção Regime', 'sub': 'Simples Nacional', 'cor': ('#1f7a4f', '#2fbf71')},
-    {'titulo': 'ÚTEIS', 'sub': 'Declaração de Faturamento e enviar DAS',
-     'cor': ('#ff1744', '#d500f9'), 'rota': 'uteis/faturamento'},
-    {'titulo': 'DEFIS', 'sub': 'Simples Nacional', 'bloqueado': True},
-    {'titulo': 'MIT', 'sub': 'Apuração e DARF', 'bloqueado': True},
-    {'titulo': 'Situação Fiscal', 'sub': 'Integrações extras', 'bloqueado': True},
-    {'titulo': 'LUCROS', 'sub': 'Envio do R-4010', 'bloqueado': True},
-    {'titulo': 'VÍDEOS DE AJUDA', 'sub': 'Aprenda a usar o sistema',
-     'cor': ('#dc2626', '#7f1d1d'), 'destaque': True},
-    {'titulo': 'DOWNLOAD ROBÔ', 'sub': 'Baixar robô de automação', 'cor': ('#1d4ed8', '#06b6d4')},
+# Painel "Tudo Contado" (antes "Escritório"; renomeado a pedido do Jean em 10/11/2026).
+# Cartões agrupados por assunto. `rota` = tela pronta; sem rota = em preparação.
+ICONES = {
+    'predio': 'M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M9 17h1M14 17h1',
+    'lista': 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+    'enviar': 'M22 2 11 13M22 2l-7 20-4-9-9-4z',
+    'upload': 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12',
+    'recibo': 'M4 2v20l3-2 3 2 3-2 3 2 3-2 2 2V2l-2 2-3-2-3 2-3-2-3 2-3-2zM8 8h8M8 12h8M8 16h5',
+    'calculadora': 'M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h.01M12 19h4',
+    'balanca': 'M12 3v18M5 7h14M5 7l-3 7a4 4 0 0 0 6 0L5 7zM19 7l-3 7a4 4 0 0 0 6 0l-3-7zM8 21h8',
+    'pasta': 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+    'arquivo': 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M9 13h6M9 17h6',
+    'tabela': 'M3 3h18v18H3zM3 9h18M3 15h18M9 3v18',
+    'saldo': 'M3 3v18h18M7 15l4-4 3 3 5-6',
+    'video': 'M23 7l-7 5 7 5V7zM1 5h15v14H1z',
+    'baixar': 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
+}
+
+GRUPOS = [
+    {'titulo': 'Cadastro', 'cor': '#4d8dff', 'cards': [
+        {'titulo': 'Empresas', 'sub': 'Quem entra no Tudo Contado', 'icone': 'predio', 'rota': 'empresas'},
+    ]},
+    {'titulo': 'Simples Nacional', 'cor': '#3ddc84', 'cards': [
+        {'titulo': 'Lançamentos', 'sub': 'Receita do mês por empresa', 'icone': 'lista', 'rota': 'simples/lancamentos'},
+        {'titulo': 'Enviar PGDAS-D', 'sub': 'Calcular, transmitir e gerar o DAS', 'icone': 'enviar',
+         'rota': 'simples/transmitir'},
+        {'titulo': 'Upload PGDAS-D', 'sub': 'RBT12 a partir da declaração', 'icone': 'upload', 'rota': 'simples/rbt12'},
+        {'titulo': 'Faturamento e DAS', 'sub': 'Declaração de faturamento e envio do DAS', 'icone': 'recibo',
+         'rota': 'uteis/faturamento'},
+        {'titulo': 'Valor Folha', 'sub': 'Cálculo do Fator R', 'icone': 'calculadora'},
+        {'titulo': 'Opção de Regime', 'sub': 'Simples Nacional', 'icone': 'balanca'},
+    ]},
+    {'titulo': 'Notas e XML', 'cor': '#4fd1c5', 'cards': [
+        {'titulo': 'Caminhos dos XMLs', 'sub': 'Onde a automação busca as notas', 'icone': 'pasta', 'rota': 'xml/caminhos'},
+        {'titulo': 'Ler XML NFS-e', 'sub': 'Notas de serviço', 'icone': 'arquivo', 'rota': 'xml/nfse'},
+        {'titulo': 'Ler XML NF-e', 'sub': 'Saídas, entradas e devoluções', 'icone': 'arquivo', 'rota': 'xml/nfe'},
+        {'titulo': 'NCM × CST', 'sub': 'PIS/COFINS monofásicos', 'icone': 'tabela', 'rota': 'ncm'},
+        {'titulo': 'Saldo Portal NFS-e', 'sub': 'Facilitador', 'icone': 'saldo'},
+        {'titulo': 'Saldo Sefaz', 'sub': 'Facilitador', 'icone': 'saldo'},
+    ]},
+    {'titulo': 'Ajuda', 'cor': '#b18cff', 'cards': [
+        {'titulo': 'Vídeos de ajuda', 'sub': 'Aprenda a usar o sistema', 'icone': 'video'},
+        {'titulo': 'Baixar o robô', 'sub': 'Robô de automação para o PC', 'icone': 'baixar'},
+    ]},
 ]
+
+# Ainda sem tela: aparecem só como lista discreta.
+EM_BREVE = [
+    {'titulo': 'DEFIS', 'sub': 'Simples Nacional'},
+    {'titulo': 'MIT', 'sub': 'Apuração e DARF'},
+    {'titulo': 'Situação Fiscal', 'sub': 'Integrações extras'},
+    {'titulo': 'Lucros', 'sub': 'Envio do R-4010'},
+]
+
+# Compatibilidade: lista plana usada por quem ainda lê CARDS.
+CARDS = [c for g in GRUPOS for c in g['cards']] + [dict(c, bloqueado=True) for c in EM_BREVE]
+
 
 
 def _competencia() -> str:
@@ -335,7 +358,7 @@ def _contexto(**extra):
 @escritorio_bp.get('/')
 def painel():
     return render_template('escritorio/painel.html', CSS=CSS, FIM=FIM,
-                           LATERAL=lateral('escritorio'), cards=CARDS,
+                           LATERAL=lateral('escritorio'), cards=CARDS, grupos=GRUPOS, em_breve=EM_BREVE, icones=ICONES,
                            cfg=_config_sistema())
 
 
@@ -536,7 +559,7 @@ def api_lancamento_incluir():
     except (TypeError, ValueError):
         company_id = 0
     if company_id not in (_ids_empresas_escritorio() or []):
-        return jsonify({'ok': False, 'mensagem': 'Empresa fora do Escritório ou não liberada para o seu usuário.'}), 403
+        return jsonify({'ok': False, 'mensagem': 'Empresa fora do Tudo Contado ou não liberada para o seu usuário.'}), 403
     empresa = db.session.get(Company, company_id)
     if empresa is None or not empresa.ativo:
         return jsonify({'ok': False, 'mensagem': 'Empresa não encontrada ou inativa.'}), 404

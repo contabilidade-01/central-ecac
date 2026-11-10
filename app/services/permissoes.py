@@ -101,7 +101,7 @@ ROTINAS: Dict[str, Dict[str, Any]] = {
     },
     # DESVIO INTENCIONAL (17o) — telas de escritório no visual do Integra Contador.
     'escritorio': {
-        'nome': 'Escritório',
+        'nome': 'Tudo Contado',
         'prefixos': ['/escritorio'],
         'admin': False,
     },
@@ -162,7 +162,7 @@ ICONES = {
 MENU: List = [
     ('Painel', [
         {'chave': 'dashboard',     'rotulo': 'Dashboard',     'spa': 'Dashboard'},
-        {'chave': 'escritorio',    'rotulo': 'Escritório',    'url': '/escritorio'},
+        {'chave': 'escritorio',    'rotulo': 'Tudo Contado',  'url': '/escritorio'},
         {'chave': 'mei',           'rotulo': 'MEI',           'url': '/mei'},
         {'chave': 'fgts',          'rotulo': 'FGTS Digital',  'url': '/fgts'},
         {'chave': 'caixa_postal',  'rotulo': 'Caixa Postal',  'spa': 'Caixa Postal'},

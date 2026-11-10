@@ -370,8 +370,8 @@
             b = document.createElement('div');
             b.id = 'ecac-esc-banner';
             b.className = 'ecac-esc-banner';
-            b.innerHTML = '<span>Marque <b>Escritório</b> nas empresas que devem aparecer em '
-              + '<a href="/escritorio" target="_top">Escritório → Empresas</a>.</span>';
+            b.innerHTML = '<span>Marque <b>Tudo Contado</b> nas empresas que devem aparecer em '
+              + '<a href="/escritorio" target="_top">Tudo Contado → Empresas</a>.</span>';
             host.insertBefore(b, host.firstChild);
           }
           b.style.display = 'flex';
@@ -398,7 +398,7 @@
               chk.checked = !!info.incluso;
               chk.disabled = !info.ativo;
               lab.appendChild(chk);
-              lab.appendChild(document.createTextNode(' Escritório (PGDAS / XML)'));
+              lab.appendChild(document.createTextNode(' Tudo Contado (PGDAS / XML)'));
               chk.addEventListener('change', function () {
                 var incluso = !!chk.checked;
                 chk.disabled = true;

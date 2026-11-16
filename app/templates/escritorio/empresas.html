@@ -165,8 +165,11 @@ th.col-chk{width:44px}
   if ($('fBusca')) {
     try {
       var salvo = JSON.parse(localStorage.getItem(CHAVE) || '{}');
-      $('fBusca').value = salvo.q || ''; $('fEscritorio').value = salvo.esc || ''; $('fCadastro').value = salvo.cad || '';
+      $('fBusca').value = salvo.q || '';
     } catch (e) {}
+    // Padrão ao abrir: só as empresas Incluídas no Tudo Contado e Ativas no cadastro.
+    // "Limpar filtros" mostra todas para ticar novas.
+    $('fEscritorio').value = '1'; $('fCadastro').value = '1';
     ['fBusca', 'fEscritorio', 'fCadastro'].forEach(function (id) {
       $(id).addEventListener('input', filtrar); $(id).addEventListener('change', filtrar);
     });

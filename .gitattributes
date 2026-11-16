@@ -1,0 +1,3 @@
+# Build do frontend sempre com LF: o CI compara app/static/novo com o npm run build do Linux.
+app/static/novo/** text eol=lf
+frontend/** text eol=lf

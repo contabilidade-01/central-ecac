@@ -228,22 +228,27 @@ def test_consulta_completa_e_libera_emissao(ambiente):
                      headers=tok).status_code == 200
     ver = http.get(f'/api/interno/fgts/pedidos/{pid}?cnpj={CNPJ}', headers=ATENDE).get_json()['pedido']
     assert ver['status'] == 'aguardando_captcha'
+    # Datas futuras: "hoje" vira Guia Rápida (data_pagamento None), então a data fixa
+    # quebrava o teste no dia em que coincidia com hoje.
+    from app.services.pendencias_service import hoje_brasil
+    d1 = (hoje_brasil() + timedelta(days=1)).isoformat()
+    d2 = (hoje_brasil() + timedelta(days=2)).isoformat()
     corpo = {'competencias': [{'competencia': '202511', 'total': 463.86, 'situacao': 'vencida',
                                'grupos': [{'tipo': 'Mensal', 'total': 463.86, 'cpf': '12345678909'}]},
                               {'competencia': 'lixo'}],
-             'datas_permitidas': ['2026-11-16', '2026-11-17']}
+             'datas_permitidas': [d1, d2]}
     r = http.post(f'/api/fgts-agente/pedidos/{pid}/resultado', json=corpo, headers=tok)
     assert r.status_code == 200 and r.get_json()['status'] == 'concluido'
     ver = http.get(f'/api/interno/fgts/pedidos/{pid}?cnpj={CNPJ}', headers=ATENDE).get_json()['pedido']
     assert [c['competencia'] for c in ver['competencias']] == ['202511']
     assert 'cpf' not in json.dumps(ver['competencias'])
-    assert ver['datas_permitidas'] == ['2026-11-16', '2026-11-17']
+    assert ver['datas_permitidas'] == [d1, d2]
     r = http.post('/api/interno/fgts/pedidos', json={'cnpj': CNPJ, 'acao': 'emitir', 'competencias': ['202511'],
-                                                     'data_pagamento': '2026-11-16'}, headers=ATENDE)
+                                                     'data_pagamento': d1}, headers=ATENDE)
     assert r.status_code == 200
     proximo = http.post('/api/fgts-agente/proximo', headers=tok).get_json()['pedido']
     assert proximo['acao'] == 'emitir' and proximo['competencias'] == ['202511']
-    assert proximo['data_pagamento'] == '2026-11-16'
+    assert proximo['data_pagamento'] == d1
 
 
 def _pedido_emitir(app, http, tok):
